@@ -152,8 +152,9 @@ class _CustomDrawerState extends State<CustomDrawer> {
     try {
       final result = await ApiRepo().logoutAPi(bearerKey);
       if (result != null) {
-        // await sharedPreferences.clear(); // Clears all shared preferences
+       // await sharedPreferences.clear(); // Clears all shared preferences
         await sharedPreferences.remove(valueShared_BEARER_KEY);
+        await sharedPreferences.remove(valueShared_STORE_KEY);
         app.appController.clearOnLogout();
         Navigator.of(context).pop(); // Closes the drawer
         // Clears navigation history and navigates to LoginScreen

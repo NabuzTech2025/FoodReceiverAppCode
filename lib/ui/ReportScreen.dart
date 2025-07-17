@@ -17,7 +17,7 @@ class ReportScreen extends StatefulWidget {
   _ReportScreenState createState() => _ReportScreenState();
 }
 
-class _ReportScreenState extends State<ReportScreen> {
+class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderStateMixin {
   late SharedPreferences sharedPreferences;
   String? bearerKey;
 
@@ -30,6 +30,8 @@ class _ReportScreenState extends State<ReportScreen> {
   late int displayedYear;
   String dateSeleted = '';
 
+  late AnimationController _controller;
+  late Animation<double> _animation;
   @override
   void initState() {
     super.initState();
@@ -37,11 +39,21 @@ class _ReportScreenState extends State<ReportScreen> {
     final now = DateTime.now();
     displayedMonth = now.month;
     displayedYear = now.year;
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
 
+    _animation = Tween<double>(begin: 0.3, end: 1.0).animate(_controller);
     initVar();
   }
 
-  // rest of your code...
+  @override
+  void dispose() {
+    _controller.dispose(); // Stop animation when screen is disposed
+    super.dispose();
+  }
+
 
   Future<void> initVar() async {
     sharedPreferences = await SharedPreferences.getInstance();
@@ -94,7 +106,7 @@ class _ReportScreenState extends State<ReportScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding:EdgeInsets.all(15),
         child: ListView(
           children: [
             GestureDetector(
@@ -105,11 +117,12 @@ class _ReportScreenState extends State<ReportScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  Text(
-                    'reports'.tr,
+                  Text('reports'.tr,
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        fontFamily: "Mulish",
+                        //color: Color(0xff0C831F)
                     ),
                   ),
                   Text(
@@ -117,8 +130,11 @@ class _ReportScreenState extends State<ReportScreen> {
                         ? DateFormat('MMMM y').format(DateTime.now())
                         : dateSeleted,
                     style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.black,
+                      fontSize: 11,
+                      color: Color(0xff757B8F),
+                      fontWeight: FontWeight.w600,
+                      height: 0,
+                      fontFamily: "Mulish"
                     ),
                   ),
                 ],
@@ -170,8 +186,6 @@ class _ReportScreenState extends State<ReportScreen> {
       });
     }
   }
-
-
 
   Map<int, DailySalesReport> _getReportsForMonth(int month, int year) {
     final Map<int, DailySalesReport> map = {};
@@ -298,8 +312,7 @@ class _ReportScreenState extends State<ReportScreen> {
     return names[month];
   }
 
-  Widget _calendarCellWithDate(
-      DateTime date, DailySalesReport? report, bool isCurrentMonth) {
+  Widget _calendarCellWithDate(DateTime date, DailySalesReport? report, bool isCurrentMonth) {
     final textColor = isCurrentMonth ? Colors.black : Colors.grey[400];
     return GestureDetector(
       onTap: () {
@@ -572,4 +585,79 @@ class _ReportScreenState extends State<ReportScreen> {
   String _formatDate(DateTime date) {
     return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
   }
+// Row(
+// mainAxisAlignment: MainAxisAlignment.spaceBetween,
+// crossAxisAlignment: CrossAxisAlignment.start,
+// children: [
+// Column(
+// crossAxisAlignment: CrossAxisAlignment.start,
+// mainAxisAlignment: MainAxisAlignment.start,
+// children: [
+// Container(
+// width: 80,
+// //height: 40,
+// color: Colors.transparent,
+// child: Stack(
+// clipBehavior: Clip.none,
+// children: [
+// const Center(
+// child: Text(
+// 'Live Sale',
+// style: TextStyle(
+// fontSize: 18,
+// fontWeight: FontWeight.w800,
+// fontFamily: "Mulish",
+// color: Color(0xff0C831F),
+// height: 0
+// ),
+// ),
+// ),
+// Positioned(
+// right: -8,
+// top: -2,
+// child: FadeTransition(
+// opacity: _animation,
+// child: Container(
+// width: 10,
+// height: 10,
+// decoration: BoxDecoration(
+// color: Color(0xff0C831F),
+// shape: BoxShape.circle,
+// ),
+// )),
+// ),
+// ],
+// ),
+// ),
+// Text(
+// dateSeleted.isEmpty
+// ? DateFormat('MMMM y').format(DateTime.now())
+//     : dateSeleted,
+// style: const TextStyle(
+// fontSize: 11,
+// color: Color(0xff757B8F),
+// fontWeight: FontWeight.w600,
+// height: 0,
+// fontFamily: "Mulish"
+// ),
+// ),
+// ],
+// ),
+// GestureDetector(
+// onTap: () {
+// _selectMonth(context); // Call your updated function
+// },
+// child: Row(
+// children: [
+// const Text('History',
+// style: TextStyle(
+// fontFamily: "Mulish",fontWeight: FontWeight.w800,fontSize: 16,color: Color(0xff1F1E1E)
+// ),),
+// SizedBox(width: 5,),
+// SvgPicture.asset('assets/images/dropdown.svg',height: 5,width: 11,)
+// ],
+// ),
+// )
+// ],
+// ),
 }
