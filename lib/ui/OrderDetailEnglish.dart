@@ -628,12 +628,12 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                 ),
               ),
             ),
-            // This will stick to the bottom
             Padding(
-              padding: const EdgeInsets.only(top: 10, bottom: 10),
+              padding: const EdgeInsets.only(top: 10, bottom: 20),
               child: _buildActionButtons(
                   context, updatedOrder.approvalStatus ?? 0),
             ),
+            SizedBox(height: 30,)
           ],
         ),
       ),
