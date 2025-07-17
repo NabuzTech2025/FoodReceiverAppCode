@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "69694962863",
+    "project_id": "fastapi-26d37",
+    "storage_bucket": "fastapi-26d37.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:69694962863:android:f7b3a830a9afa9ff7d685a",
+        "android_client_info": {
+          "package_name": "com.food.mandeep.food_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3U-6gmwgHhlW4wvy8vUGg6zTaaDfGolQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
