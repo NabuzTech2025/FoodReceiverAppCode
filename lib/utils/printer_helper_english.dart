@@ -192,7 +192,7 @@ class PrinterHelperEnglish {
     var amount = order.payment?.amount ?? 0.0;
     var discount = order.invoice?.discount_amount ?? 0.0;
     var delFee = order.invoice?.delivery_fee ?? 0.0;
-    var preSubTotal = amount + discount - delFee;
+    var preSubTotal = amount - discount +delFee;
     final subtotal = preSubTotal;
 
     final discountData = order.invoice?.discount_amount ?? 0.0;

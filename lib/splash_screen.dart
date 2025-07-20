@@ -53,18 +53,19 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Lottie.asset(
-            'assets/animations/burger.json',
-            width: 350,
-            height: 350,
-            repeat: true, )
-        // Image.asset(
-        //   'assets/images/bg.gif',
-        //   fit: BoxFit.contain, // 🔑 show the whole GIF, no cropping
-        //   gaplessPlayback: true,
-        //   width: double.infinity, // let it expand while preserving ratio
-        //   height: double.infinity,
-        // ),
+        child:
+        // Lottie.asset(
+        //     'assets/animations/burger.json',
+        //     width: 350,
+        //     height: 350,
+        //     repeat: true, )
+        Image.asset(
+          'assets/images/splash.gif',
+          fit: BoxFit.cover, // 🔑 show the whole GIF, no cropping
+          gaplessPlayback: true,
+          width: double.infinity, // let it expand while preserving ratio
+          height: double.infinity,
+        ),
       ),
     );
   }

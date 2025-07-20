@@ -111,12 +111,22 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     };
 
     try {
+      Get.dialog(
+        Center(
+            child: Lottie.asset(
+              'assets/animations/burger.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            )),
+        barrierDismissible: false,
+      );
       final prefs = await SharedPreferences.getInstance();
       bool _autoOrderPrint = prefs.getBool('auto_order_print') ?? false;
       bool _isAutoAccept = prefs.getBool('is_auto_accept') ?? false;
 
       final result = await ApiRepo().orderAcceptDecline(bearerKey, jsonData, updatedOrder.id ?? 0);
-
+      Get.back();
       if (result != null) {
         setState(() {
           isPrint = true;
@@ -139,6 +149,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
       }
 
     } catch (e) {
+      Get.back();
       Log.loga(title, "Order Accept API Exception: $e");
     } finally {
       setState(() {
@@ -243,7 +254,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
         (updatedOrder.invoice?.discount_amount ?? 0.0).toStringAsFixed(1);
     var delFee = (updatedOrder.invoice?.delivery_fee ?? 0.0).toStringAsFixed(1);
     var preSubTotal =
-        (double.parse(amount) + double.parse(discount) - double.parse(delFee))
+        (double.parse(amount) - double.parse(discount) + double.parse(delFee))
             .toStringAsFixed(1);
     final subtotal = preSubTotal;
 
@@ -299,13 +310,8 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
           ),
         ],
       ),
-      body: isLoading?(Center
-        (child:  Lottie.asset(
-        'assets/animations/burger.json',
-        width: 150,
-        height: 150,
-        repeat: true, )))
-          :Container(
+      body:
+      Container(
         padding: EdgeInsets.fromLTRB(10, 0, 10, 5),
         child: Column(
           children: [

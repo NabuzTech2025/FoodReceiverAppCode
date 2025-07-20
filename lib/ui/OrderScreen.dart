@@ -226,17 +226,122 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                     ],
                   ),
                 ),
-
-                // Manual refresh icon
-                IconButton(
-                  iconSize: 33,
-                  icon: const Icon(Icons.refresh),
-                  onPressed: _manualRefresh,                    // ✨ NEW
+                Row(
+                  children: [
+                    Text('Total Orders:20',style: TextStyle(
+                      fontSize: 14,fontWeight: FontWeight.w800,fontFamily: "Mulish",color: Colors.black
+                    ),),
+                    IconButton(
+                      iconSize: 33,
+                      icon: const Icon(Icons.refresh),
+                      onPressed: _manualRefresh,                    // ✨ NEW
+                    ),
+                  ],
                 ),
               ],
             ),
             const SizedBox(height: 7),
+            Row(
+              //mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(3,),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        spreadRadius: 0,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text('Accepted : 20',style: TextStyle(
+                      fontFamily: "Mulish",fontWeight: FontWeight.w700,fontSize: 10,color: Colors.black
+                  ),),
+                ),
+                SizedBox(width: 3,),
+                Container(
+                  padding: EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(3,),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        spreadRadius: 0,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text('Decline : 2',style: TextStyle(
+                    fontFamily: "Mulish",fontWeight: FontWeight.w700,fontSize: 10,color: Colors.black
+                  ),),
+                ),
+                SizedBox(width: 3,),
+                Container(
+                  padding: EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(3,),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        spreadRadius: 0,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text('Pending : 2',style: TextStyle(
+                    fontFamily: "Mulish",fontWeight: FontWeight.w700,fontSize: 10,color: Colors.black
+                  ),),
+                ),
+                SizedBox(width: 3,),
+                Container(
+                  padding: EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(3,),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        spreadRadius: 0,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text('PickUp : 2',style: TextStyle(
+                    fontFamily: "Mulish",fontWeight: FontWeight.w700,fontSize: 10,color: Colors.black
+                  ),),
+                ),
+                SizedBox(width: 2,),
+                Container(
+                  padding: EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(3,),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        spreadRadius: 0,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text('Delivery : 2',style: TextStyle(
+                    fontFamily: "Mulish",fontWeight: FontWeight.w700,fontSize: 10,color: Colors.black
+                  ),),
+                ),
+              ],
+            ),
             // ────────── Orders list with pull‑to‑refresh ──────────
+            SizedBox(height: 10,),
             Expanded(
               child: RefreshIndicator(                          // ✨ NEW
                 onRefresh: _handleRefresh,
