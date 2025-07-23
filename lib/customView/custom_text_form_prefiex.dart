@@ -54,24 +54,21 @@ class CustomTextFormPrefix extends StatelessWidget {
           hintText: myLabelText,
           contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 10),
           border: InputBorder.none,
-          hintStyle: TextStyle(
+          hintStyle: const TextStyle(
             fontSize: 15,
             color: Colors.grey,
             fontWeight: FontWeight.w500,
-            fontFamily: 'Monstserrat',
+            fontFamily: 'Montserrat',
           ),
         ),
         keyboardType: keyboardType,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 15,
           color: Colors.black,
           fontWeight: FontWeight.w500,
-          fontFamily: 'Monstserrat',
+          fontFamily: 'Montserrat',
         ),
       ),
     );
-
-
-
   }
 }

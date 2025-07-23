@@ -225,22 +225,6 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     String localeToUse = locale == 'de' ? 'de_DE' : 'en_US';
     return NumberFormat('#,##0.00#', localeToUse).format(amount);
   }
-  // Sirf yeh helper method add karo
-  List<String> _getUniqueProductNames() {
-    Set<String> uniqueProducts = {};
-    for (var item in updatedOrder.items ?? []) {
-      uniqueProducts.add(item.productName ?? "Unknown");
-    }
-    return uniqueProducts.toList();
-  }
-
-// Sirf yeh helper method add karo
-  List<OrderItem> _getItemsForProduct(String productName) {
-    return (updatedOrder.items ?? [])
-        .where((item) => item.productName == productName)
-        .toList();
-  }
-
 
   @override
   Widget build(BuildContext context) {
@@ -250,14 +234,11 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
 
     //var amount = (updatedOrder.payment?.amount ?? 0.0).toStringAsFixed(1);
     var amount = (updatedOrder.invoice?.totalAmount ?? 0.0).toStringAsFixed(1);
-    var discount =
-        (updatedOrder.invoice?.discount_amount ?? 0.0).toStringAsFixed(1);
+    var discount = (updatedOrder.invoice?.discount_amount ?? 0.0).toStringAsFixed(1);
     var delFee = (updatedOrder.invoice?.delivery_fee ?? 0.0).toStringAsFixed(1);
     var preSubTotal =
-        (double.parse(amount) - double.parse(discount) + double.parse(delFee))
-            .toStringAsFixed(1);
+        (double.parse(amount) - double.parse(discount) +double.parse(delFee) ).toStringAsFixed(1);
     final subtotal = preSubTotal;
-
     final discountData = updatedOrder.invoice?.discount_amount ?? 0.0;
     final deliveryFee = updatedOrder.invoice?.delivery_fee ?? 0.0;
 
@@ -399,31 +380,25 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                       shrinkWrap: true,
                       physics: NeverScrollableScrollPhysics(),
                       padding: EdgeInsets.all(1),
-                      itemCount: _getUniqueProductNames().length,
+                      itemCount: updatedOrder.items?.length ?? 0,
                       itemBuilder: (context, index) {
-                        final productName = _getUniqueProductNames()[index];
-                        final productItems = _getItemsForProduct(productName);
+                        final item = updatedOrder.items?[index];
+                        if (item == null) return SizedBox.shrink();
 
-                        // Calculate total price for this product
-                        double totalProductPrice = 0;
-                        for (var item in productItems) {
-                          final toppingsTotal = item.toppings?.fold<double>(
-                            0,
-                                (sum, topping) => sum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
-                          ) ?? 0;
-                          final itemTotal = ((item.unitPrice ?? 0) + toppingsTotal) * (item.quantity ?? 0);
-                          totalProductPrice += itemTotal;
-                        }
+                        // Calculate total price for this single item
+                        final toppingsTotal = item.toppings?.fold<double>(
+                          0, (sum, topping) => sum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
+                        ) ?? 0;
+                        final itemTotal = ((item.unitPrice ?? 0) + toppingsTotal) * (item.quantity ?? 0);
 
                         return _orderItem(
-                          productName,
-                          totalProductPrice.toString(),
-                          productItems, // Pass list of items instead of single item
-                          note: "", // You can modify this logic as needed
+                          item.productName ?? "Unknown",
+                          itemTotal.toString(),
+                          item,
+                          note: item.note ?? "",
                         );
                       },
                     ),
-
                     SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
                     Visibility(
@@ -439,7 +414,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                                 style: TextStyle(
                                     fontWeight: FontWeight.w500, fontSize: 13),
                               ),
-                              Text(formatAmount(double.parse(subtotal),),
+                              Text(formatAmount(double.parse(amount),),
                                 // subtotal,
                                 style: TextStyle(
                                     fontWeight: FontWeight.w500, fontSize: 13),
@@ -517,7 +492,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                               ),
 
                               Text(
-                                "${'currency'.tr} ${formatAmount(updatedOrder.invoice?.totalAmount??00)}",
+                                "${'currency'.tr} ${formatAmount(double.parse(subtotal))}",
                                 style: TextStyle(
                                     fontWeight: FontWeight.w500, fontSize: 13),
                               ),
@@ -820,22 +795,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
   //   );
   // }
   //
-  Widget _orderItem(String title, String price, dynamic itemData, {String? note}) {
-    // Check if itemData is a list (grouped items) or single item
-    List<OrderItem> items;
-    if (itemData is List<OrderItem>) {
-      items = itemData;
-    } else {
-      items = [itemData as OrderItem];
-    }
-
-    // Calculate total quantity for the main product
-    int totalQuantity = items.fold(0, (sum, item) => sum + (item.quantity ?? 0));
-
-    // Check if any item has toppings and no variant (for showing unit price)
-    bool shouldShowUnitPrice = items.any((item) =>
-    (item.toppings?.isNotEmpty ?? false) && item.variant == null);
-
+  Widget _orderItem(String title, String price, OrderItem item, {String? note}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -847,8 +807,8 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
             children: [
               Expanded(
                 child: Text(
-                  '${totalQuantity}X $title'
-                      '${shouldShowUnitPrice ? ' [${formatAmount(items.first.unitPrice)}]' : ''}',
+                  '${item.quantity ?? 0}X $title'
+                      '${((item.toppings?.isNotEmpty ?? false) && item.variant == null) ? ' [${formatAmount(item.unitPrice)}]' : ''}',
                   style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 3,
@@ -861,49 +821,34 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
             ],
           ),
 
-          // Display all variants/items for this product
-          ...items.map((item) => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Variant info
-              if (item.variant != null)
-                Padding(
-                  padding: const EdgeInsets.only(left: 10, top: 2),
-                  child: Text("${item.quantity} × ${item.variant!.name ?? ''} [${formatAmount(item.variant!.price ?? 0)} ${'currency'.tr}]",
-                      style: TextStyle(fontWeight: FontWeight.w400, fontSize: 13)
-                  ),
-                ),
+          // Variant info
+          if (item.variant != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 10, top: 2),
+              child: Text("${item.quantity} × ${item.variant!.name ?? ''} [${formatAmount(item.variant!.price ?? 0)} ${'currency'.tr}]",
+                  style: TextStyle(fontWeight: FontWeight.w400, fontSize: 13)
+              ),
+            ),
 
-              // Toppings info
-              if ((item.toppings?.isNotEmpty ?? false))
-                Padding(
-                  padding: const EdgeInsets.only(left: 10, top: 2),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: item.toppings!.map((topping) {
-                      final totalPrice = (topping.price ?? 0) * (topping.quantity ?? 0);
-                      return Text("${topping.quantity} × ${topping.name} [${formatAmount(totalPrice)}]",
-                        style: const TextStyle(color: Colors.black, fontSize: 12),
-                      );
-                    }).toList(),
-                  ),
-                ),
-
-              // Optional note
-              if (item.note?.isNotEmpty ?? false)
-                Padding(
-                  padding: const EdgeInsets.only(left: 10, top: 2),
-                  child: Text(
-                    "+ ${item.note}",
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                ),
-            ],
-          )).toList(),
+          // Toppings info
+          if ((item.toppings?.isNotEmpty ?? false))
+            Padding(
+              padding: const EdgeInsets.only(left: 10, top: 2),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: item.toppings!.map((topping) {
+                  final totalPrice = (topping.price ?? 0) * (topping.quantity ?? 0);
+                  return Text("${topping.quantity} × ${topping.name} [${formatAmount(totalPrice)}]",
+                    style: const TextStyle(color: Colors.black, fontSize: 12),
+                  );
+                }).toList(),
+              ),
+            ),
         ],
       ),
     );
   }
+
   Widget brutoItems(String percentage, String brutto, String netto, String? taxAmount) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),

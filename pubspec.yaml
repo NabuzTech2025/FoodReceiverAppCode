@@ -88,9 +88,9 @@ flutter:
   assets:
     - assets/images/
     - assets/alarm.mp3
-    - assets/animations/burger.json
+    - assets/animations/
   fonts:
-    - family: Poppins
+    - family: Mulish
       fonts:
         - asset: assets/fontFamily/Mulish-Italic-VariableFont_wght.ttf
           weight: 500

@@ -1,669 +1,7 @@
-// import 'package:flutter/cupertino.dart';
-// import 'package:flutter/material.dart';
-// import 'package:flutter_svg/svg.dart';
-// import 'package:get/get.dart';
-// import 'package:intl/intl.dart';
-// import 'package:lottie/lottie.dart';
-// import 'package:shared_preferences/shared_preferences.dart';
-//
-// import '../api/repository/api_repository.dart';
-// import '../constants/constant.dart';
-// import '../models/DailySalesReport.dart';
-// import '../utils/log_util.dart';
-// import '../utils/my_application.dart';
-//
-// class ReportScreen extends StatefulWidget {
-//   @override
-//   _ReportScreenState createState() => _ReportScreenState();
-// }
-//
-// class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderStateMixin {
-//   late SharedPreferences sharedPreferences;
-//   String? bearerKey;
-//
-//   List<DailySalesReport> reportList = [];
-//   DailySalesReport reportsss = DailySalesReport();
-//   DailySalesReport? _selectedReport;
-//
-//   // Track displayed calendar month and year
-//   late int displayedMonth;
-//   late int displayedYear;
-//   String dateSeleted = '';
-//
-//   late AnimationController _controller;
-//   late Animation<double> _animation;
-//   @override
-//   void initState() {
-//     super.initState();
-//     // Initialize displayedMonth and displayedYear to current month/year
-//     final now = DateTime.now();
-//     displayedMonth = now.month;
-//     displayedYear = now.year;
-//     _controller = AnimationController(
-//       vsync: this,
-//       duration: const Duration(milliseconds: 800),
-//     )..repeat(reverse: true);
-//
-//     _animation = Tween<double>(begin: 0.3, end: 1.0).animate(_controller);
-//     initVar();
-//   }
-//
-//   @override
-//   void dispose() {
-//     _controller.dispose(); // Stop animation when screen is disposed
-//     super.dispose();
-//   }
-//
-//
-//   Future<void> initVar() async {
-//     sharedPreferences = await SharedPreferences.getInstance();
-//     bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
-//     getReports(bearerKey);
-//   }
-//
-//   Future<void> getReports(String? bearerKey) async {
-//     try {
-//       print("DataBearerKEy " + bearerKey!);
-//       Get.dialog(
-//         Center(
-//             child:  Lottie.asset(
-//               'assets/animations/burger.json',
-//               width: 150,
-//               height: 150,
-//               repeat: true, )
-//           //CupertinoActivityIndicator(radius: 20, color: Colors.orange),
-//         ),
-//         barrierDismissible: false,
-//       );
-//       final result = await ApiRepo().reportGetApi(bearerKey!);
-//       // Log.loga(title, "LoginData :: result >>>>> ${result?.toJson()}");
-//       Get.back();
-//       if (result != null) {
-//         setState(() {
-//           reportList = result;
-//           print("reportList " + reportList.length.toString());
-//           //orderModelList = result;
-//           //print("DataORder " + orderModelList.length.toString());
-//         });
-//
-//         // Handle navigation or success here
-//       } else {
-//         showSnackbar("Error", " error");
-//       }
-//     } catch (e) {
-//       Get.back();
-//       Log.loga(title, "Login Api:: e >>>>> $e");
-//       showSnackbar("Api Error", "An error occurred: $e");
-//     }
-//   }
-//   String formatAmount(double amount) {
-//     final locale = Get.locale?.languageCode ?? 'en';
-//     String localeToUse = locale == 'de' ? 'de_DE' : 'en_US';
-//     return NumberFormat('#,##0.0#', localeToUse).format(amount);
-//   }
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: Colors.white,
-//       body: Padding(
-//         padding:EdgeInsets.all(15),
-//         child: ListView(
-//           children: [
-//             GestureDetector(
-//               onTap: () {
-//                 _selectMonth(context); // Call your updated function
-//               },
-//               child: Column(
-//                 crossAxisAlignment: CrossAxisAlignment.start,
-//                 mainAxisAlignment: MainAxisAlignment.start,
-//                 children: [
-//                   Text('reports'.tr,
-//                     style: TextStyle(
-//                         fontSize: 18,
-//                         fontWeight: FontWeight.w800,
-//                         fontFamily: "Mulish",
-//                         //color: Color(0xff0C831F)
-//                     ),
-//                   ),
-//                   Text(
-//                     dateSeleted.isEmpty
-//                         ? DateFormat('MMMM y').format(DateTime.now())
-//                         : dateSeleted,
-//                     style: const TextStyle(
-//                       fontSize: 11,
-//                       color: Color(0xff757B8F),
-//                       fontWeight: FontWeight.w600,
-//                       height: 0,
-//                       fontFamily: "Mulish"
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//             ),
-//             _calendar(),
-//             const SizedBox(height: 16),
-//             /*_todayStatus(reportsss)*/
-//             _selectedReport != null
-//                 ? _todayStatus(_selectedReport)
-//                 : Container(),
-//             const SizedBox(height: 16),
-//             /*    ElevatedButton(
-//               onPressed: () {},
-//               style: ElevatedButton.styleFrom(
-//                 backgroundColor: Colors.green,
-//                 padding: const EdgeInsets.symmetric(vertical: 16),
-//               ),
-//               child: const Text("Full Details",
-//                   style: TextStyle(color: Colors.white)),
-//             )*/
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-//
-//   Future<void> _selectMonth(BuildContext context) async {
-//     final now = DateTime.now();
-//
-//     final selected = await showDatePicker(
-//       context: context,
-//       initialDate: DateTime(displayedYear, displayedMonth),
-//       firstDate: DateTime(2020),
-//       lastDate: DateTime(now.year + 5),
-//       helpText: "Select Month",
-//       fieldHintText: "Month/Year",
-//       initialEntryMode: DatePickerEntryMode.calendarOnly,
-//       // Remove selectableDayPredicate to allow any date selection
-//     );
-//
-//     if (selected != null) {
-//       setState(() {
-//         displayedMonth = selected.month;
-//         displayedYear = selected.year;
-//         // Format the selected month/year for display
-//         dateSeleted = DateFormat('MMMM y').format(selected);
-//         _selectedReport = null;
-//       });
-//     }
-//   }
-//
-//   Map<int, DailySalesReport> _getReportsForMonth(int month, int year) {
-//     final Map<int, DailySalesReport> map = {};
-//
-//     for (var report in reportList) {
-//       if (report.startDate != null) {
-//         final date = DateTime.parse(report.startDate!); // Parse the string
-//         if (date.month == month && date.year == year) {
-//           map[date.day] = report;
-//         }
-//       }
-//     }
-//     return map;
-//   }
-//
-//   Widget _calendar() {
-//     final reportMap = _getReportsForMonth(displayedMonth, displayedYear);
-//
-//     final firstDay = DateTime(displayedYear, displayedMonth, 1);
-//     final startWeekday = firstDay.weekday % 7; // Sunday = 0
-//     final totalDays = DateTime(displayedYear, displayedMonth + 1, 0).day;
-//
-//     final prevMonth = displayedMonth == 1 ? 12 : displayedMonth - 1;
-//     final prevYear = displayedMonth == 1 ? displayedYear - 1 : displayedYear;
-//     final prevMonthDays = DateTime(displayedYear, displayedMonth, 0).day;
-//
-//     final nextMonth = displayedMonth == 12 ? 1 : displayedMonth + 1;
-//     final nextYear = displayedMonth == 12 ? displayedYear + 1 : displayedYear;
-//
-//     final totalCells = ((startWeekday + totalDays + 6) ~/ 7) * 7; // Full weeks
-//
-//     return Column(
-//       crossAxisAlignment: CrossAxisAlignment.start,
-//       children: [
-//      /*   Row(
-//           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//           children: [
-//             IconButton(
-//               icon: Icon(Icons.chevron_left),
-//               onPressed: () {
-//                 setState(() {
-//                   // Move to previous month
-//                   displayedMonth = prevMonth;
-//                   displayedYear = prevYear;
-//                   _selectedReport =
-//                       null; // reset selected report when month changes
-//                 });
-//               },
-//             ),
-//             Text(
-//               "${_monthName(displayedMonth)} $displayedYear",
-//               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-//             ),
-//             IconButton(
-//               icon: Icon(Icons.chevron_right),
-//               onPressed: () {
-//                 setState(() {
-//                   // Move to next month
-//                   displayedMonth = nextMonth;
-//                   displayedYear = nextYear;
-//                   _selectedReport =
-//                       null; // reset selected report when month changes
-//                 });
-//               },
-//             ),
-//           ],
-//         ),*/
-//         const SizedBox(height: 10),
-//         Table(
-//           border: TableBorder.all(color: Colors.grey[300]!),
-//           children: [
-//             _buildWeekdayRow(),
-//             ...List.generate(totalCells ~/ 7, (week) {
-//               return TableRow(
-//                 children: List.generate(7, (dayIndex) {
-//                   final cellIndex = week * 7 + dayIndex;
-//                   DateTime cellDate;
-//
-//                   if (cellIndex < startWeekday) {
-//                     // Leading days from previous month
-//                     final day = prevMonthDays - (startWeekday - cellIndex - 1);
-//                     cellDate = DateTime(prevYear, prevMonth, day);
-//                   } else if (cellIndex >= startWeekday + totalDays) {
-//                     // Trailing days from next month
-//                     final day = cellIndex - (startWeekday + totalDays) + 1;
-//                     cellDate = DateTime(nextYear, nextMonth, day);
-//                   } else {
-//                     // Current month
-//                     final day = cellIndex - startWeekday + 1;
-//                     cellDate = DateTime(displayedYear, displayedMonth, day);
-//                   }
-//
-//                   final isCurrentMonth = cellDate.month == displayedMonth;
-//                   final report =
-//                       isCurrentMonth ? reportMap[cellDate.day] : null;
-//
-//                   return _calendarCellWithDate(
-//                       cellDate, report, isCurrentMonth);
-//                 }),
-//               );
-//             }),
-//           ],
-//         ),
-//       ],
-//     );
-//   }
-//
-//   String _monthName(int month) {
-//     const names = [
-//       '', // 1-based index convenience
-//       'January',
-//       'February',
-//       'March',
-//       'April',
-//       'May',
-//       'June',
-//       'July',
-//       'August',
-//       'September',
-//       'October',
-//       'November',
-//       'December'
-//     ];
-//     return names[month];
-//   }
-//
-//   Widget _calendarCellWithDate(DateTime date, DailySalesReport? report, bool isCurrentMonth) {
-//     final textColor = isCurrentMonth ? Colors.black : Colors.grey[400];
-//     return GestureDetector(
-//       onTap: () {
-//         if (report != null) {
-//           setState(() {
-//             _selectedReport = report;
-//           });
-//         }
-//       },
-//       child: Container(
-//         padding: const EdgeInsets.all(6),
-//         color: Colors.white, // Ensure no background color is inherited
-//         child: SizedBox(
-//           height: 65, // Set a fixed height for all cells
-//           child: Column(
-//             mainAxisAlignment: MainAxisAlignment.center,
-//             children: [
-//               Text(
-//                 "${date.day}",
-//                 style: TextStyle(
-//                   fontWeight: FontWeight.bold,
-//                   color: textColor,
-//                 ),
-//               ),
-//               const SizedBox(height: 2),
-//               if (report != null) ...[
-//                 Column(
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: [
-//                     SvgPicture.asset(
-//                       'assets/images/ic_report.svg',
-//                       height: 12,
-//                       width: 12,
-//                     ),
-//                     const SizedBox(height: 2),
-//                     Text("€${formatAmount(report.totalSales ?? 0)}",
-//                      // "€${report.totalSales!.toStringAsFixed(2)}",
-//                       style: TextStyle(
-//                         fontSize: 10,
-//                         color: Colors.green,
-//                       ),
-//                     ),
-//                   ],
-//                 )
-//               ]
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//
-//   }
-//
-//   TableRow _buildWeekdayRow() {
-//     const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-//     return TableRow(
-//       children: days.map((day) {
-//         return Container(
-//           color: Colors.black, // Dark background
-//           padding: const EdgeInsets.symmetric(vertical: 7), // Vertical padding
-//           child: Center(
-//             child: Text(
-//               day,
-//               style: const TextStyle(
-//                 color: Colors.white, // White text
-//                 fontWeight: FontWeight.bold,
-//                 fontSize: 16,
-//               ),
-//             ),
-//           ),
-//         );
-//       }).toList(),
-//     );
-//   }
-//
-//   Widget _calendarCell(int date, DailySalesReport? report) {
-//     return Padding(
-//       padding: const EdgeInsets.all(6),
-//       child: Column(
-//         mainAxisAlignment: MainAxisAlignment.center,
-//         children: [
-//           Text("$date", style: const TextStyle(fontWeight: FontWeight.bold)),
-//           const SizedBox(height: 4),
-//           GestureDetector(
-//             onTap: report != null
-//                 ? () => showCalendarDialog(context, report)
-//                 : null,
-//             child: Column(
-//               crossAxisAlignment: CrossAxisAlignment.start,
-//               children: [
-//                 SvgPicture.asset(
-//                   'assets/images/ic_report.svg',
-//                   height: 14,
-//                   width: 14,
-//                   color: Colors.white, // Optional: to tint the SVG
-//                 ),
-//                 /*Icon(
-//                   Icons.local_shipping,
-//                   size: 14,
-//                   color: report != null ? Colors.green : Colors.transparent,
-//                 ),*/
-//                 Text(
-//                   report != null
-//                       ? "€${report.totalSales!.toStringAsFixed(2)}"
-//                       : "€0.00",
-//                   style: TextStyle(
-//                     fontSize: 12,
-//                     color: report != null ? Colors.green : Colors.transparent,
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-//
-//   Widget _todayStatus(DailySalesReport? report) {
-//     if (report == null) {
-//       return const Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           Text("Today Status",
-//               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-//           SizedBox(height: 8),
-//           Text("No data available."),
-//         ],
-//       );
-//     }
-//
-//     final approval = report.data?.approvalStatuses ?? {};
-//     final cash = report.cashTotal ?? 0.0;
-//     final online = report.onlineTotal ?? 0.0;
-//     final total = report.totalSales ?? 0.0;
-//
-//     return Column(
-//       crossAxisAlignment: CrossAxisAlignment.start,
-//       children: [
-//         const Text("Today Status",
-//             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-//         const SizedBox(height: 8),
-//         RichText(
-//           text: TextSpan(
-//             children: [
-//               const TextSpan(
-//                 text: "Accepted Order : ",
-//                 style: TextStyle(color: Colors.black),
-//               ),
-//               TextSpan(
-//                 text: "${approval['accepted'] ?? 0}",
-//                 style: const TextStyle(
-//                     fontWeight: FontWeight.bold, color: Colors.green),
-//               ),
-//             ],
-//           ),
-//         ),
-//         const SizedBox(height: 6),
-//         RichText(
-//           text: TextSpan(
-//             children: [
-//               const TextSpan(
-//                 text: "Declined Order : ",
-//                 style: TextStyle(color: Colors.black),
-//               ),
-//               TextSpan(
-//                 text: "${approval['declined'] ?? 0}",
-//                 style: const TextStyle(
-//                     fontWeight: FontWeight.bold, color: Colors.green),
-//               ),
-//             ],
-//           ),
-//         ),
-//         const SizedBox(height: 6),
-//         RichText(
-//           text: TextSpan(
-//             children: [
-//               const TextSpan(
-//                 text: "Order Received : ",
-//                 style: TextStyle(color: Colors.black),
-//               ),
-//               TextSpan(
-//                 text: "${report.totalOrders ?? 0}",
-//                 style: const TextStyle(
-//                     fontWeight: FontWeight.bold, color: Colors.green),
-//               ),
-//             ],
-//           ),
-//         ),
-//         const SizedBox(height: 6),
-//         RichText(
-//           text: TextSpan(
-//             children: [
-//               const TextSpan(
-//                 text: "Cash :- ",
-//                 style: TextStyle(color: Colors.black),
-//               ),
-//               TextSpan(
-//                 text: "€${formatAmount(cash)}",
-//                 //"€${cash.toStringAsFixed(2)}",
-//                 style: const TextStyle(
-//                     fontWeight: FontWeight.bold, color: Colors.green),
-//               ),
-//             ],
-//           ),
-//         ),
-//         const SizedBox(height: 6),
-//         RichText(
-//           text: TextSpan(
-//             children: [
-//               const TextSpan(
-//                 text: "Online :- ",
-//                 style: TextStyle(color: Colors.black),
-//               ),
-//               TextSpan(
-//                 text: "€${formatAmount(online)}",
-//                 //"€${online.toStringAsFixed(2)}",
-//                 style: const TextStyle(
-//                     fontWeight: FontWeight.bold, color: Colors.green),
-//               ),
-//             ],
-//           ),
-//         ),
-//         const SizedBox(height: 6),
-//         RichText(
-//           text: TextSpan(
-//             children: [
-//               const TextSpan(
-//                 text: "Total :- ",
-//                 style: TextStyle(color: Colors.black),
-//               ),
-//               TextSpan(
-//                 text: "€${formatAmount(total)}",
-//                 //"€${total.toStringAsFixed(2)}",
-//                 style: const TextStyle(
-//                     fontWeight: FontWeight.bold, color: Colors.green),
-//               ),
-//             ],
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-//
-//   void showCalendarDialog(BuildContext context, DailySalesReport report) {
-//     final DateTime parsedDate =
-//         DateTime.parse(report.startDate!); // parse from ISO string
-//
-//     showDialog(
-//       context: context,
-//       builder: (context) => AlertDialog(
-//         title: Text(
-//           "Report for ${_formatDate(parsedDate)}",
-//           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-//         ),
-//         content: Column(
-//           mainAxisSize: MainAxisSize.min,
-//           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: [
-//             Text("Total Sales: €${report.totalSales}"),
-//             Text("Orders: ${report.totalOrders}"),
-//             Text("Cash: €${report.cashTotal}"),
-//             Text("Online: €${report.onlineTotal}"),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-//
-//   String _formatDate(DateTime date) {
-//     return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-//   }
-// // Row(
-// // mainAxisAlignment: MainAxisAlignment.spaceBetween,
-// // crossAxisAlignment: CrossAxisAlignment.start,
-// // children: [
-// // Column(
-// // crossAxisAlignment: CrossAxisAlignment.start,
-// // mainAxisAlignment: MainAxisAlignment.start,
-// // children: [
-// // Container(
-// // width: 80,
-// // //height: 40,
-// // color: Colors.transparent,
-// // child: Stack(
-// // clipBehavior: Clip.none,
-// // children: [
-// // const Center(
-// // child: Text(
-// // 'Live Sale',
-// // style: TextStyle(
-// // fontSize: 18,
-// // fontWeight: FontWeight.w800,
-// // fontFamily: "Mulish",
-// // color: Color(0xff0C831F),
-// // height: 0
-// // ),
-// // ),
-// // ),
-// // Positioned(
-// // right: -8,
-// // top: -2,
-// // child: FadeTransition(
-// // opacity: _animation,
-// // child: Container(
-// // width: 10,
-// // height: 10,
-// // decoration: BoxDecoration(
-// // color: Color(0xff0C831F),
-// // shape: BoxShape.circle,
-// // ),
-// // )),
-// // ),
-// // ],
-// // ),
-// // ),
-// // Text(
-// // dateSeleted.isEmpty
-// // ? DateFormat('MMMM y').format(DateTime.now())
-// //     : dateSeleted,
-// // style: const TextStyle(
-// // fontSize: 11,
-// // color: Color(0xff757B8F),
-// // fontWeight: FontWeight.w600,
-// // height: 0,
-// // fontFamily: "Mulish"
-// // ),
-// // ),
-// // ],
-// // ),
-// // GestureDetector(
-// // onTap: () {
-// // _selectMonth(context); // Call your updated function
-// // },
-// // child: Row(
-// // children: [
-// // const Text('History',
-// // style: TextStyle(
-// // fontFamily: "Mulish",fontWeight: FontWeight.w800,fontSize: 16,color: Color(0xff1F1E1E)
-// // ),),
-// // SizedBox(width: 5,),
-// // SvgPicture.asset('assets/images/dropdown.svg',height: 5,width: 11,)
-// // ],
-// // ),
-// // )
-// // ],
-// // ),
-// }
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:food_app/api/Socket/socket_service.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
@@ -698,6 +36,12 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
   late AnimationController _controller;
   late Animation<double> _animation;
 
+  final SocketService _socketService = SocketService();
+
+  // Live data indicators
+  bool _isLiveDataActive = false;
+  DateTime? _lastUpdateTime;
+
   @override
   void initState() {
     super.initState();
@@ -717,35 +61,231 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
   @override
   void dispose() {
     _controller.dispose();
+    _socketService.disconnect();
     super.dispose();
   }
 
   Future<void> initVar() async {
     sharedPreferences = await SharedPreferences.getInstance();
     bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
+
+    print("Bearer Key: $bearerKey"); // Debug print
+
     await getReports(bearerKey);
     // Get current date report after loading all reports
     getCurrentDateReport();
+
+    // Initialize socket ONLY if bearerKey is not null and not empty
+    if (bearerKey != null && bearerKey!.isNotEmpty) {
+      print("Initializing socket with bearer key"); // Debug print
+      _initializeSocket();
+    } else {
+      print("Bearer key is null or empty, socket not initialized"); // Debug print
+    }
   }
 
-  // Add this method to get current date report
+  void _initializeSocket() {
+    print("🔥 Starting socket initialization"); // Debug print
+
+    // Set up socket event callbacks
+    _socketService.onSalesUpdate = (data) {
+      print('📊 Sales update received in ReportScreen: $data');
+      _handleSalesUpdate(data);
+    };
+
+    _socketService.onConnected = () {
+      print('🔥 Socket connected - Live data active');
+      setState(() {
+        _isLiveDataActive = true;
+      });
+    };
+
+    _socketService.onDisconnected = () {
+      print('❄️ Socket disconnected - Live data inactive');
+      setState(() {
+        _isLiveDataActive = false;
+      });
+    };
+
+    _socketService.onNewOrder = (data) {
+      print('🆕 New order received: $data');
+      // Optionally refresh current day data when new order comes
+      _refreshCurrentDayData();
+    };
+
+    // Connect to socket with proper parameters
+    try {
+      print("🔌 Attempting to connect socket with bearer: $bearerKey");
+      _socketService.connect(bearerKey!, storeId: 13); // Add storeId parameter if needed
+    } catch (e) {
+      print("❌ Socket connection failed: $e");
+    }
+  }
+  void _handleSalesUpdate(Map<String, dynamic> salesData) {
+    print('🔄 Updating sales data: $salesData');
+
+    setState(() {
+      _lastUpdateTime = DateTime.now();
+    });
+
+    // Update current date report with live data
+    if (_currentDateReport != null) {
+      // Update main report fields
+      _currentDateReport!.totalSales = (salesData['total_sales'] as num?)?.toDouble();
+      _currentDateReport!.totalOrders = salesData['total_orders'] as int?; // Keep as int since model expects int
+      _currentDateReport!.cashTotal = (salesData['cash_total'] as num?)?.toDouble();
+      _currentDateReport!.onlineTotal = (salesData['online_total'] as num?)?.toDouble();
+      _currentDateReport!.totalTax = (salesData['total_tax'] as num?)?.toDouble();
+
+      // Initialize data object if null OR recreate with updated values
+      if (_currentDateReport!.data == null) {
+        _currentDateReport!.data = SalesData(
+          topItems: [],
+          cashTotal: 0.0,
+          byCategory: {},
+          orderTypes: {},
+          totalSales: 0.0,
+          onlineTotal: 0.0,
+          totalOrders: 0,
+          paymentMethods: {},
+          approvalStatuses: {},
+        );
+      }
+
+      // Since orderTypes, approvalStatuses, taxBreakdown are final,
+      // we need to recreate the entire SalesData object
+      _currentDateReport!.data = SalesData(
+        netTotal: (salesData['net_total'] as num?)?.toDouble(),
+        topItems: _currentDateReport!.data?.topItems ??
+            (salesData['top_items'] != null
+                ? (salesData['top_items'] as List).map((item) => TopItem.fromJson(item)).toList()
+                : []),
+        totalTax: (salesData['total_tax'] as num?)?.toDouble(),
+        cashTotal: (salesData['cash_total'] as num?)?.toDouble() ?? 0.0,
+        byCategory: salesData['by_category'] != null
+            ? Map<String, int>.from(salesData['by_category'])
+            : (_currentDateReport!.data?.byCategory ?? {}),
+        orderTypes: salesData['order_types'] != null
+            ? Map<String, int>.from(salesData['order_types'])
+            : {},
+        totalSales: (salesData['total_sales'] as num?)?.toDouble() ?? 0.0,
+        onlineTotal: (salesData['online_total'] as num?)?.toDouble() ?? 0.0,
+        totalOrders: (salesData['total_orders'] as num?)?.toInt() ?? 0,
+        taxBreakdown: salesData['tax_breakdown'] != null
+            ? TaxBreakdown.fromJson(salesData['tax_breakdown'])
+            : null,
+        deliveryTotal: (salesData['delivery_total'] as num?)?.toDouble(),
+        discountTotal: salesData['discount_total'] != null
+            ? (salesData['discount_total'] as num).toInt()
+            : null,
+        paymentMethods: salesData['payment_methods'] != null
+            ? Map<String, int>.from(salesData['payment_methods'])
+            : {},
+        approvalStatuses: salesData['approval_statuses'] != null
+            ? Map<String, int>.from(salesData['approval_statuses'])
+            : {},
+        totalSalesDelivery: (salesData['total_sales + delivery'] as num?)?.toDouble(),
+      );
+
+      // Always update the UI regardless of _selectedReport
+      setState(() {
+        reportsss = _currentDateReport!;
+      });
+
+      print('✅ Sales data updated successfully');
+      print('Total Sales: ${_currentDateReport!.totalSales}');
+      print('Total Orders: ${_currentDateReport!.totalOrders}');
+      print('Cash Total: ${_currentDateReport!.cashTotal}');
+      print('Discount Total: ${_currentDateReport!.data?.discountTotal}');
+      print('Delivery Total: ${_currentDateReport!.data?.deliveryTotal}');
+      print('Total Sales + Delivery: ${_currentDateReport!.data?.totalSalesDelivery}');
+      print('Order Types: ${_currentDateReport!.data?.orderTypes}');
+      print('Approval Statuses: ${_currentDateReport!.data?.approvalStatuses}');
+      print('Tax Breakdown: ${_currentDateReport!.data?.taxBreakdown}');
+    } else {
+      print('❌ Current date report is null, cannot update');
+    }
+  }
+
+void _refreshCurrentDayData() {
+
+  getCurrentDateReport();
+}
+
+
   void getCurrentDateReport() {
     final today = DateTime.now();
     final todayString = DateFormat('yyyy-MM-dd').format(today);
 
-    // Find report for today's date
-    for (var report in reportList) {
+    print("🔍 Looking for current date report:");
+    print("Today's date string: $todayString");
+    print("Report list length: ${reportList.length}");
+
+    // Debug: Print all report dates
+    for (int i = 0; i < reportList.length; i++) {
+      var report = reportList[i];
+      print("Report $i - startDate: ${report.startDate}");
       if (report.startDate != null) {
-        final reportDate = DateTime.parse(report.startDate!);
-        final reportDateString = DateFormat('yyyy-MM-dd').format(reportDate);
-        if (reportDateString == todayString) {
-          setState(() {
-            _currentDateReport = report;
-            reportsss = report; // Set as default report to show
-          });
-          break;
+        try {
+          final reportDate = DateTime.parse(report.startDate!);
+          final reportDateString = DateFormat('yyyy-MM-dd').format(reportDate);
+          print("  Parsed date string: $reportDateString");
+          print("  Matches today: ${reportDateString == todayString}");
+        } catch (e) {
+          print("  Date parsing error: $e");
         }
       }
+    }
+
+    // Find report for today's date
+    DailySalesReport? foundReport;
+    for (var report in reportList) {
+      if (report.startDate != null) {
+        try {
+          final reportDate = DateTime.parse(report.startDate!);
+          final reportDateString = DateFormat('yyyy-MM-dd').format(reportDate);
+          if (reportDateString == todayString) {
+            foundReport = report;
+            print("✅ Found current date report!");
+            break;
+          }
+        } catch (e) {
+          print("❌ Error parsing date ${report.startDate}: $e");
+          continue;
+        }
+      }
+    }
+
+    if (foundReport != null) {
+      setState(() {
+        _currentDateReport = foundReport;
+        reportsss = foundReport!; // Set as default report to show
+      });
+      print("✅ Current date report set successfully");
+      print("Total Sales: ${foundReport.totalSales}");
+      print("Total Orders: ${foundReport.totalOrders}");
+    } else {
+      print("❌ No report found for today's date: $todayString");
+
+      // Create a default report for today if none exists
+      final defaultReport = DailySalesReport(
+        startDate: todayString,
+        totalSales: 0.0,
+        totalOrders: 0,
+        cashTotal: 0.0,
+        onlineTotal: 0.0,
+        totalTax: 0.0,
+        data: null, // Will be populated by socket updates
+      );
+
+      setState(() {
+        _currentDateReport = defaultReport;
+        reportsss = defaultReport;
+        // Optionally add to reportList
+        reportList.insert(0, defaultReport);
+      });
+
+      print("🆕 Created default report for today");
     }
   }
 
@@ -785,6 +325,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     return NumberFormat('#,##0.0#', localeToUse).format(amount);
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -812,39 +353,43 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 80,
-                        color: Colors.transparent,
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            const Center(
-                              child: Text(
-                                'Live Sale',
-                                style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    fontFamily: "Mulish",
-                                    color: Color(0xff0C831F),
-                                    height: 0),
-                              ),
+                      Row(
+                        children: [
+                          Container(
+                            width: 80,
+                            color: Colors.transparent,
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                const Center(
+                                  child: Text(
+                                    'Live Sale',
+                                    style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                        fontFamily: "Mulish",
+                                        color: Color(0xff0C831F),
+                                        height: 0),
+                                  ),
+                                ),
+                                Positioned(
+                                  right: -8,
+                                  top: 0,
+                                  child: FadeTransition(
+                                      opacity: _animation,
+                                      child: Container(
+                                        width: 9,
+                                        height: 9,
+                                        decoration: BoxDecoration(
+                                          color: Color(0xff0C831F),
+                                          shape: BoxShape.circle,
+                                        ),
+                                      )),
+                                ),
+                              ],
                             ),
-                            Positioned(
-                              right: -8,
-                              top: 0,
-                              child: FadeTransition(
-                                  opacity: _animation,
-                                  child: Container(
-                                    width: 9,
-                                    height: 9,
-                                    decoration: BoxDecoration(
-                                      color: Color(0xff0C831F),
-                                      shape: BoxShape.circle,
-                                    ),
-                                  )),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                       Text(
                         dateSeleted.isEmpty
@@ -947,6 +492,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     }
     return map;
   }
+
   Widget _calendar() {
     final reportMap = _getReportsForMonth(displayedMonth, displayedYear);
 
@@ -976,8 +522,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                   // Move to previous month
                   displayedMonth = prevMonth;
                   displayedYear = prevYear;
-                  _selectedReport =
-                      null; // reset selected report when month changes
+                  _selectedReport = null; // reset selected report when month changes
                 });
               },
             ),
@@ -1025,8 +570,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                   }
 
                   final isCurrentMonth = cellDate.month == displayedMonth;
-                  final report =
-                  isCurrentMonth ? reportMap[cellDate.day] : null;
+                  final report = isCurrentMonth ? reportMap[cellDate.day] : null;
 
                   return _calendarCellWithDate(
                       cellDate, report, isCurrentMonth);
@@ -1050,7 +594,77 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     return names[month];
   }
 
+  // Widget _calendarCellWithDate(DateTime date, DailySalesReport? report, bool isCurrentMonth) {
+  //   final textColor = isCurrentMonth ? Colors.black : Colors.grey[600];
+  //
+  //   return GestureDetector(
+  //     onTap: () {
+  //       if (report != null) {
+  //         setState(() {
+  //           _selectedReport = report;
+  //           _selectedDate = date;
+  //           dateSeleted = DateFormat('MMMM y').format(date);
+  //         });
+  //       }
+  //       if (report != null) {
+  //         print("Total Sales: ${report.totalSales}");
+  //         print("Data null: ${report.data == null}");
+  //       }
+  //     },
+  //
+  //     child: Container(
+  //       padding: const EdgeInsets.all(6),
+  //       color: Colors.white, // Ensure no background color is inherited
+  //       child: SizedBox(
+  //         height: 65, // Set a fixed height for all cells
+  //         child: Column(
+  //           mainAxisAlignment: MainAxisAlignment.center,
+  //           children: [
+  //             Text(
+  //               "${date.day}",
+  //               style: TextStyle(
+  //                 fontWeight: FontWeight.bold,
+  //                 color: textColor,
+  //               ),
+  //             ),
+  //             const SizedBox(height: 2),
+  //             if (report != null) ...[
+  //               Column(
+  //                 crossAxisAlignment: CrossAxisAlignment.start,
+  //                 children: [
+  //                   SvgPicture.asset(
+  //                     'assets/images/ic_report.svg',
+  //                     height: 12,
+  //                     width: 12,
+  //                   ),
+  //                   const SizedBox(height: 2),
+  //                   Text("€${formatAmount(report.totalSales ?? 0)}",
+  //                     // "€${report.totalSales!.toStringAsFixed(2)}",
+  //                     style: TextStyle(
+  //                       fontSize: 10,
+  //                       color: Colors.green,
+  //                     ),
+  //                   ),
+  //                 ],
+  //               )
+  //             ],
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  //
+  // }
   Widget _calendarCellWithDate(DateTime date, DailySalesReport? report, bool isCurrentMonth) {
+    print("=== Calendar Cell Debug ===");
+    print("Date: ${date.day}");
+    print("Report is null: ${report == null}");
+
+    if (report != null) {
+      print("Report totalSales: ${report.totalSales}");
+      print("Report data is null: ${report.data == null}");
+    }
+
     final textColor = isCurrentMonth ? Colors.black : Colors.grey[600];
     return GestureDetector(
       onTap: () {
@@ -1064,9 +678,9 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
       },
       child: Container(
         padding: const EdgeInsets.all(6),
-        color: Colors.white, // Ensure no background color is inherited
+        color: Colors.white,
         child: SizedBox(
-          height: 65, // Set a fixed height for all cells
+          height: 65,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -1089,7 +703,6 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                     ),
                     const SizedBox(height: 2),
                     Text("€${formatAmount(report.totalSales ?? 0)}",
-                      // "€${report.totalSales!.toStringAsFixed(2)}",
                       style: TextStyle(
                         fontSize: 10,
                         color: Colors.green,
@@ -1097,15 +710,13 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                     ),
                   ],
                 )
-              ],
+              ]
             ],
           ),
         ),
       ),
     );
-
   }
-
   TableRow _buildWeekdayRow() {
     const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     return TableRow(
@@ -1149,21 +760,42 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     final totalSales = report.totalSales ?? 0.0;
     final order = report.totalOrders ?? 0.0;
     final tax = report.totalTax ?? 0.0;
-    // final net = report.data?.netTotal ?? 0.0;
-    // final discount = report.data?.discountTotal ?? 0.0;
-    // final delivery = report.data?.deliveryTotal ?? 0.0;
-    // final salesDelivery = report.data?.totalSalesDelivery ?? 0.0;
-    // final payment = report.data?.paymentMethods ?? {};
-    // final orderType = report.data?.orderTypes ?? {};
-    // final taxBreakdown = report.data?.taxBreakdown ?? {};
+    final net = report.data?.netTotal ?? 0.0;
+    final discount = report.data?.discountTotal ?? 0.0;
+    final delivery = report.data?.deliveryTotal ?? 0.0;
+    final salesDelivery = report.data?.totalSalesDelivery ?? 0.0;
+    final payment = report.data?.paymentMethods ?? {};
+    final orderType = report.data?.orderTypes ?? {};
+    final taxBreakdown = report.data?.taxBreakdown ?? {};
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text( _selectedDate != null
-            ?  DateFormat('dd MMMM y').format(_selectedDate!)
-            : "Sales Report",
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        Row(
+              children: [
+                Lottie.asset(
+                    'assets/animations/sales.json',
+                    width: 30,
+                    height: 30,
+                    repeat: true, ),
+                Text( _selectedDate != null
+                    ?  DateFormat('dd MMMM y').format(_selectedDate!)
+                    : "Sales Report",
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              ],
+            ),
+
+        if (_isLiveDataActive && _selectedReport == null && _lastUpdateTime != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            "Last updated: ${DateFormat('HH:mm:ss').format(_lastUpdateTime!)}",
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.grey[600],
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
         const SizedBox(height: 8),
         RichText(
           text: TextSpan(
@@ -1189,7 +821,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text:"${order.toString()}",
+                text:"${order.toInt().toString()}", // Convert to int for display
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1205,7 +837,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "${tax.toString()}",
+                text: "€${formatAmount(tax)}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1253,8 +885,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "",
-                //"${net.toString()}",
+                text: "€${formatAmount(net)}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1270,8 +901,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "",
-                //"${discount.toString()}",
+                text: "${discount.toInt().toString()}", // Keep as int for display
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1287,8 +917,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text:"",
-                //"${delivery.toString()}",
+                text: "€${formatAmount(delivery)}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1304,8 +933,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "",
-                //"€${formatAmount(salesDelivery)}",
+                text: "€${formatAmount(salesDelivery)}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1313,8 +941,17 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
           ),
         ),
         const SizedBox(height: 12),
-        Text("Payment Methods",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        Row(
+          children: [
+            Lottie.asset(
+              'assets/animations/payment.json',
+              width: 30,
+              height: 30,
+              repeat: true, ),
+            Text("Payment Methods",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
         const SizedBox(height: 8),
         RichText(
           text: TextSpan(
@@ -1324,8 +961,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "",
-                //"${payment['cash'] ?? 0}",
+                text: "${payment['cash'] ?? 0}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1333,8 +969,17 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
           ),
         ),
         const SizedBox(height: 12),
-        Text("Order Types",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        Row(
+          children: [
+            Lottie.asset(
+              'assets/animations/orderType.json',
+              width: 30,
+              height: 30,
+              repeat: true, ),
+            Text("Order Types",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
         const SizedBox(height: 8),
         RichText(
           text: TextSpan(
@@ -1344,8 +989,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "",
-                //"${orderType['delivery'] ?? 0}",
+                text: "${orderType['delivery'] ?? 0}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1361,8 +1005,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "",
-                //"${orderType['pickup'] ?? 0}",
+                text: "${orderType['pickup'] ?? 0}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1378,16 +1021,24 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "",
-                //"${orderType['dine_in'] ?? 0}",
+                text: "${orderType['dine_in'] ?? 0}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
             ],
           ),
         ),
-        const Text("Approval Status",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        Row(
+          children: [
+            Lottie.asset(
+              'assets/animations/approval.json',
+              width: 30,
+              height: 30,
+              repeat: true, ),
+            const Text("Approval Status",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
         const SizedBox(height: 8),
         RichText(
           text: TextSpan(
@@ -1437,8 +1088,17 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
           ),
         ),
         const SizedBox(height: 6),
-        const Text("Tax Breakdown",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        Row(
+          children: [
+            Lottie.asset(
+              'assets/animations/tax.json',
+              width: 30,
+              height: 30,
+              repeat: true, ),
+            const Text("Tax Breakdown",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
         const SizedBox(height: 8),
         RichText(
           text: TextSpan(
@@ -1448,8 +1108,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text:"",
-                //"${taxBreakdown.toString()}",
+                text:"${taxBreakdown ?? 0}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1465,8 +1124,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text:"",
-                //"${taxBreakdown.toString()}",
+                text:"${taxBreakdown ?? 0}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),

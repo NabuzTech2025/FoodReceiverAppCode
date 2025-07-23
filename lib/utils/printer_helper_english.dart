@@ -167,17 +167,6 @@ class PrinterHelperEnglish {
   // }
 
   static Future<void> _printOrderDetails(NetworkPrinter printer, Order order, String? store) async {
-    // String formatAmount(double amount) {
-    //   final locale = Get.locale?.languageCode ?? 'en';
-    //
-    //   if (locale == 'de') {
-    //     // German format: comma as decimal separator, dot as thousands separator
-    //     return NumberFormat('#.##0,00#', 'de_DE').format(amount);
-    //   } else {
-    //     // English format: dot as decimal separator, comma as thousands separator
-    //     return NumberFormat('#,##0.00#', 'en_US').format(amount);
-    //   }
-    // }
     String formatAmount(double? amount) {
       if (amount == null) return "0";
 
@@ -189,13 +178,14 @@ class PrinterHelperEnglish {
     final dateTimeStr = '${now.day}/${now.month}/${now.year},'
         ' ${now.hour}:${now.minute.toString().padLeft(2, '0')}';
 
-    var amount = order.payment?.amount ?? 0.0;
+    var amount = order.invoice?.totalAmount ?? 0.0;
     var discount = order.invoice?.discount_amount ?? 0.0;
     var delFee = order.invoice?.delivery_fee ?? 0.0;
     var preSubTotal = amount - discount +delFee;
     final subtotal = preSubTotal;
 
     final discountData = order.invoice?.discount_amount ?? 0.0;
+    final deliveryFee = order.invoice?.delivery_fee ?? 0.0;
 
     printer.text(" ${store ?? ''}",
       styles: PosStyles(align: PosAlign.center, bold: true),);
@@ -234,7 +224,7 @@ class PrinterHelperEnglish {
     _printItemWithNote(
         printer: printer,
         left: "${'subtotal'.tr}:",
-        right: formatAmount(subtotal),
+        right: formatAmount(amount),
         note: '');
 
     if (discountData != 0.0) {
@@ -257,7 +247,7 @@ class PrinterHelperEnglish {
     _printItemWithNote(
       printer: printer,
       left: "${'grand_total'.tr}:",
-      right: formatAmount(order.invoice?.totalAmount ?? 0.0),
+      right: formatAmount(subtotal),
       note: '',
     );
     printer.hr();
@@ -324,84 +314,73 @@ class PrinterHelperEnglish {
   static void _printOrderItems(NetworkPrinter printer, Order order) {
     if (order.items == null || order.items!.isEmpty) return;
 
-    // Group items by product name
-    Map<String, List<OrderItem>> groupedItems = {};
-    for (var item in order.items!) {
-      final productName = item.productName ?? '';
-      if (!groupedItems.containsKey(productName)) {
-        groupedItems[productName] = [];
-      }
-      groupedItems[productName]!.add(item);
-    }
+    // Print each item individually (DO NOT GROUP - each item is separate)
+    // This matches the UI format where each item has its own line
+    for (final item in order.items!) {
+      if (item == null) continue;
 
-    // Print each grouped product
-    for (final entry in groupedItems.entries) {
-      final productName = entry.key;
-      final items = entry.value;
+      // Calculate total price for this single item (including toppings)
+      final toppingsTotal = item.toppings?.fold<double>(
+        0,
+            (sum, topping) => sum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
+      ) ?? 0;
+      final itemTotal = ((item.unitPrice ?? 0) + toppingsTotal) * (item.quantity ?? 0);
 
-      // Calculate total quantity and price for this product
-      int totalQuantity = items.fold(0, (sum, item) => sum + (item.quantity ?? 0));
+      // Check if should show unit price (matching UI logic)
+      bool shouldShowUnitPrice = (item.toppings?.isNotEmpty ?? false) && item.variant == null;
 
-      double totalProductPrice = 0;
-      for (var item in items) {
-        final toppingTotal = item.toppings?.fold<double>(
-          0,
-              (sum, topping) => sum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
-        ) ?? 0.0;
-        final itemTotal = ((item.unitPrice ?? 0) + toppingTotal) * (item.quantity ?? 0);
-        totalProductPrice += itemTotal;
-      }
-
-      // Check if should show unit price (same condition as UI)
-      bool shouldShowUnitPrice = items.any((item) =>
-      (item.toppings?.isNotEmpty ?? false) && item.variant == null);
-
-      final priceText = _formatCurrency(totalProductPrice);
-
-      // Print main product line
-      String productLine = '$totalQuantity $productName';
+      // Print main product line (matching UI format exactly)
+      String productLine = '${item.quantity ?? 0}X ${item.productName ?? "Unknown"}';
       if (shouldShowUnitPrice) {
-        productLine += ' [${_formatCurrency(items.first.unitPrice ?? 0)}]';
+        productLine += ' [${_formatCurrency(item.unitPrice ?? 0)}]';
       }
+
+      final totalPriceText = _formatCurrency(itemTotal);
 
       _printItemWithNote(
         printer: printer,
         left: productLine,
-        right: '$priceText ',
-        note: '', // Main product note can be handled separately if needed
+        right: totalPriceText,
+        note: '',
       );
 
-      // Print all variants and toppings for this product
-      for (final orderItem in items) {
-        // Variant
-        if (orderItem.variant != null) {
-          final variantName = sanitizeText(orderItem.variant!.name ?? '');
-          final variantPrice = orderItem.variant!.price != null
-              ? _formatCurrency(orderItem.variant!.price!)
-              : '0,00';
-          printer.text('  ${orderItem.quantity} x $variantName [$variantPrice]');
-        }
+      // Print variant info (if exists)
+      if (item.variant != null) {
+        final variantName = sanitizeText(item.variant!.name ?? '');
+        final variantPrice = _formatCurrency(item.variant!.price ?? 0);
+        final variantLine = '  ${item.quantity} × $variantName [$variantPrice]';
+        printer.text(variantLine);
+      }
 
-        // Toppings
-        if (orderItem.toppings != null && orderItem.toppings!.isNotEmpty) {
-          for (final topping in orderItem.toppings!) {
-            final tQty = topping.quantity ?? 1;
-            final tName = sanitizeText(topping.name ?? '');
-            final tPrice = _formatCurrency((topping.price ?? 0) * tQty);
-            printer.text('    $tQty x $tName [$tPrice]');
-          }
-        }
-
-        // Note
-        if (orderItem.note != null && orderItem.note!.trim().isNotEmpty) {
-          printer.text('  + ${sanitizeText(orderItem.note!.trim())}');
+      // Print toppings info (if exists)
+      if (item.toppings != null && item.toppings!.isNotEmpty) {
+        for (final topping in item.toppings!) {
+          final tQty = topping.quantity ?? 1;
+          final tName = sanitizeText(topping.name ?? '');
+          final totalToppingPrice = (topping.price ?? 0) * tQty;
+          final tPrice = _formatCurrency(totalToppingPrice);
+          final toppingLine = '  $tQty × $tName [$tPrice]';
+          printer.text(toppingLine);
         }
       }
 
-      printer.feed(0);
+      // Print note if exists
+      if (item.note != null && item.note!.trim().isNotEmpty) {
+        printer.text('  + ${sanitizeText(item.note!.trim())}');
+      }
+
+      printer.feed(1); // Add spacing between different items
     }
   }
 
+// Helper method to format currency
+  static String _formatCurrency(double amount) {
+    return NumberFormat('#,##0.00', 'en_US').format(amount);
+  }
+// Helper method to format currency (you might need to adjust this based on your existing _formatCurrency method)
+  static String formatCurrency(double amount) {
+    return NumberFormat('#,##0.00', 'en_US').format(amount);
+  }
   // static void _printTaxSummary(NetworkPrinter printer, Order order) {
   //   printer.text(
   //     '${'vat_rate'.tr}        ${'gross'.tr}       ${'net'.tr}       ${'vat'.tr}',
@@ -447,13 +426,7 @@ class PrinterHelperEnglish {
     printer.hr();
     printer.feed(1);
   }
-  static void _printItemWithNote({
-    required NetworkPrinter printer,
-    required String left,
-    required String right,
-    String? note,
-    int lineWidth = 48,
-  }) {
+  static void _printItemWithNote({required NetworkPrinter printer, required String left, required String right, String? note, int lineWidth = 48,}) {
     final availableWidth = lineWidth - right.length;
 
     if (left.length + right.length <= lineWidth) {
@@ -510,9 +483,9 @@ class PrinterHelperEnglish {
     return text.replaceAll(RegExp(r'[^\x00-\x7F]'), '');
   }
 
-  static String _formatCurrency(double value) {
-    return value.toStringAsFixed(2).replaceAll('.', ',');
-  }
+  // static String _formatCurrency(double value) {
+  //   return value.toStringAsFixed(2).replaceAll('.', ',');
+  // }
 
   static void _showSnackbar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(

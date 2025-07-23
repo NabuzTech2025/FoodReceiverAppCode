@@ -126,8 +126,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       if (result != null) {
         setState(() {
           userMe = result;
-          sharedPreferences.setString(
-              valueShared_STORE_KEY, userMe.store_id.toString());
+          sharedPreferences.setString(valueShared_STORE_KEY, userMe.store_id.toString());
           getOrders(bearerKey, true, false, userMe.store_id.toString());
         });
       } else {
@@ -401,13 +400,9 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                     boxShadow: [
                                       BoxShadow(
                                         color: Colors.black.withOpacity(0.1),
-                                        // Light shadow
                                         spreadRadius: 0,
-                                        // How much the shadow spreads
                                         blurRadius: 4,
-                                        // How soft the shadow is
-                                        offset: Offset(0,
-                                            2), // Shadow position: x=0, y=4 (downwards)
+                                        offset: Offset(0, 2),
                                       ),
                                     ],
                                   ),
@@ -418,28 +413,18 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                     padding: EdgeInsets.all(10),
                                     child: GestureDetector(
                                       behavior: HitTestBehavior.opaque,
-                                      onTap: () =>
-                                          Get.to(() =>
-                                              OrderDetailEnglish(order)),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment
-                                            .start,
+                                      onTap: () => Get.to(() => OrderDetailEnglish(order)),
+                                      child: Column(crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           // top row
-                                          Row(
-                                            crossAxisAlignment: CrossAxisAlignment
-                                                .start,
-                                            mainAxisAlignment: MainAxisAlignment
-                                                .spaceBetween,
+                                          Row(crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                             children: [
-                                              Row(
-                                                crossAxisAlignment: CrossAxisAlignment
-                                                    .start,
+                                              Row(crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
                                                   CircleAvatar(
                                                     radius: 14,
-                                                    backgroundColor: Colors
-                                                        .green,
+                                                    backgroundColor: Colors.green,
                                                     child: SvgPicture.asset(
                                                       order.orderType == 1
                                                           ? 'assets/images/ic_delivery.svg'
@@ -464,39 +449,23 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                   //   style: const TextStyle(
                                                   //       fontWeight: FontWeight.bold),
                                                   // ),
-                                                  Column(
-                                                    crossAxisAlignment: CrossAxisAlignment
-                                                        .start,
+                                                  Column(crossAxisAlignment: CrossAxisAlignment.start,
                                                     children: [
-                                                      Text(order
-                                                          .shipping_address!.zip
-                                                          .toString(),
-                                                        style: TextStyle(
-                                                            fontWeight: FontWeight
-                                                                .w700,
+                                                      Text(order.shipping_address!.zip.toString(),
+                                                        style: TextStyle(fontWeight: FontWeight.w700,
                                                             fontSize: 13,
                                                             fontFamily: "Mulish-Regular"
                                                         ),),
                                                       Visibility(
-                                                        visible: order
-                                                            .shipping_address !=
-                                                            null,
+                                                        visible: order.shipping_address != null,
                                                         child: Text(
-                                                          order.orderType ==
-                                                              1 &&
-                                                              order
-                                                                  .shipping_address !=
-                                                                  null
-                                                              ? '${order
-                                                              .shipping_address!
-                                                              .line1!}, '
-                                                              '${order
-                                                              .shipping_address!
-                                                              .city!}'
+                                                          order.orderType == 1 &&
+                                                              order.shipping_address != null
+                                                              ? '${order.shipping_address!.line1!}, '''
+                                                              '${order.shipping_address!.city!}'
                                                               : '',
                                                           style: const TextStyle(
-                                                              fontWeight: FontWeight
-                                                                  .w500,
+                                                              fontWeight: FontWeight.w500,
                                                               fontSize: 11,
                                                               letterSpacing: 0,
                                                               height: 0,
@@ -559,13 +528,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                               //       fontSize: 18),
                                               // ),
                                               Text(
-                                                order.payment != null
-                                                    ? '${'currency'
-                                                    .tr} ${formatAmount(
-                                                    order.payment!.amount ??
-                                                        0)}'
-                                                    : '${'currency'
-                                                    .tr} ${formatAmount(0)}',
+                                                order.payment != null ? '${'currency'.tr} ${formatAmount(order.payment!.amount ?? 0)}' :
+                                                '${'currency'.tr} ${formatAmount(0)}',
                                                 style: const TextStyle(
                                                     fontWeight: FontWeight.w800,
                                                     fontFamily: "Mulish",

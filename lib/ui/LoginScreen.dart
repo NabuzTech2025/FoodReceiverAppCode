@@ -175,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen>
                       // ),
                       Transform.translate(
                         offset: Offset(-10, 25), // Move up by 10 pixels
-                        child: Text(
+                        child: const Text(
                           "Login!",
                           style: TextStyle(
                             fontSize: 30,
@@ -285,12 +285,9 @@ class _LoginScreenState extends State<LoginScreen>
       Get.back();
       if (result != null) {
         // Handle navigation or success here
-        sharedPreferences.setString(
-            valueShared_BEARER_KEY, result.access_token!);
-        sharedPreferences.setString(
-            valueShared_USERNAME_KEY, _EmailController.text.toString());
-        sharedPreferences.setString(
-            valueShared_PASSWORD_KEY, _PasswordController.text.toString());
+        sharedPreferences.setString(valueShared_BEARER_KEY, result.access_token!);
+        sharedPreferences.setString(valueShared_USERNAME_KEY, _EmailController.text.toString());
+        sharedPreferences.setString(valueShared_PASSWORD_KEY, _PasswordController.text.toString());
         print("LoginData  " + result.role_id.toString());
         print("LoginDataaccess_token  " + result.access_token.toString());
         Get.to(() => HomeScreen());

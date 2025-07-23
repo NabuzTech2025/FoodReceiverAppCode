@@ -29,11 +29,8 @@ class OrderScreen extends StatefulWidget {
   _OrderScreenState createState() => _OrderScreenState();
 }
 
-class _OrderScreenState extends State<OrderScreen>
-    with
-        TickerProviderStateMixin,
-        AutomaticKeepAliveClientMixin,
-        WidgetsBindingObserver {
+class _OrderScreenState extends State<OrderScreen> with TickerProviderStateMixin,
+    AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   Color getStatusColor(int status) {
     switch (status) {
       case 1:
