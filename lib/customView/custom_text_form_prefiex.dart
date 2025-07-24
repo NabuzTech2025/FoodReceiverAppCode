@@ -11,17 +11,23 @@ class CustomTextFormPrefix extends StatelessWidget {
   final FormFieldValidator validate;
   final ValueChanged valueChanged;
   bool obscureText;
+  final bool isPasswordVisible; // Controls show/hide state
+  final VoidCallback? onTogglePassword;
+  final bool isPasswordField; // New parameter to identify password fields
 
-  CustomTextFormPrefix(
-      {required this.myLabelText,
-      required this.keyboardType,
-      required this.controller,
-      required this.icon,
-      required this.validate,
-      required this.valueChanged,
-      required this.obscureText});
+  CustomTextFormPrefix({
+    required this.myLabelText,
+    required this.keyboardType,
+    required this.controller,
+    required this.icon,
+    required this.validate,
+    required this.valueChanged,
+    required this.obscureText,
+    this.isPasswordVisible = false,
+    this.onTogglePassword,
+    this.isPasswordField = false, // Default false for non-password fields
+  });
 
-// const EdgeInsets.only(left: 33,right: 33, bottom: 13),
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -39,7 +45,7 @@ class CustomTextFormPrefix extends StatelessWidget {
         ],
       ),
       child: TextFormField(
-        textAlign: TextAlign.start, // Start from left
+        textAlign: TextAlign.start,
         cursorColor: Colors.blue,
         controller: controller,
         validator: validate,
@@ -54,6 +60,15 @@ class CustomTextFormPrefix extends StatelessWidget {
           hintText: myLabelText,
           contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 10),
           border: InputBorder.none,
+          suffixIcon: isPasswordField // Show toggle icon for password fields only
+              ? IconButton(
+            icon: Icon(
+              isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+              color: Colors.black,
+            ),
+            onPressed: onTogglePassword,
+          )
+              : null,
           hintStyle: const TextStyle(
             fontSize: 15,
             color: Colors.grey,

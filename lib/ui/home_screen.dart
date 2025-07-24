@@ -179,7 +179,6 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         // KeepAlivePage(child: HomeTab()),
         KeepAlivePage(child: OrderScreenNew()),
-      /*  KeepAlivePage(child: OrderScreenNew()),*/
         KeepAlivePage(child: ReportScreen()),
         KeepAlivePage(child: PrinterSettingsScreen()),
       ],

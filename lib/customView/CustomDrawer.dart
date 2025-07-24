@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:food_app/models/Store.dart';
+import 'package:food_app/ui/Driver/driver_screen.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -104,6 +105,13 @@ class _CustomDrawerState extends State<CustomDrawer> {
             Navigator.of(context).pop(); // close drawer
             widget.onSelectTab(1); // open tab index 3 (PrinterSettingsScreen)
           }),
+          _drawerItem('Driver', onTap: () {
+            Navigator.of(context).pop(); // First close drawer
+            // Then navigate to DriverScreen
+            Future.delayed(Duration(milliseconds: 100), () {
+              Get.to(() => DriverScreen());
+            });
+          }),
           _drawerItem('setting'.tr, onTap: () {
             Navigator.of(context).pop(); // close drawer
             widget.onSelectTab(2); // open tab index 3 (PrinterSettingsScreen)
@@ -112,8 +120,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
           Container(
             child: _drawerItem('logout'.tr, onTap: () async {
-              var bearerKey =
-                  sharedPreferences.getString(valueShared_BEARER_KEY);
+              var bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
               logutAPi(bearerKey);
             }),
           ),

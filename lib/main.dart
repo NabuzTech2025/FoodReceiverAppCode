@@ -10,13 +10,19 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:food_app/push/NotificationService.dart';
 import 'package:food_app/utils/AppTranslations.dart';
+import 'package:food_app/utils/printer_helper_english.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:food_app/init_app.dart';
 import 'package:food_app/utils/battery_optimization.dart';
 import 'package:food_app/utils/global.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'api/repository/api_repository.dart';
+import 'constants/constant.dart';
 import 'constants/routes.dart';
+import 'models/order_model.dart';
 
 // -----------------------------------------------------------------------------
 //  GLOBALS
@@ -31,6 +37,296 @@ int badgeCount = 0;
 // -----------------------------------------------------------------------------
 //  MAIN ENTRY
 // -----------------------------------------------------------------------------
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+
+  final title = message.notification?.title ?? '';
+  final body = message.notification?.body ?? '';
+
+  print('📥 Background title: $title');
+  print('📥 Background body: $body');
+
+  // DETAILED DEBUG LOGS
+  print('🔍 DEBUG: Message data: ${message.data}');
+  print('🔍 DEBUG: Title contains New Order: ${title.contains('New Order')}');
+  print('🔍 DEBUG: Body for regex: "$body"');
+
+  // Show notification first
+  if (title.contains('New Order')) {
+    await _showOrderNotification(title, body);
+
+    // Extract order number with better regex and debug
+    print('🔍 DEBUG: Starting order number extraction...');
+    RegExp regex = RegExp(r'#(\d+)');
+    Match? match = regex.firstMatch(body);
+
+    print('🔍 DEBUG: Regex match found: ${match != null}');
+
+    if (match != null) {
+      String orderNumberStr = match.group(1)!;
+      print('🔍 DEBUG: Extracted order number string: "$orderNumberStr"');
+
+      try {
+        int orderNumber = int.parse(orderNumberStr);
+        print("🆔 Background - Processing Order ID: $orderNumber");
+
+        // Check settings before processing
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        bool autoAccept = prefs.getBool('auto_order_accept') ?? false;
+        bool autoPrint = prefs.getBool('auto_order_print') ?? false;
+
+        print('🔍 DEBUG: Auto Accept Setting: $autoAccept');
+        print('🔍 DEBUG: Auto Print Setting: $autoPrint');
+
+        if (autoAccept || autoPrint) {
+          print('🚀 DEBUG: Starting handleBackgroundOrderComplete...');
+          // Handle complete background order processing
+          await handleBackgroundOrderComplete(orderNumber);
+        } else {
+          print('⚠️ DEBUG: Both auto accept and auto print are disabled');
+        }
+
+      } catch (e) {
+        print('❌ DEBUG: Error parsing order number: $e');
+      }
+
+    } else {
+      print("❌ Background - No order number found in notification body: '$body'");
+
+      // Try alternative regex patterns
+      print('🔍 DEBUG: Trying alternative regex patterns...');
+
+      // Pattern 1: Order #1234
+      RegExp altRegex1 = RegExp(r'Order #(\d+)');
+      Match? altMatch1 = altRegex1.firstMatch(body);
+
+      // Pattern 2: #1234 (anywhere in text)
+      RegExp altRegex2 = RegExp(r'#(\d+)');
+      Match? altMatch2 = altRegex2.firstMatch(title + ' ' + body);
+
+      print('🔍 DEBUG: Alt regex 1 match: ${altMatch1?.group(1)}');
+      print('🔍 DEBUG: Alt regex 2 match: ${altMatch2?.group(1)}');
+
+      if (altMatch1 != null || altMatch2 != null) {
+        String? orderNumStr = altMatch1?.group(1) ?? altMatch2?.group(1);
+        if (orderNumStr != null) {
+          int orderNumber = int.parse(orderNumStr);
+          print("🆔 Background - Alternative extraction successful: $orderNumber");
+          await handleBackgroundOrderComplete(orderNumber);
+        }
+      }
+    }
+  } else {
+    print('🔍 DEBUG: Title does not contain "New Order"');
+  }
+
+  badgeCount++;
+  print('🔍 DEBUG: Badge count updated to: $badgeCount');
+
+  try {
+    await AppBadgePlus.updateBadge(badgeCount);
+    print('✅ DEBUG: Badge updated successfully');
+  } catch (e) {
+    print('❌ DEBUG: Badge update failed: $e');
+  }
+}
+
+// Enhanced handleBackgroundOrderComplete with more debug logs
+
+Future<void> handleBackgroundOrderComplete(int orderNumber) async {
+  try {
+    print("🚀 Background order processing started for: $orderNumber");
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    String? bearerKey = prefs.getString(valueShared_BEARER_KEY);
+    String? storeID = prefs.getString(valueShared_STORE_KEY);
+    bool autoAccept = prefs.getBool('auto_order_accept') ?? false;
+    bool autoPrint = prefs.getBool('auto_order_print') ?? false;
+
+    print("🔍 DEBUG: Bearer key exists: ${bearerKey != null}");
+    print("🔍 DEBUG: Store ID exists: ${storeID != null}");
+    print("🔍 DEBUG: Auto Accept: $autoAccept");
+    print("🔍 DEBUG: Auto Print: $autoPrint");
+
+    if (bearerKey == null) {
+      print("❌ Background - Bearer key not found");
+      return;
+    }
+
+    if (storeID == null) {
+      print("❌ Background - Store ID not found");
+      return;
+    }
+
+    // If both are disabled, don't proceed
+    if (!autoAccept && !autoPrint) {
+      print("ℹ️ Background - Both auto accept and auto print disabled");
+      return;
+    }
+
+    // Step 1: Get order data
+    print("📥 Background - Fetching order data for order: $orderNumber");
+
+    try {
+      final orderData = await ApiRepo().getNewOrderData(bearerKey, orderNumber);
+
+      if (orderData == null) {
+        print("❌ Background - Failed to get order data (null response)");
+        return;
+      }
+
+      print("✅ Background - Order data retrieved: ID ${orderData.id}");
+      print("🔍 DEBUG: Order status: ${orderData.orderStatus}");
+
+      // Step 2: Auto Accept if enabled
+      if (autoAccept) {
+        print("🤖 Background - Auto accepting order: $orderNumber");
+
+        Map<String, dynamic> jsonData = {
+          "order_status": 2,  // 2 = Accepted
+          "approval_status": 2,
+        };
+
+        print("🔍 DEBUG: Sending accept request with data: $jsonData");
+
+        final acceptResult = await ApiRepo().orderAcceptDecline(
+            bearerKey, jsonData, orderData.id ?? 0);
+
+        if (acceptResult != null) {
+          print("✅ Background - Order auto-accepted successfully");
+          print("🔍 DEBUG: Accept result: $acceptResult");
+
+          // Step 3: Auto Print if enabled (after successful accept)
+          if (autoPrint) {
+            print("🖨️ Background - Starting auto print process...");
+
+            // Wait for invoice to be generated
+            print("⏳ Background - Waiting 3 seconds for invoice generation...");
+            await Future.delayed(Duration(seconds: 3));
+
+            // Get updated order with invoice data
+            print("📥 Background - Fetching updated order data...");
+            final updatedOrder = await ApiRepo().getNewOrderData(bearerKey, orderNumber);
+
+            if (updatedOrder?.invoice != null &&
+                (updatedOrder?.invoice?.invoiceNumber ?? '').isNotEmpty) {
+
+              print("✅ Background - Invoice found, printing with invoice...");
+              await backgroundPrintOrder(updatedOrder!, prefs);
+
+            } else {
+              print("⚠️ Background - Invoice not ready, printing without invoice...");
+              await backgroundPrintOrder(orderData, prefs);
+            }
+          }
+        } else {
+          print("❌ Background - Failed to auto-accept order (null response)");
+        }
+      } else if (autoPrint) {
+        // If only auto print is enabled (without auto accept)
+        print("🖨️ Background - Auto print enabled, processing without accept...");
+        await backgroundPrintOrder(orderData, prefs);
+      }
+
+      // Step 4: Refresh orders in background
+      print("🔄 Background - Refreshing orders list...");
+      await refreshOrdersInBackground(bearerKey, storeID);
+
+      print("🎉 Background processing completed for order: $orderNumber");
+
+    } catch (apiError) {
+      print("❌ Background - API Error: $apiError");
+    }
+
+  } catch (e) {
+    print("❌ Background handler error: $e");
+    print("❌ Background handler stack trace: ${e.toString()}");
+  }
+}
+
+// Enhanced background print function with better error handling:
+
+Future<void> backgroundPrintOrder(Order order, SharedPreferences prefs) async {
+  try {
+    debugPrint("🖨️ Background printing started for order: ${order.id}");
+
+    // Get printer IP from settings
+    String? selectedIp = prefs.getString('printer_ip_0') ?? '';
+
+    if (selectedIp.isEmpty) {
+      debugPrint("❌ Background - Printer IP not configured");
+
+      // Try to get any available printer IP
+      for (int i = 0; i < 5; i++) {
+        String? ip = prefs.getString('printer_ip_$i');
+        if (ip != null && ip.isNotEmpty) {
+          selectedIp = ip;
+          debugPrint("🔄 Background - Using alternative printer IP: $selectedIp");
+          break;
+        }
+      }
+
+      if (selectedIp!.isEmpty) {
+        debugPrint("❌ Background - No printer IP configured at all");
+        return;
+      }
+    }
+
+    debugPrint("🖨️ Background - Using printer IP: $selectedIp");
+
+    // Background printing using your existing printer helper
+    await PrinterHelperEnglish.printInBackground(
+        order: order,
+        ipAddress: selectedIp!,
+        store: ''
+    );
+
+    debugPrint("✅ Background print completed successfully for order: ${order.id}");
+
+    // Store successful print in preferences for tracking
+    List<String> printedOrders = prefs.getStringList('printed_orders_bg') ?? [];
+    printedOrders.add('${order.id}_${DateTime.now().millisecondsSinceEpoch}');
+    await prefs.setStringList('printed_orders_bg', printedOrders);
+
+  } catch (e) {
+    debugPrint("❌ Background print error: $e");
+
+    // Store failed print for retry later
+    List<String> failedPrints = prefs.getStringList('failed_prints_bg') ?? [];
+    failedPrints.add('${order.id}_${DateTime.now().millisecondsSinceEpoch}');
+    await prefs.setStringList('failed_prints_bg', failedPrints);
+  }
+}
+
+// BACKGROUND ORDERS REFRESH
+Future<void> refreshOrdersInBackground(String bearerKey, String storeID) async {
+  try {
+    print("🔄 Background - Refreshing orders from server...");
+
+    DateTime formatted = DateTime.now();
+    String date = DateFormat('yyyy-MM-dd').format(formatted);
+
+    final Map<String, dynamic> data = {
+      "store_id": storeID,
+      "target_date": date,
+      "limit": 0,
+      "offset": 0,
+    };
+
+    final result = await ApiRepo().orderGetApiFilter(bearerKey, data);
+
+    if (result.isNotEmpty && result.first.code == null) {
+      print("✅ Background - Orders refreshed successfully: ${result.length} orders");
+    } else {
+      print("⚠️ Background - Orders refresh returned no data");
+    }
+
+  } catch (e) {
+    print("❌ Background refresh error: $e");
+  }
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -316,28 +612,7 @@ Future<void> _showOrderNotification(String title, String body) async {
 //     debugPrint('Badge update failed: $e');
 //   }
 // }
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
 
-  final title = message.notification?.title ?? '';
-  final body = message.notification?.body ?? '';
-
-  debugPrint('📥 Background title: $title');
-  debugPrint('📥 Background body: $body');
-
-  if (title.contains('New Order')) {
-    await _showOrderNotification(title, body);
-  }
-
-  badgeCount++;
-
-  try {
-    await AppBadgePlus.updateBadge(badgeCount);
-  } catch (e) {
-    debugPrint('Badge update failed: $e');
-  }
-
-}
 
 
 // -----------------------------------------------------------------------------

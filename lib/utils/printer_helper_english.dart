@@ -10,8 +10,7 @@ import '../models/order_model.dart';
 
 class PrinterHelperEnglish {
 
-  static Future<void> printTestFromSavedIp({required BuildContext context,
-    required Order order, required String? store, required bool? auto,}) async {
+  static Future<void> printTestFromSavedIp({required BuildContext context, required Order order, required String? store, required bool? auto,}) async {
     final prefs = await SharedPreferences.getInstance();
     final selectedIndex = prefs.getInt('selected_ip_index');
     if (auto == false) {
@@ -491,6 +490,149 @@ class PrinterHelperEnglish {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
+  }
+  // Add this method to your PrinterHelperEnglish class
+
+  static Future<void> printInBackground({
+    required Order order,
+    required String ipAddress,
+    required String store,
+  }) async {
+    try {
+      print("🖨️ Background printing started for order: ${order.id}");
+
+      if (ipAddress.isEmpty) {
+        print("❌ Background print failed: IP address is empty");
+        return;
+      }
+
+      // Network printer setup for background
+      final profile = await CapabilityProfile.load();
+      final printer = NetworkPrinter(PaperSize.mm80, profile);
+
+      final PosPrintResult connectResult = await printer.connect(ipAddress, port: 9100);
+
+      if (connectResult == PosPrintResult.success) {
+        print("✅ Background printer connected: $ipAddress");
+
+        String formatAmount(double? amount) {
+          if (amount == null) return "0";
+
+          final locale = Get.locale?.languageCode ?? 'en';
+          String localeToUse = locale == 'de' ? 'de_DE' : 'en_US';
+          return NumberFormat('#,##0.00#', localeToUse).format(amount);
+        }
+        final now = DateTime.now();
+        final dateTimeStr = '${now.day}/${now.month}/${now.year},'
+            ' ${now.hour}:${now.minute.toString().padLeft(2, '0')}';
+
+        var amount = order.invoice?.totalAmount ?? 0.0;
+        var discount = order.invoice?.discount_amount ?? 0.0;
+        var delFee = order.invoice?.delivery_fee ?? 0.0;
+        var preSubTotal = amount - discount +delFee;
+        final subtotal = preSubTotal;
+
+        final discountData = order.invoice?.discount_amount ?? 0.0;
+        final deliveryFee = order.invoice?.delivery_fee ?? 0.0;
+
+        printer.text(" ${store ?? ''}",
+          styles: PosStyles(align: PosAlign.center, bold: true),);
+
+        printer.text("${'order'.tr} # ${order.id ?? ''}",
+          styles: PosStyles(align: PosAlign.center, bold: true),
+        );
+
+        printer.setStyles(PosStyles(align: PosAlign.center));
+        printer.text(
+          sanitizeText("${'invoice_number'.tr}: ${order.invoice?.invoiceNumber ?? ''}"),
+          styles: PosStyles(bold: true),
+        );
+        printer.text(
+          sanitizeText("${'date'.tr}: ${order.createdAt ?? dateTimeStr}"),
+          styles: PosStyles(bold: true),
+        );
+        printer.hr();
+        printer.text(
+          sanitizeText("${'customer'.tr}: ${(order.shipping_address?.customer_name ?? '')}"),
+          styles: PosStyles(align: PosAlign.left, bold: true),
+        );
+        printer.text(
+          "${'address'.tr}: ${order.shipping_address?.line1 ?? ""}, ${order.shipping_address?.city ?? ""}",
+          styles: PosStyles(align: PosAlign.left, bold: true),
+        );
+        printer.text(
+          "${'phone'.tr}: ${order.shipping_address?.phone ?? ""}",
+          styles: PosStyles(align: PosAlign.left, bold: true),
+        );
+        printer.hr();
+        printer.feed(1);
+
+        _printOrderItems(printer, order);
+        printer.hr();
+        _printItemWithNote(
+            printer: printer,
+            left: "${'subtotal'.tr}:",
+            right: formatAmount(amount),
+            note: '');
+
+        if (discountData != 0.0) {
+          _printItemWithNote(
+              printer: printer,
+              left: "${'discount'.tr}:",
+              right: formatAmount(discount),
+              note: '');
+        }
+
+        if (delFee != 0.0) {
+          _printItemWithNote(
+              printer: printer,
+              left: "${'delivery_fee'.tr}:",
+              right: formatAmount(delFee),
+              note: '');
+        }
+
+        printer.hr();
+        _printItemWithNote(
+          printer: printer,
+          left: "${'grand_total'.tr}:",
+          right: formatAmount(subtotal),
+          note: '',
+        );
+        printer.hr();
+
+        printer.text("${'invoice_number'.tr}:  ${order.invoice?.invoiceNumber ?? ''}",
+          styles: PosStyles(align: PosAlign.left, bold: true),
+        );
+        printer.text("${'payment_method'.tr}:  ${order.payment?.paymentMethod ?? ''}",
+          styles: PosStyles(align: PosAlign.left, bold: true),
+        );
+        printer.text("${'paid'.tr}: ${order.createdAt ?? ''}",
+          styles: PosStyles(align: PosAlign.left, bold: true),
+        );
+        printer.hr();
+
+        if (order.brutto_netto_summary != null &&
+            order.brutto_netto_summary!.isNotEmpty) {
+          _printTaxSummary(printer, order);
+        }
+
+        printer.feed(1);
+        printer.cut();
+        printer.text('*** AUTO PRINTED ***',
+            styles: PosStyles(align: PosAlign.center));
+        printer.feed(3);
+        printer.cut();
+
+        printer.disconnect();
+        print("✅ Background print completed successfully");
+
+      } else {
+        print("❌ Background printer connection failed: $connectResult");
+      }
+
+    } catch (e) {
+      print("❌ Background print error: $e");
+    }
   }
 }
 

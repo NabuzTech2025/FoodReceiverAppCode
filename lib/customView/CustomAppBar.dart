@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:food_app/bindings/app_binding.dart';
 import 'package:get/get.dart';
 
@@ -18,9 +19,11 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           children: [
-            IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () => Scaffold.of(context).openDrawer(),
+            GestureDetector(
+              onTap: (){
+                Scaffold.of(context).openDrawer();
+              },
+              child: SvgPicture.asset('assets/images/drawer.svg'),
             ),
             const SizedBox(width: 8),
             Expanded(
