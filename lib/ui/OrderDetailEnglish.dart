@@ -236,9 +236,22 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     var amount = (updatedOrder.invoice?.totalAmount ?? 0.0).toStringAsFixed(1);
     var discount = (updatedOrder.invoice?.discount_amount ?? 0.0).toStringAsFixed(1);
     var delFee = (updatedOrder.invoice?.delivery_fee ?? 0.0).toStringAsFixed(1);
-    var preSubTotal =
-        (double.parse(amount) - double.parse(discount) +double.parse(delFee) ).toStringAsFixed(1);
-    final subtotal = preSubTotal;
+    // Calculate subtotal from all items
+    final subtotal = updatedOrder.items?.fold<double>(0, (sum, item) {
+      if (item == null) return sum;
+
+      // Toppings total for this item
+      final toppingsTotal = item.toppings?.fold<double>(
+        0,
+            (tSum, topping) => tSum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
+      ) ?? 0;
+
+      // Item total (unit price + toppings) * quantity
+      final itemTotal = ((item.unitPrice ?? 0) + toppingsTotal) * (item.quantity ?? 0);
+
+      return sum + itemTotal;
+    }) ?? 0;
+
     final discountData = updatedOrder.invoice?.discount_amount ?? 0.0;
     final deliveryFee = updatedOrder.invoice?.delivery_fee ?? 0.0;
 
@@ -385,9 +398,9 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                         final item = updatedOrder.items?[index];
                         if (item == null) return SizedBox.shrink();
 
-                        // Calculate total price for this single item
                         final toppingsTotal = item.toppings?.fold<double>(
-                          0, (sum, topping) => sum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
+                          0,
+                              (sum, topping) => sum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
                         ) ?? 0;
                         final itemTotal = ((item.unitPrice ?? 0) + toppingsTotal) * (item.quantity ?? 0);
 
@@ -412,16 +425,19 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                               Text(
                                 'subtotal'.tr,
                                 style: TextStyle(
-                                    fontWeight: FontWeight.w500, fontSize: 13),
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13,
+                                ),
                               ),
-                              Text(formatAmount(double.parse(amount),),
-                                // subtotal,
+                              Text(
+                                formatAmount(subtotal),
                                 style: TextStyle(
-                                    fontWeight: FontWeight.w500, fontSize: 13),
-                              ),
-                            ],
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13,
+                                ),
+                              ),]
                           ),
-                          SizedBox(height: 2),
+                    SizedBox(height: 2),
                           Visibility(
                             visible: discountData == 0.0 ? false : true,
                             child: Row(
@@ -492,7 +508,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                               ),
 
                               Text(
-                                "${'currency'.tr} ${formatAmount(double.parse(subtotal))}",
+                                "${'currency'.tr} ${formatAmount(double.parse(amount))}",
                                 style: TextStyle(
                                     fontWeight: FontWeight.w500, fontSize: 13),
                               ),
