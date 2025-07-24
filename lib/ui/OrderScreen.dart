@@ -2,8 +2,10 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:food_app/api/Socket/socket_service.dart';
 import 'package:food_app/api/repository/api_repository.dart';
 import 'package:food_app/constants/constant.dart';
+import 'package:food_app/models/DailySalesReport.dart';
 import 'package:food_app/models/UserMe.dart';
 import 'package:food_app/ui/OrderDetailEnglish.dart';
 import 'package:food_app/ui/ReportBottomDialogSheet.dart';
@@ -58,7 +60,12 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
   late AnimationController _blinkController;
   late Animation<double> _opacityAnimation;
-
+  DailySalesReport? _currentDateReport;
+  DailySalesReport reportsss = DailySalesReport();
+  List<DailySalesReport> reportList = [];
+  final SocketService _socketService = SocketService();
+  bool _isLiveDataActive = false;
+  DateTime? _lastUpdateTime;
   @override
   void initState() {
     super.initState();
@@ -81,6 +88,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     WidgetsBinding.instance.removeObserver(this);// Clean up observer
     //socketService.dispose();
     _blinkController.dispose();
+    _socketService.disconnect();
     super.dispose();
   }
 
@@ -104,8 +112,211 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     } else {
       getStoreUserMeData(bearerKey);
     }
+    getCurrentDateReport();
+
+    // Initialize socket ONLY if bearerKey is not null and not empty
+    if (bearerKey != null && bearerKey!.isNotEmpty) {
+      print("Initializing socket with bearer key"); // Debug print
+      _initializeSocket();
+    } else {
+      print("Bearer key is null or empty, socket not initialized"); // Debug print
+    }
+  }
+  void _initializeSocket() {
+    print("🔥 Starting socket initialization"); // Debug print
+
+    // Set up socket event callbacks
+    _socketService.onSalesUpdate = (data) {
+      print('📊 Sales update received in ReportScreen: $data');
+      _handleSalesUpdate(data);
+    };
+
+    _socketService.onConnected = () {
+      print('🔥 Socket connected - Live data active');
+      setState(() {
+        _isLiveDataActive = true;
+      });
+    };
+
+    _socketService.onDisconnected = () {
+      print('❄️ Socket disconnected - Live data inactive');
+      setState(() {
+        _isLiveDataActive = false;
+      });
+    };
+
+    _socketService.onNewOrder = (data) {
+      print('🆕 New order received: $data');
+      // Optionally refresh current day data when new order comes
+      _refreshCurrentDayData();
+    };
+
+    // Connect to socket with proper parameters
+    try {
+      print("🔌 Attempting to connect socket with bearer: $bearerKey");
+      _socketService.connect(bearerKey!, storeId: 13); // Add storeId parameter if needed
+    } catch (e) {
+      print("❌ Socket connection failed: $e");
+    }
+  }
+  void _handleSalesUpdate(Map<String, dynamic> salesData) {
+    print('🔄 Updating sales data: $salesData');
+
+    setState(() {
+      _lastUpdateTime = DateTime.now();
+    });
+
+    // Update current date report with live data
+    if (_currentDateReport != null) {
+      _currentDateReport!.totalOrders = salesData['total_orders'] as int?; // Keep as int since model expects int
+      if (_currentDateReport!.data == null) {
+        _currentDateReport!.data = SalesData(
+          topItems: [],
+          cashTotal: 0.0,
+          byCategory: {},
+          orderTypes: {},
+          totalSales: 0.0,
+          onlineTotal: 0.0,
+          totalOrders: 0,
+          paymentMethods: {},
+          approvalStatuses: {},
+        );
+      }
+
+      // Since orderTypes, approvalStatuses, taxBreakdown are final,
+      // we need to recreate the entire SalesData object
+      _currentDateReport!.data = SalesData(
+        netTotal: (salesData['net_total'] as num?)?.toDouble(),
+        topItems: _currentDateReport!.data?.topItems ??
+            (salesData['top_items'] != null
+                ? (salesData['top_items'] as List).map((item) => TopItem.fromJson(item)).toList()
+                : []),
+        totalTax: (salesData['total_tax'] as num?)?.toDouble(),
+        cashTotal: (salesData['cash_total'] as num?)?.toDouble() ?? 0.0,
+        byCategory: salesData['by_category'] != null
+            ? Map<String, int>.from(salesData['by_category'])
+            : (_currentDateReport!.data?.byCategory ?? {}),
+        orderTypes: salesData['order_types'] != null
+            ? Map<String, int>.from(salesData['order_types'])
+            : {},
+        totalSales: (salesData['total_sales'] as num?)?.toDouble() ?? 0.0,
+        onlineTotal: (salesData['online_total'] as num?)?.toDouble() ?? 0.0,
+        totalOrders: (salesData['total_orders'] as num?)?.toInt() ?? 0,
+        taxBreakdown: salesData['tax_breakdown'] != null
+            ? TaxBreakdown.fromJson(salesData['tax_breakdown'])
+            : null,
+        deliveryTotal: (salesData['delivery_total'] as num?)?.toDouble(),
+        discountTotal: salesData['discount_total'] != null
+            ? (salesData['discount_total'] as num).toInt()
+            : null,
+        paymentMethods: salesData['payment_methods'] != null
+            ? Map<String, int>.from(salesData['payment_methods'])
+            : {},
+        approvalStatuses: salesData['approval_statuses'] != null
+            ? Map<String, int>.from(salesData['approval_statuses'])
+            : {},
+        totalSalesDelivery: (salesData['total_sales + delivery'] as num?)?.toDouble(),
+      );
+
+      // Always update the UI regardless of _selectedReport
+      setState(() {
+        reportsss = _currentDateReport!;
+      });
+
+      print('✅ Sales data updated successfully');
+      print('Total Sales: ${_currentDateReport!.totalSales}');
+      print('Total Orders: ${_currentDateReport!.totalOrders}');
+      print('Cash Total: ${_currentDateReport!.cashTotal}');
+      print('Discount Total: ${_currentDateReport!.data?.discountTotal}');
+      print('Delivery Total: ${_currentDateReport!.data?.deliveryTotal}');
+      print('Total Sales + Delivery: ${_currentDateReport!.data?.totalSalesDelivery}');
+      print('Order Types: ${_currentDateReport!.data?.orderTypes}');
+      print('Approval Statuses: ${_currentDateReport!.data?.approvalStatuses}');
+      print('Tax Breakdown: ${_currentDateReport!.data?.taxBreakdown}');
+    } else {
+      print('❌ Current date report is null, cannot update');
+    }
   }
 
+  void _refreshCurrentDayData() {
+
+    getCurrentDateReport();
+  }
+  void getCurrentDateReport() {
+    final today = DateTime.now();
+    final todayString = DateFormat('yyyy-MM-dd').format(today);
+
+    print("🔍 Looking for current date report:");
+    print("Today's date string: $todayString");
+    print("Report list length: ${reportList.length}");
+
+    // Debug: Print all report dates
+    for (int i = 0; i < reportList.length; i++) {
+      var report = reportList[i];
+      print("Report $i - startDate: ${report.startDate}");
+      if (report.startDate != null) {
+        try {
+          final reportDate = DateTime.parse(report.startDate!);
+          final reportDateString = DateFormat('yyyy-MM-dd').format(reportDate);
+          print("  Parsed date string: $reportDateString");
+          print("  Matches today: ${reportDateString == todayString}");
+        } catch (e) {
+          print("  Date parsing error: $e");
+        }
+      }
+    }
+
+    // Find report for today's date
+    DailySalesReport? foundReport;
+    for (var report in reportList) {
+      if (report.startDate != null) {
+        try {
+          final reportDate = DateTime.parse(report.startDate!);
+          final reportDateString = DateFormat('yyyy-MM-dd').format(reportDate);
+          if (reportDateString == todayString) {
+            foundReport = report;
+            print("✅ Found current date report!");
+            break;
+          }
+        } catch (e) {
+          print("❌ Error parsing date ${report.startDate}: $e");
+          continue;
+        }
+      }
+    }
+
+    if (foundReport != null) {
+      setState(() {
+        _currentDateReport = foundReport;
+        reportsss = foundReport!; // Set as default report to show
+      });
+      print("✅ Current date report set successfully");
+      print("Total Sales: ${foundReport.totalSales}");
+      print("Total Orders: ${foundReport.totalOrders}");
+    } else {
+      print("❌ No report found for today's date: $todayString");
+
+      // Create a default report for today if none exists
+      final defaultReport = DailySalesReport(
+        startDate: todayString,
+        totalSales: 0.0,
+        totalOrders: 0,
+        cashTotal: 0.0,
+        onlineTotal: 0.0,
+        totalTax: 0.0,
+        data: null, // Will be populated by socket updates
+      );
+
+      setState(() {
+        _currentDateReport = defaultReport;
+        reportsss = defaultReport;
+        // Optionally add to reportList
+        reportList.insert(0, defaultReport);
+      });
+
+      print("🆕 Created default report for today");
+    }
+  }
   // ─────────────────── Refresh logic ───────────────────
   /// Used by the RefreshIndicator (pull‑to‑refresh) – **silent** refresh
   Future<void> _handleRefresh() async {                               // ✨ NEW
@@ -191,11 +402,489 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     String localeToUse = locale == 'de' ? 'de_DE' : 'en_US';
     return NumberFormat('#,##0.0#', localeToUse).format(amount);
   }
+  int _getApprovalStatusCount(String status) {
+    if (_currentDateReport?.data?.approvalStatuses == null) return 0;
+
+    // Different possible keys for approval statuses
+    final approvalStatuses = _currentDateReport!.data!.approvalStatuses!;
+
+    switch (status.toLowerCase()) {
+      case "accepted":
+        return approvalStatuses["accepted"] ??
+            approvalStatuses["approve"] ??
+            approvalStatuses["2"] ?? 0;
+      case "declined":
+        return approvalStatuses["declined"] ??
+            approvalStatuses["decline"] ??
+            approvalStatuses["rejected"] ??
+            approvalStatuses["3"] ?? 0;
+      case "pending":
+        return approvalStatuses["pending"] ??
+            approvalStatuses["1"] ?? 0;
+      default:
+        return 0;
+    }
+  }
+
+// Order Type count get करने के लिए
+  int _getOrderTypeCount(String type) {
+    if (_currentDateReport?.data?.orderTypes == null) return 0;
+
+    final orderTypes = _currentDateReport!.data!.orderTypes!;
+
+    switch (type.toLowerCase()) {
+      case "pickup":
+        return orderTypes["pickup"] ??
+            orderTypes["pick_up"] ??
+            orderTypes["takeaway"] ?? 0;
+      case "delivery":
+        return orderTypes["delivery"] ??
+            orderTypes["home_delivery"] ?? 0;
+      case "dine_in":
+        return orderTypes["dine_in"] ??
+            orderTypes["dinein"] ?? 0;
+      default:
+        return 0;
+    }
+  }
+
+
   // ─────────────────── UI ───────────────────
+  // @override
+  // Widget build(BuildContext context) {
+  //   super.build(context);
+  //   return Scaffold(
+  //     backgroundColor: const Color(0xFFF5F5F5),
+  //     body: Padding(
+  //       padding: const EdgeInsets.all(12),
+  //       child: Column(
+  //         crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: [
+  //           // ────────── Header row ──────────
+  //           Row(
+  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //             children: [
+  //               // Date + title
+  //               GestureDetector(
+  //                 onTap: openCalendarScreen,
+  //                 child: Column(
+  //                   crossAxisAlignment: CrossAxisAlignment.start,
+  //                   children: [
+  //                     Text('order'.tr,
+  //                         style: const TextStyle(
+  //                             fontSize: 18, fontWeight: FontWeight.bold)),
+  //                     Text(
+  //                       dateSeleted.isEmpty
+  //                           ? DateFormat('d MMMM, y').format(DateTime.now())
+  //                           : dateSeleted,
+  //                       style: const TextStyle(fontSize: 16),
+  //                     ),
+  //                   ],
+  //                 ),
+  //               ),
+  //
+  //               Row(
+  //                 children: [
+  //                   Text(
+  //                     'Total Orders: ${_currentDateReport?.totalOrders ?? 0}',
+  //                     style: TextStyle(
+  //                         fontSize: 14,
+  //                         fontWeight: FontWeight.w800,
+  //                         fontFamily: "Mulish",
+  //                         color: Colors.black
+  //                     ),
+  //                   ),
+  //                   IconButton(
+  //                     iconSize: 33,
+  //                     icon: const Icon(Icons.refresh),
+  //                     onPressed: _manualRefresh,
+  //                   ),
+  //                 ],
+  //               ),
+  //               const SizedBox(height: 7),
+  //               Row(
+  //                 children: [
+  //                   // Accepted Orders
+  //                   Container(
+  //                     padding: EdgeInsets.all(5),
+  //                     decoration: BoxDecoration(
+  //                       color: Colors.white,
+  //                       borderRadius: BorderRadius.circular(3),
+  //                       boxShadow: [
+  //                         BoxShadow(
+  //                           color: Colors.black.withOpacity(0.1),
+  //                           spreadRadius: 0,
+  //                           blurRadius: 4,
+  //                           offset: Offset(0, 2),
+  //                         ),
+  //                       ],
+  //                     ),
+  //                     child: Text(
+  //                       'Accepted: ${_getApprovalStatusCount("accepted")}',
+  //                       style: TextStyle(
+  //                           fontFamily: "Mulish",
+  //                           fontWeight: FontWeight.w700,
+  //                           fontSize: 10,
+  //                           color: Colors.black
+  //                       ),
+  //                     ),
+  //                   ),
+  //                   SizedBox(width: 3),
+  //
+  //                   // Declined Orders
+  //                   Container(
+  //                     padding: EdgeInsets.all(5),
+  //                     decoration: BoxDecoration(
+  //                       color: Colors.white,
+  //                       borderRadius: BorderRadius.circular(3),
+  //                       boxShadow: [
+  //                         BoxShadow(
+  //                           color: Colors.black.withOpacity(0.1),
+  //                           spreadRadius: 0,
+  //                           blurRadius: 4,
+  //                           offset: Offset(0, 2),
+  //                         ),
+  //                       ],
+  //                     ),
+  //                     child: Text(
+  //                       'Decline: ${_getApprovalStatusCount("declined")}',
+  //                       style: TextStyle(
+  //                           fontFamily: "Mulish",
+  //                           fontWeight: FontWeight.w700,
+  //                           fontSize: 10,
+  //                           color: Colors.black
+  //                       ),
+  //                     ),
+  //                   ),
+  //                   SizedBox(width: 3),
+  //
+  //                   // Pending Orders
+  //                   Container(
+  //                     padding: EdgeInsets.all(5),
+  //                     decoration: BoxDecoration(
+  //                       color: Colors.white,
+  //                       borderRadius: BorderRadius.circular(3),
+  //                       boxShadow: [
+  //                         BoxShadow(
+  //                           color: Colors.black.withOpacity(0.1),
+  //                           spreadRadius: 0,
+  //                           blurRadius: 4,
+  //                           offset: Offset(0, 2),
+  //                         ),
+  //                       ],
+  //                     ),
+  //                     child: Text(
+  //                       'Pending: ${_getApprovalStatusCount("pending")}',
+  //                       style: TextStyle(
+  //                           fontFamily: "Mulish",
+  //                           fontWeight: FontWeight.w700,
+  //                           fontSize: 10,
+  //                           color: Colors.black
+  //                       ),
+  //                     ),
+  //                   ),
+  //                   SizedBox(width: 3),
+  //
+  //                   // Pickup Orders
+  //                   Container(
+  //                     padding: EdgeInsets.all(5),
+  //                     decoration: BoxDecoration(
+  //                       color: Colors.white,
+  //                       borderRadius: BorderRadius.circular(3),
+  //                       boxShadow: [
+  //                         BoxShadow(
+  //                           color: Colors.black.withOpacity(0.1),
+  //                           spreadRadius: 0,
+  //                           blurRadius: 4,
+  //                           offset: Offset(0, 2),
+  //                         ),
+  //                       ],
+  //                     ),
+  //                     child: Text(
+  //                       'PickUp: ${_getOrderTypeCount("pickup")}',
+  //                       style: TextStyle(
+  //                           fontFamily: "Mulish",
+  //                           fontWeight: FontWeight.w700,
+  //                           fontSize: 10,
+  //                           color: Colors.black
+  //                       ),
+  //                     ),
+  //                   ),
+  //                   SizedBox(width: 2),
+  //
+  //                   // Delivery Orders
+  //                   Container(
+  //                     padding: EdgeInsets.all(5),
+  //                     decoration: BoxDecoration(
+  //                       color: Colors.white,
+  //                       borderRadius: BorderRadius.circular(3),
+  //                       boxShadow: [
+  //                         BoxShadow(
+  //                           color: Colors.black.withOpacity(0.1),
+  //                           spreadRadius: 0,
+  //                           blurRadius: 4,
+  //                           offset: Offset(0, 2),
+  //                         ),
+  //                       ],
+  //                     ),
+  //                     child: Text(
+  //                       'Delivery: ${_getOrderTypeCount("delivery")}',
+  //                       style: TextStyle(
+  //                           fontFamily: "Mulish",
+  //                           fontWeight: FontWeight.w700,
+  //                           fontSize: 10,
+  //                           color: Colors.black
+  //                       ),
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //           // ────────── Orders list with pull‑to‑refresh ──────────
+  //           SizedBox(height: 10,),
+  //           Expanded(
+  //             child: RefreshIndicator(                          // ✨ NEW
+  //               onRefresh: _handleRefresh,
+  //               color: Colors.green, // Loader (circular progress) color
+  //               backgroundColor: Colors.white, // Background behind the loader// ✨ NEW
+  //               displacement: 60,                               // optional
+  //               child: Obx(() {
+  //                 if (app.appController.searchResultOrder.isEmpty) {
+  //                   return ListView(
+  //                     physics: const AlwaysScrollableScrollPhysics(),
+  //                     children: [
+  //                       SizedBox(height: 100),
+  //                       Center(
+  //                           child: Lottie.asset(
+  //                             'assets/animations/burger.json',
+  //                             width: 150,
+  //                             height: 150,
+  //                             repeat: true,)
+  //                         // Text(
+  //                         //   'There is no order at this time',
+  //                         //   style: TextStyle(fontSize: 20, fontWeight: FontWeight.normal),
+  //                         // ),
+  //                       ),
+  //                     ],
+  //                   );
+  //                 }
+  //                 return ListView.builder(
+  //                     physics: const AlwaysScrollableScrollPhysics(), // ✨ NEW
+  //                     itemCount: app.appController.searchResultOrder.length,
+  //                     itemBuilder: (context, index) {
+  //                       final order = app.appController
+  //                           .searchResultOrder[index];
+  //
+  //
+  //                       // … existing card code unchanged …
+  //                       DateTime startTime = DateTime.tryParse(
+  //                           order.createdAt ?? '') ??
+  //                           DateTime.now();
+  //                       DateTime endTime = startTime.add(const Duration(
+  //                           minutes: 30));
+  //                       String formattedEnd =
+  //                       DateFormat('hh:mm a').format(endTime);
+  //
+  //                       return
+  //                         AnimatedBuilder(
+  //                           animation: _opacityAnimation,
+  //                           builder: (context, child) {
+  //                             final bool isPending = (order.approvalStatus ?? 0) == 1;
+  //
+  //                             return Opacity(
+  //                               opacity: isPending ? _opacityAnimation.value : 1.0,
+  //                               child: Container(
+  //                                 margin: EdgeInsets.only(bottom: 12),
+  //                                 decoration: BoxDecoration(
+  //                                   color: Colors.white,
+  //                                   borderRadius: BorderRadius.circular(7),
+  //                                   boxShadow: [
+  //                                     BoxShadow(
+  //                                       color: Colors.black.withOpacity(0.1),
+  //                                       spreadRadius: 0,
+  //                                       blurRadius: 4,
+  //                                       offset: Offset(0, 2),
+  //                                     ),
+  //                                   ],
+  //                                 ),
+  //                                 // shape: RoundedRectangleBorder(
+  //                                 //   borderRadius: BorderRadius.circular(12),
+  //                                 // ),
+  //                                 child: Padding(
+  //                                   padding: EdgeInsets.all(10),
+  //                                   child: GestureDetector(
+  //                                     behavior: HitTestBehavior.opaque,
+  //                                     onTap: () => Get.to(() => OrderDetailEnglish(order)),
+  //                                     child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+  //                                       children: [
+  //                                         // top row
+  //                                         Row(crossAxisAlignment: CrossAxisAlignment.start,
+  //                                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //                                           children: [
+  //                                             Row(crossAxisAlignment: CrossAxisAlignment.start,
+  //                                               children: [
+  //                                                 CircleAvatar(
+  //                                                   radius: 14,
+  //                                                   backgroundColor: Colors.green,
+  //                                                   child: SvgPicture.asset(
+  //                                                     order.orderType == 1
+  //                                                         ? 'assets/images/ic_delivery.svg'
+  //                                                         : order.orderType == 2
+  //                                                         ? 'assets/images/ic_pickup.svg'
+  //                                                         : 'assets/images/ic_pickup.svg',
+  //                                                     height: 14,
+  //                                                     width: 14,
+  //                                                     color: Colors.white,
+  //                                                   ),
+  //                                                 ),
+  //                                                 SizedBox(width: 6),
+  //                                                 // Text(
+  //                                                 //   order.orderType == 1
+  //                                                 //       ? 'delivery'.tr + ' : $formattedEnd' : order.orderType == 2
+  //                                                 //       ? 'pickup'.tr +
+  //                                                 //       ' : $formattedEnd'
+  //                                                 //       : order.orderType == 3
+  //                                                 //       ? 'dine_in'.tr +
+  //                                                 //       ' : $formattedEnd'
+  //                                                 //       : '',
+  //                                                 //   style: const TextStyle(
+  //                                                 //       fontWeight: FontWeight.bold),
+  //                                                 // ),
+  //                                                 Column(crossAxisAlignment: CrossAxisAlignment.start,
+  //                                                   children: [
+  //                                                     Text(order.shipping_address!.zip.toString(),
+  //                                                       style: TextStyle(fontWeight: FontWeight.w700,
+  //                                                           fontSize: 13,
+  //                                                           fontFamily: "Mulish-Regular"
+  //                                                       ),),
+  //                                                     Visibility(
+  //                                                       visible: order.shipping_address != null,
+  //                                                       child: Text(
+  //                                                         order.orderType == 1 &&
+  //                                                             order.shipping_address != null
+  //                                                             ? '${order.shipping_address!.line1!}, '''
+  //                                                             '${order.shipping_address!.city!}'
+  //                                                             : '',
+  //                                                         style: const TextStyle(
+  //                                                             fontWeight: FontWeight.w500,
+  //                                                             fontSize: 11,
+  //                                                             letterSpacing: 0,
+  //                                                             height: 0,
+  //                                                             fontFamily: "Mulish"),
+  //                                                       ),
+  //                                                     ),
+  //
+  //                                                   ],
+  //                                                 )
+  //                                               ],
+  //                                             ),
+  //                                             Row(
+  //                                               children: [
+  //                                                 Text(
+  //                                                   '${'order_id'.tr} :',
+  //                                                   style: const TextStyle(
+  //                                                       fontWeight: FontWeight
+  //                                                           .w700,
+  //                                                       fontSize: 11,
+  //                                                       fontFamily: "Mulish"),
+  //                                                 ), Text(
+  //                                                   '${order.id}',
+  //                                                   style: const TextStyle(
+  //                                                       fontWeight: FontWeight
+  //                                                           .w500,
+  //                                                       fontSize: 11,
+  //                                                       fontFamily: "Mulish"),
+  //                                                 ),
+  //                                               ],
+  //                                             ),
+  //                                           ],
+  //                                         ),
+  //                                         SizedBox(height: 1),
+  //                                         SizedBox(height: 6),
+  //
+  //                                         Text(
+  //                                           '${order.shipping_address
+  //                                               ?.customer_name ?? "User"} '
+  //                                               '/ ${order.shipping_address
+  //                                               ?.phone ?? "0000000000"}',
+  //                                           style: const TextStyle(
+  //                                               fontWeight: FontWeight.w700,
+  //                                               fontFamily: "Mulish",
+  //                                               fontSize: 13),
+  //                                         ),
+  //
+  //                                         const SizedBox(height: 8),
+  //
+  //                                         Row(
+  //                                           mainAxisAlignment:
+  //                                           MainAxisAlignment.spaceBetween,
+  //                                           children: [
+  //                                             // Text(
+  //                                             //   order.payment != null
+  //                                             //       ? '${'currency'.tr} '
+  //                                             //       '${order.payment!.amount}'
+  //                                             //       : '${'currency'.tr} 00',
+  //                                             //   style: const TextStyle(
+  //                                             //       fontWeight: FontWeight.bold,
+  //                                             //       fontSize: 18),
+  //                                             // ),
+  //                                             Text(
+  //                                               order.payment != null ? '${'currency'.tr} ${formatAmount(order.payment!.amount ?? 0)}' :
+  //                                               '${'currency'.tr} ${formatAmount(0)}',
+  //                                               style: const TextStyle(
+  //                                                   fontWeight: FontWeight.w800,
+  //                                                   fontFamily: "Mulish",
+  //                                                   fontSize: 16),
+  //                                             ),
+  //                                             Row(
+  //                                               children: [
+  //                                                 Text(getApprovalStatusText(
+  //                                                     order.approvalStatus),
+  //                                                   style: const TextStyle(
+  //                                                       fontWeight: FontWeight
+  //                                                           .w800,
+  //                                                       fontFamily: "Mulish-Regular",
+  //                                                       fontSize: 13
+  //                                                   ),
+  //                                                 ),
+  //                                                 const SizedBox(width: 6),
+  //                                                 CircleAvatar(
+  //                                                   radius: 14,
+  //                                                   backgroundColor: getStatusColor(
+  //                                                       order.approvalStatus ??
+  //                                                           0),
+  //                                                   child: Icon(
+  //                                                     getStatusIcon(order
+  //                                                         .approvalStatus ?? 0),
+  //                                                     color: Colors.white,
+  //                                                     size: 16,
+  //                                                   ),
+  //                                                 ),
+  //                                               ],
+  //                                             ),
+  //                                           ],
+  //                                         ),
+  //                                       ],
+  //                                     ),
+  //                                   ),
+  //                                 ),
+  //                               ),
+  //                             );
+  //                           },
+  //                         );
+  //                     });
+  //               })
+  //                 ),
+  //           ),
+  //         ],
+  //       ),
+  //     ]),
+  //   ));
+  // }
+
+  // ─────────────────── Misc helpers (unchanged) ───────────────────
   @override
   Widget build(BuildContext context) {
-    super.build(context); // needed when using AutomaticKeepAliveClientMixin
-
+    super.build(context);
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: Padding(
@@ -203,189 +892,138 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ────────── Header row ──────────
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // ────────── Header section ──────────
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Date + title
-                GestureDetector(
-                  onTap: openCalendarScreen,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('order'.tr,
-                          style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      Text(
-                        dateSeleted.isEmpty
-                            ? DateFormat('d MMMM, y').format(DateTime.now())
-                            : dateSeleted,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ],
-                  ),
-                ),
+                // First row - Date + Title + Total Orders + Refresh
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Total Orders:20',style: TextStyle(
-                      fontSize: 14,fontWeight: FontWeight.w800,fontFamily: "Mulish",color: Colors.black
-                    ),),
-                    IconButton(
-                      iconSize: 33,
-                      icon: const Icon(Icons.refresh),
-                      onPressed: _manualRefresh,                    // ✨ NEW
+                    // Date + title
+                    GestureDetector(
+                      onTap: openCalendarScreen,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('order'.tr,
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold)),
+                          Text(
+                            dateSeleted.isEmpty
+                                ? DateFormat('d MMMM, y').format(DateTime.now())
+                                : dateSeleted,
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Total Orders + Refresh button
+                    Row(
+                      children: [
+                        Text(
+                          'Total Orders: ${_currentDateReport?.totalOrders ?? 0}',
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              fontFamily: "Mulish",
+                              color: Colors.black
+                          ),
+                        ),
+                        IconButton(
+                          iconSize: 33,
+                          icon: const Icon(Icons.refresh),
+                          onPressed: _manualRefresh,
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 7),
-            Row(
-              //mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(3,),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        spreadRadius: 0,
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
+
+                const SizedBox(height: 10),
+
+                // Second row - Status containers
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      // Accepted Orders
+                      _buildStatusContainer(
+                        'Accepted: ${_getApprovalStatusCount("accepted")}',
+                        Colors.green.withOpacity(0.1),
+                      ),
+                      SizedBox(width: 8),
+
+                      // Declined Orders
+                      _buildStatusContainer(
+                        'Decline: ${_getApprovalStatusCount("declined")}',
+                        Colors.red.withOpacity(0.1),
+                      ),
+                      SizedBox(width: 8),
+
+                      // Pending Orders
+                      _buildStatusContainer(
+                        'Pending: ${_getApprovalStatusCount("pending")}',
+                        Colors.orange.withOpacity(0.1),
+                      ),
+                      SizedBox(width: 8),
+
+                      // Pickup Orders
+                      _buildStatusContainer(
+                        'PickUp: ${_getOrderTypeCount("pickup")}',
+                        Colors.blue.withOpacity(0.1),
+                      ),
+                      SizedBox(width: 8),
+
+                      // Delivery Orders
+                      _buildStatusContainer(
+                        'Delivery: ${_getOrderTypeCount("delivery")}',
+                        Colors.purple.withOpacity(0.1),
                       ),
                     ],
                   ),
-                  child: Text('Accepted : 20',style: TextStyle(
-                      fontFamily: "Mulish",fontWeight: FontWeight.w700,fontSize: 10,color: Colors.black
-                  ),),
-                ),
-                SizedBox(width: 3,),
-                Container(
-                  padding: EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(3,),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        spreadRadius: 0,
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Text('Decline : 2',style: TextStyle(
-                    fontFamily: "Mulish",fontWeight: FontWeight.w700,fontSize: 10,color: Colors.black
-                  ),),
-                ),
-                SizedBox(width: 3,),
-                Container(
-                  padding: EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(3,),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        spreadRadius: 0,
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Text('Pending : 2',style: TextStyle(
-                    fontFamily: "Mulish",fontWeight: FontWeight.w700,fontSize: 10,color: Colors.black
-                  ),),
-                ),
-                SizedBox(width: 3,),
-                Container(
-                  padding: EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(3,),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        spreadRadius: 0,
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Text('PickUp : 2',style: TextStyle(
-                    fontFamily: "Mulish",fontWeight: FontWeight.w700,fontSize: 10,color: Colors.black
-                  ),),
-                ),
-                SizedBox(width: 2,),
-                Container(
-                  padding: EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(3,),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        spreadRadius: 0,
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Text('Delivery : 2',style: TextStyle(
-                    fontFamily: "Mulish",fontWeight: FontWeight.w700,fontSize: 10,color: Colors.black
-                  ),),
                 ),
               ],
             ),
+
+            const SizedBox(height: 15),
+
             // ────────── Orders list with pull‑to‑refresh ──────────
-            SizedBox(height: 10,),
             Expanded(
-              child: RefreshIndicator(                          // ✨ NEW
-                onRefresh: _handleRefresh,
-                color: Colors.green, // Loader (circular progress) color
-                backgroundColor: Colors.white, // Background behind the loader// ✨ NEW
-                displacement: 60,                               // optional
-                child: Obx(() {
-                  if (app.appController.searchResultOrder.isEmpty) {
-                    return ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        SizedBox(height: 100),
-                        Center(
-                            child: Lottie.asset(
-                              'assets/animations/burger.json',
-                              width: 150,
-                              height: 150,
-                              repeat: true,)
-                          // Text(
-                          //   'There is no order at this time',
-                          //   style: TextStyle(fontSize: 20, fontWeight: FontWeight.normal),
-                          // ),
-                        ),
-                      ],
-                    );
-                  }
-                  return ListView.builder(
-                      physics: const AlwaysScrollableScrollPhysics(), // ✨ NEW
-                      itemCount: app.appController.searchResultOrder.length,
-                      itemBuilder: (context, index) {
-                        final order = app.appController
-                            .searchResultOrder[index];
+              child: RefreshIndicator(
+                  onRefresh: _handleRefresh,
+                  color: Colors.green,
+                  backgroundColor: Colors.white,
+                  displacement: 60,
+                  child: Obx(() {
+                    if (app.appController.searchResultOrder.isEmpty) {
+                      return ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          SizedBox(height: 100),
+                          Center(
+                              child: Lottie.asset(
+                                'assets/animations/burger.json',
+                                width: 150,
+                                height: 150,
+                                repeat: true,
+                              )
+                          ),
+                        ],
+                      );
+                    }
+                    return ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemCount: app.appController.searchResultOrder.length,
+                        itemBuilder: (context, index) {
+                          final order = app.appController.searchResultOrder[index];
 
+                          DateTime startTime = DateTime.tryParse(order.createdAt ?? '') ?? DateTime.now();
+                          DateTime endTime = startTime.add(const Duration(minutes: 30));
+                          String formattedEnd = DateFormat('hh:mm a').format(endTime);
 
-                        // … existing card code unchanged …
-                        DateTime startTime = DateTime.tryParse(
-                            order.createdAt ?? '') ??
-                            DateTime.now();
-                        DateTime endTime = startTime.add(const Duration(
-                            minutes: 30));
-                        String formattedEnd =
-                        DateFormat('hh:mm a').format(endTime);
-
-                        return
-                          AnimatedBuilder(
+                          return AnimatedBuilder(
                             animation: _opacityAnimation,
                             builder: (context, child) {
                               final bool isPending = (order.approvalStatus ?? 0) == 1;
@@ -406,21 +1044,21 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                       ),
                                     ],
                                   ),
-                                  // shape: RoundedRectangleBorder(
-                                  //   borderRadius: BorderRadius.circular(12),
-                                  // ),
                                   child: Padding(
                                     padding: EdgeInsets.all(10),
                                     child: GestureDetector(
                                       behavior: HitTestBehavior.opaque,
                                       onTap: () => Get.to(() => OrderDetailEnglish(order)),
-                                      child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           // top row
-                                          Row(crossAxisAlignment: CrossAxisAlignment.start,
+                                          Row(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                             children: [
-                                              Row(crossAxisAlignment: CrossAxisAlignment.start,
+                                              Row(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
                                                   CircleAvatar(
                                                     radius: 14,
@@ -437,42 +1075,32 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                     ),
                                                   ),
                                                   SizedBox(width: 6),
-                                                  // Text(
-                                                  //   order.orderType == 1
-                                                  //       ? 'delivery'.tr + ' : $formattedEnd' : order.orderType == 2
-                                                  //       ? 'pickup'.tr +
-                                                  //       ' : $formattedEnd'
-                                                  //       : order.orderType == 3
-                                                  //       ? 'dine_in'.tr +
-                                                  //       ' : $formattedEnd'
-                                                  //       : '',
-                                                  //   style: const TextStyle(
-                                                  //       fontWeight: FontWeight.bold),
-                                                  // ),
-                                                  Column(crossAxisAlignment: CrossAxisAlignment.start,
+                                                  Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
                                                     children: [
-                                                      Text(order.shipping_address!.zip.toString(),
-                                                        style: TextStyle(fontWeight: FontWeight.w700,
+                                                      Text(
+                                                        order.shipping_address!.zip.toString(),
+                                                        style: TextStyle(
+                                                            fontWeight: FontWeight.w700,
                                                             fontSize: 13,
                                                             fontFamily: "Mulish-Regular"
-                                                        ),),
+                                                        ),
+                                                      ),
                                                       Visibility(
                                                         visible: order.shipping_address != null,
                                                         child: Text(
-                                                          order.orderType == 1 &&
-                                                              order.shipping_address != null
-                                                              ? '${order.shipping_address!.line1!}, '''
-                                                              '${order.shipping_address!.city!}'
+                                                          order.orderType == 1 && order.shipping_address != null
+                                                              ? '${order.shipping_address!.line1!}, ${order.shipping_address!.city!}'
                                                               : '',
                                                           style: const TextStyle(
                                                               fontWeight: FontWeight.w500,
                                                               fontSize: 11,
                                                               letterSpacing: 0,
                                                               height: 0,
-                                                              fontFamily: "Mulish"),
+                                                              fontFamily: "Mulish"
+                                                          ),
                                                         ),
                                                       ),
-
                                                     ],
                                                   )
                                                 ],
@@ -482,66 +1110,55 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                   Text(
                                                     '${'order_id'.tr} :',
                                                     style: const TextStyle(
-                                                        fontWeight: FontWeight
-                                                            .w700,
+                                                        fontWeight: FontWeight.w700,
                                                         fontSize: 11,
-                                                        fontFamily: "Mulish"),
-                                                  ), Text(
+                                                        fontFamily: "Mulish"
+                                                    ),
+                                                  ),
+                                                  Text(
                                                     '${order.id}',
                                                     style: const TextStyle(
-                                                        fontWeight: FontWeight
-                                                            .w500,
+                                                        fontWeight: FontWeight.w500,
                                                         fontSize: 11,
-                                                        fontFamily: "Mulish"),
+                                                        fontFamily: "Mulish"
+                                                    ),
                                                   ),
                                                 ],
                                               ),
                                             ],
                                           ),
-                                          SizedBox(height: 1),
-                                          SizedBox(height: 6),
+                                          SizedBox(height: 8),
 
                                           Text(
-                                            '${order.shipping_address
-                                                ?.customer_name ?? "User"} '
-                                                '/ ${order.shipping_address
-                                                ?.phone ?? "0000000000"}',
+                                            '${order.shipping_address?.customer_name ?? "User"} / ${order.shipping_address?.phone ?? "0000000000"}',
                                             style: const TextStyle(
                                                 fontWeight: FontWeight.w700,
                                                 fontFamily: "Mulish",
-                                                fontSize: 13),
+                                                fontSize: 13
+                                            ),
                                           ),
 
                                           const SizedBox(height: 8),
 
                                           Row(
-                                            mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                             children: [
-                                              // Text(
-                                              //   order.payment != null
-                                              //       ? '${'currency'.tr} '
-                                              //       '${order.payment!.amount}'
-                                              //       : '${'currency'.tr} 00',
-                                              //   style: const TextStyle(
-                                              //       fontWeight: FontWeight.bold,
-                                              //       fontSize: 18),
-                                              // ),
                                               Text(
-                                                order.payment != null ? '${'currency'.tr} ${formatAmount(order.payment!.amount ?? 0)}' :
-                                                '${'currency'.tr} ${formatAmount(0)}',
+                                                order.payment != null
+                                                    ? '${'currency'.tr} ${formatAmount(order.payment!.amount ?? 0)}'
+                                                    : '${'currency'.tr} ${formatAmount(0)}',
                                                 style: const TextStyle(
                                                     fontWeight: FontWeight.w800,
                                                     fontFamily: "Mulish",
-                                                    fontSize: 16),
+                                                    fontSize: 16
+                                                ),
                                               ),
                                               Row(
                                                 children: [
-                                                  Text(getApprovalStatusText(
-                                                      order.approvalStatus),
+                                                  Text(
+                                                    getApprovalStatusText(order.approvalStatus),
                                                     style: const TextStyle(
-                                                        fontWeight: FontWeight
-                                                            .w800,
+                                                        fontWeight: FontWeight.w800,
                                                         fontFamily: "Mulish-Regular",
                                                         fontSize: 13
                                                     ),
@@ -549,12 +1166,9 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                   const SizedBox(width: 6),
                                                   CircleAvatar(
                                                     radius: 14,
-                                                    backgroundColor: getStatusColor(
-                                                        order.approvalStatus ??
-                                                            0),
+                                                    backgroundColor: getStatusColor(order.approvalStatus ?? 0),
                                                     child: Icon(
-                                                      getStatusIcon(order
-                                                          .approvalStatus ?? 0),
+                                                      getStatusIcon(order.approvalStatus ?? 0),
                                                       color: Colors.white,
                                                       size: 16,
                                                     ),
@@ -571,17 +1185,36 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                               );
                             },
                           );
-                      });
-                })
-                  ),
+                        }
+                    );
+                  })
+              ),
             ),
           ],
         ),
       ),
     );
   }
-
-  // ─────────────────── Misc helpers (unchanged) ───────────────────
+  // Helper method for status containers
+  Widget _buildStatusContainer(String text, Color backgroundColor) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+            fontFamily: "Mulish",
+            fontWeight: FontWeight.w700,
+            fontSize: 11,
+            color: Colors.black87
+        ),
+      ),
+    );
+  }
   String getApprovalStatusText(int? status) {
     switch (status) {
       case 1:

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:food_app/models/Store.dart';
+import 'package:food_app/models/driver/driver_register_model.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -24,8 +25,7 @@ import 'base_repository.dart';
 final title = "ApiRepo";
 
 class ApiRepo {
-  Future<UserLoginH> loginApi(
-      String email, String password, String deviceToken) async {
+  Future<UserLoginH> loginApi(String email, String password, String deviceToken) async {
     final connectivityResult = await (Connectivity().checkConnectivity());
     if (connectivityResult == ConnectivityResult.none) {
       print("Error Internet connectivity");
@@ -63,8 +63,7 @@ class ApiRepo {
     }
   }
 
-  Future<UserLoginH> resetPasswordApi(
-      String password, String cPassword) async {
+  Future<UserLoginH> resetPasswordApi(String password, String cPassword) async {
     final connectivityResult = await (Connectivity().checkConnectivity());
     if (connectivityResult == ConnectivityResult.none) {
       print("Error Internet connectivity");
@@ -138,8 +137,7 @@ class ApiRepo {
     }
   }
 
-  Future<List<Order>> orderGetApiFilter(
-      String bearer, Map<String, dynamic> data) async {
+  Future<List<Order>> orderGetApiFilter(String bearer, Map<String, dynamic> data) async {
     String url = Api.baseUrl + ApiEndPoints.getOrderFilter;
 
     try {
@@ -247,8 +245,7 @@ class ApiRepo {
     }
   }
 
-  Future<Order> orderAcceptDecline(
-      String bearer, Map<String, dynamic> jsonData, int? id) async {
+  Future<Order> orderAcceptDecline(String bearer, Map<String, dynamic> jsonData, int? id) async {
     //print("JsonDatsss "+jsonData.toString());
 
     String url =
@@ -451,8 +448,7 @@ class ApiRepo {
     }
   }
 
-  Future<StoreSetting> storeSettingPost(
-      String bearer, Map<String, dynamic> jsonData) async {
+  Future<StoreSetting> storeSettingPost(String bearer, Map<String, dynamic> jsonData) async {
 
 
     String url =
@@ -517,8 +513,7 @@ class ApiRepo {
     }
   }
 
-  Future<PrinterSetting> printerSettingPost(
-      String bearer, Map<String, dynamic> jsonData) async {
+  Future<PrinterSetting> printerSettingPost(String bearer, Map<String, dynamic> jsonData) async {
 
 
     String url =
@@ -612,117 +607,124 @@ class ApiRepo {
       );
     }
   }
+//
+// /*  Future<List<Order>> orderGetApi(String bearer) async {
+//     final connectivityResult = await (Connectivity().checkConnectivity());
+//  */ /*   if (connectivityResult == ConnectivityResult.none) {
+//       print("Error Internet connectivity");
+//       return Order.withError(
+//           code: CODE_NO_INTERNET, mess: apiUtils.getNetworkError());
+//     }*/ /*
+//     String url = Api.baseUrl + ApiEndPoints.getOrders;
+//     print("URlToken "+url);
+//
+//    // String Token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMiIsInNlc3Npb25faWQiOiI4MGFlN2Q2Ny03MjMwLTRjMjUtODZjOS1lN2RiZTczMjU5M2YiLCJleHAiOjE3NDY0NjIwNjR9.vxdMBFo8D7dGuVztUgzp1jhe04u6Ck6Rec_3SJpyvQA";
+//     try {
+//       final response = await apiUtils.get(url: url, options:  Options(
+//         headers: {
+//           'Authorization': 'Bearer $bearer',
+//           'Accept': 'application/json',
+//         },
+//       ),);
+//      */ /* final response = await Dio().get(
+//         url,
+//         options: Options(
+//           headers: {
+//             'Authorization': 'Bearer Token $Token',
+//           },
+//         ),
+//       );*/ /*
+//
+//       print("REsponseData " + response.toString());
+//       if (response != null) {
+//         List<Order> orders = (response.data as List)
+//             .map((json) => Order.fromJson(json))
+//             .toList();
+//         return orders;
+//         //return Order.fromJson(response.data);
+//       }
+//
+//       //return null;
+//      // return Order.withError(code: CODE_RESPONSE_NULL, mess: "");
+//     } catch (e) {
+//       //return Order.withError(code: CODE_ERROR, mess: apiUtils.handleError(e));
+//     }
+//   }*/
+// /*
+//
+//   Future<RegistrationResponse> registerApi(
+//       String email, String name, String lastname, String password) async {
+//     final connectivityResult = await (Connectivity().checkConnectivity());
+//     if (connectivityResult == ConnectivityResult.none) {
+//       return RegistrationResponse.withError(
+//           code: CODE_NO_INTERNET, mess: apiUtils.getNetworkError());
+//     }
+//
+//     String url = Api.baseUrlSelected + ApiEndPoints.createUser;
+//     Map<String, dynamic> loginData = {
+//       'email': email,
+//       'firstName': name,
+//       'lastName': lastname,
+//       'password': password,
+//     };
+//
+//     FormData formData = FormData.fromMap(loginData);
+//
+//     try {
+//       final response = await apiUtils.post(url: url, data: formData);
+//
+//       if (response != null) {
+//         //UserData userLogin=UserData.fromJson(response.data);
+//         */
+// /*List<ProductModel> products = List<ProductModel>.from(
+//             response.data.map((x) => ProductModel.fromJson(x)));*/ /*
+//
+//
+//         return RegistrationResponse.fromJson(response.data);
+//       }
+//
+//       //return null;
+//       return RegistrationResponse.withError(code: CODE_RESPONSE_NULL, mess: "");
+//     } catch (e) {
+//       return RegistrationResponse.withError(
+//           code: CODE_ERROR, mess: apiUtils.handleError(e));
+//     }
+//   }
+//
+//   Future<BaseResponse> resetPassworddApi(String email) async {
+//     final connectivityResult = await (Connectivity().checkConnectivity());
+//     if (connectivityResult == ConnectivityResult.none) {
+//       return BaseResponse.withError(
+//           code: CODE_NO_INTERNET, mess: apiUtils.getNetworkError());
+//     }
+//
+//     String url = Api.baseUrlSelected + ApiEndPoints.resetPassword;
+//     Map<String, dynamic> loginData = {
+//       'email': email,
+//     };
+//
+//     FormData formData = FormData.fromMap(loginData);
+//
+//     try {
+//       final response = await apiUtils.post(url: url, data: formData);
+//
+//       if (response != null) {
+//         return BaseResponse.fromJson(response.data);
+//       }
+//
+//       //return null;
+//       return BaseResponse.withError(code: CODE_RESPONSE_NULL, mess: "");
+//     } catch (e) {
+//       return BaseResponse.withError(
+//           code: CODE_ERROR, mess: apiUtils.handleError(e));
+//     }
+//   }
+// */
 
-/*  Future<List<Order>> orderGetApi(String bearer) async {
-    final connectivityResult = await (Connectivity().checkConnectivity());
- */ /*   if (connectivityResult == ConnectivityResult.none) {
-      print("Error Internet connectivity");
-      return Order.withError(
-          code: CODE_NO_INTERNET, mess: apiUtils.getNetworkError());
-    }*/ /*
-    String url = Api.baseUrl + ApiEndPoints.getOrders;
-    print("URlToken "+url);
-
-   // String Token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMiIsInNlc3Npb25faWQiOiI4MGFlN2Q2Ny03MjMwLTRjMjUtODZjOS1lN2RiZTczMjU5M2YiLCJleHAiOjE3NDY0NjIwNjR9.vxdMBFo8D7dGuVztUgzp1jhe04u6Ck6Rec_3SJpyvQA";
-    try {
-      final response = await apiUtils.get(url: url, options:  Options(
-        headers: {
-          'Authorization': 'Bearer $bearer',
-          'Accept': 'application/json',
-        },
-      ),);
-     */ /* final response = await Dio().get(
-        url,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer Token $Token',
-          },
-        ),
-      );*/ /*
-
-      print("REsponseData " + response.toString());
-      if (response != null) {
-        List<Order> orders = (response.data as List)
-            .map((json) => Order.fromJson(json))
-            .toList();
-        return orders;
-        //return Order.fromJson(response.data);
-      }
-
-      //return null;
-     // return Order.withError(code: CODE_RESPONSE_NULL, mess: "");
-    } catch (e) {
-      //return Order.withError(code: CODE_ERROR, mess: apiUtils.handleError(e));
-    }
-  }*/
-/*
-
-  Future<RegistrationResponse> registerApi(
-      String email, String name, String lastname, String password) async {
-    final connectivityResult = await (Connectivity().checkConnectivity());
-    if (connectivityResult == ConnectivityResult.none) {
-      return RegistrationResponse.withError(
-          code: CODE_NO_INTERNET, mess: apiUtils.getNetworkError());
-    }
-
-    String url = Api.baseUrlSelected + ApiEndPoints.createUser;
-    Map<String, dynamic> loginData = {
-      'email': email,
-      'firstName': name,
-      'lastName': lastname,
-      'password': password,
-    };
-
-    FormData formData = FormData.fromMap(loginData);
-
-    try {
-      final response = await apiUtils.post(url: url, data: formData);
-
-      if (response != null) {
-        //UserData userLogin=UserData.fromJson(response.data);
-        */
-/*List<ProductModel> products = List<ProductModel>.from(
-            response.data.map((x) => ProductModel.fromJson(x)));*/ /*
+// Driver
+//1.) Driver Register
 
 
-        return RegistrationResponse.fromJson(response.data);
-      }
 
-      //return null;
-      return RegistrationResponse.withError(code: CODE_RESPONSE_NULL, mess: "");
-    } catch (e) {
-      return RegistrationResponse.withError(
-          code: CODE_ERROR, mess: apiUtils.handleError(e));
-    }
-  }
 
-  Future<BaseResponse> resetPassworddApi(String email) async {
-    final connectivityResult = await (Connectivity().checkConnectivity());
-    if (connectivityResult == ConnectivityResult.none) {
-      return BaseResponse.withError(
-          code: CODE_NO_INTERNET, mess: apiUtils.getNetworkError());
-    }
-
-    String url = Api.baseUrlSelected + ApiEndPoints.resetPassword;
-    Map<String, dynamic> loginData = {
-      'email': email,
-    };
-
-    FormData formData = FormData.fromMap(loginData);
-
-    try {
-      final response = await apiUtils.post(url: url, data: formData);
-
-      if (response != null) {
-        return BaseResponse.fromJson(response.data);
-      }
-
-      //return null;
-      return BaseResponse.withError(code: CODE_RESPONSE_NULL, mess: "");
-    } catch (e) {
-      return BaseResponse.withError(
-          code: CODE_ERROR, mess: apiUtils.handleError(e));
-    }
-  }
-*/
 }
