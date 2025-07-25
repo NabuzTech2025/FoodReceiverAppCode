@@ -1208,11 +1208,11 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   String getApprovalStatusText(int? status) {
     switch (status) {
       case 1:
-        return "Pending";
+        return "pending".tr;
       case 2:
-        return "Accepted";
+        return "accepted".tr;
       case 3:
-        return "Declined";
+        return "decline".tr;
       default:
         return "Unknown";
     }

@@ -205,18 +205,14 @@ Future<void> handleBackgroundOrderComplete(int orderNumber) async {
 }
 
 // Enhanced background print function with better error handling:
-
 Future<void> backgroundPrintOrder(Order order, SharedPreferences prefs) async {
   try {
     debugPrint("🖨️ Background printing started for order: ${order.id}");
 
-    // Get printer IP from settings
     String? selectedIp = prefs.getString('printer_ip_0') ?? '';
 
     if (selectedIp.isEmpty) {
       debugPrint("❌ Background - Printer IP not configured");
-
-      // Try to get any available printer IP
       for (int i = 0; i < 5; i++) {
         String? ip = prefs.getString('printer_ip_$i');
         if (ip != null && ip.isNotEmpty) {
@@ -225,36 +221,28 @@ Future<void> backgroundPrintOrder(Order order, SharedPreferences prefs) async {
           break;
         }
       }
-
       if (selectedIp!.isEmpty) {
         debugPrint("❌ Background - No printer IP configured at all");
         return;
       }
     }
 
-    debugPrint("🖨️ Background - Using printer IP: $selectedIp");
+    String savedLocale = prefs.getString('selected_language') ?? 'en';
+    print("🌐 DEBUG: Saved locale from SharedPreferences = $savedLocale");
 
-    // Background printing using your existing printer helper
+    debugPrint("🖨️ Background - Using printer IP: $selectedIp");
+    debugPrint("🌐 Background - Using locale: $savedLocale");
+
     await PrinterHelperEnglish.printInBackground(
-        order: order,
-        ipAddress: selectedIp!,
-        store: ''
+      order: order,
+      ipAddress: selectedIp,
+      store: '',
+      locale: savedLocale, // अब locale pass कर रहे हैं
     );
 
     debugPrint("✅ Background print completed successfully for order: ${order.id}");
-
-    // Store successful print in preferences for tracking
-    List<String> printedOrders = prefs.getStringList('printed_orders_bg') ?? [];
-    printedOrders.add('${order.id}_${DateTime.now().millisecondsSinceEpoch}');
-    await prefs.setStringList('printed_orders_bg', printedOrders);
-
   } catch (e) {
     debugPrint("❌ Background print error: $e");
-
-    // Store failed print for retry later
-    List<String> failedPrints = prefs.getStringList('failed_prints_bg') ?? [];
-    failedPrints.add('${order.id}_${DateTime.now().millisecondsSinceEpoch}');
-    await prefs.setStringList('failed_prints_bg', failedPrints);
   }
 }
 

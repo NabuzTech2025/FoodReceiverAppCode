@@ -558,18 +558,20 @@ class PrinterHelperEnglish {
     required Order order,
     required String ipAddress,
     required String store,
+    String locale = 'en', // अब locale parameter ले रहे हैं
   }) async {
     try {
       print("🖨️ Background printing started for order: ${order.id}");
+      print("🌐 DEBUG: printInBackground() received locale = $locale");
 
       if (ipAddress.isEmpty) {
         print("❌ Background print failed: IP address is empty");
         return;
       }
 
-      // Load locale from SharedPreferences
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String savedLocale = prefs.getString('selected_language') ?? 'en';
+      // यहाँ अब SharedPreferences से language लेने की ज़रूरत नहीं
+      String savedLocale = locale;
+      print("🌐 Locale in Background Print: $savedLocale");
 
       // Network printer setup
       final profile = await CapabilityProfile.load();
