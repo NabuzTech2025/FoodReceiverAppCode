@@ -374,6 +374,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     String localeToUse = locale == 'de' ? 'de_DE' : 'en_US';
     return NumberFormat('#,##0.0#', localeToUse).format(amount);
   }
+
   int _getApprovalStatusCount(String status) {
     if (_currentDateReport?.data?.approvalStatuses == null) return 0;
 

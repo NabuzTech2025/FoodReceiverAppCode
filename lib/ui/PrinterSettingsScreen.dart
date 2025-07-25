@@ -36,6 +36,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
   void initState() {
     super.initState();
     _loadSavedSettings();
+  //  getStoreSetting(bearerKey!);
   }
 
   // ──────────────────────────────────────────────────  PREFERENCES
@@ -217,29 +218,29 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
     );
   }
 
-  Widget _buildRemoteIpField(int index) {
-    return Row(
-      children: [
-        Radio<int>(
-          value: index,
-          groupValue: _selectedRemoteIpIndex,
-          onChanged: (value) => setState(() => _selectedRemoteIpIndex = value!),
-        ),
-        Expanded(
-          child: TextFormField(
-            controller: _ipRemoteControllers[index],
-            enabled: index == _selectedRemoteIpIndex,
-            decoration: InputDecoration(
-              labelText: 'Remote IP Address',
-              /*${index + 1}*/
-              hintText: 'e.g. 192.168.0.${100 + index}',
-            ),
-            keyboardType: TextInputType.text,
-          ),
-        ),
-      ],
-    );
-  }
+  // Widget _buildRemoteIpField(int index) {
+  //   return Row(
+  //     children: [
+  //       Radio<int>(
+  //         value: index,
+  //         groupValue: _selectedRemoteIpIndex,
+  //         onChanged: (value) => setState(() => _selectedRemoteIpIndex = value!),
+  //       ),
+  //       Expanded(
+  //         child: TextFormField(
+  //           controller: _ipRemoteControllers[index],
+  //           enabled: index == _selectedRemoteIpIndex,
+  //           decoration: InputDecoration(
+  //             labelText: 'Remote IP Address',
+  //             /*${index + 1}*/
+  //             hintText: 'e.g. 192.168.0.${100 + index}',
+  //           ),
+  //           keyboardType: TextInputType.text,
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -277,40 +278,40 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                     ),
                   ),
                 ),
-                Text(
-                  'Remote IP',
-                  style: TextStyle(
-                      color: Colors.black, fontWeight: FontWeight.w500),
-                ),
-                _buildRemoteIpField(0),
-                Center(
-                  child: Container(
-                    margin: EdgeInsets.all(15),
-                    child: ElevatedButton(
-                      onPressed: _saveRemoteIps,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green[300],
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 30, vertical: 14),
-                      ),
-                      child: const Text('Save Remote IP'),
-                    ),
-                  ),
-                ),
+                // Text(
+                //   'Remote IP',
+                //   style: TextStyle(
+                //       color: Colors.black, fontWeight: FontWeight.w500),
+                // ),
+                // _buildRemoteIpField(0),
+                // Center(
+                //   child: Container(
+                //     margin: EdgeInsets.all(15),
+                //     child: ElevatedButton(
+                //       onPressed: _saveRemoteIps,
+                //       style: ElevatedButton.styleFrom(
+                //         backgroundColor: Colors.green[300],
+                //         foregroundColor: Colors.black,
+                //         shape: RoundedRectangleBorder(
+                //           borderRadius: BorderRadius.circular(50),
+                //         ),
+                //         padding: const EdgeInsets.symmetric(
+                //             horizontal: 30, vertical: 14),
+                //       ),
+                //       child: const Text('Save Remote IP'),
+                //     ),
+                //   ),
+                // ),
                 const SizedBox(height: 15),
-                _ToggleRow(
-                  label: 'Auto Order Accept',
-                  activeColor: Colors.green,
-                  value: _autoOrderAccept,
-                  onChanged: (val) {
-                    setState(() => _autoOrderAccept = val);
-                    _setToggle('auto_order_accept', val);
-                  },
-                ),
+                // _ToggleRow(
+                //   label: 'Auto Order Accept',
+                //   activeColor: Colors.green,
+                //   value: _autoOrderAccept,
+                //   onChanged: (val) {
+                //     setState(() => _autoOrderAccept = val);
+                //     _setToggle('auto_order_accept', val);
+                //   },
+                // ),
                 _ToggleRow(
                   label: 'Auto Order Print',
                   activeColor: Colors.blue,
@@ -329,15 +330,15 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                     _setToggle('auto_order_remote_accept', val);
                   },
                 ),
-                _ToggleRow(
-                  label: 'Auto Order Remote Print',
-                  activeColor: Colors.blue,
-                  value: _autoRemoteOrderPrint,
-                  onChanged: (val) {
-                    setState(() => _autoRemoteOrderPrint = val);
-                    _setToggle('auto_order_remote_print', val);
-                  },
-                ),
+                // _ToggleRow(
+                //   label: 'Auto Order Remote Print',
+                //   activeColor: Colors.blue,
+                //   value: _autoRemoteOrderPrint,
+                //   onChanged: (val) {
+                //     setState(() => _autoRemoteOrderPrint = val);
+                //     _setToggle('auto_order_remote_print', val);
+                //   },
+                // ),
                 const SizedBox(height: 40),
                 Center(
                   child: ElevatedButton(

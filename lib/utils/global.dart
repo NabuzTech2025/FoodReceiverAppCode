@@ -293,7 +293,91 @@ Future<void> getOrdersInBackground() async {
   }
 }
 
-// FOREGROUND ORDER PROCESSING (ENHANCED)
+// // FOREGROUND ORDER PROCESSING (ENHANCED)
+// Future<void> getOrdersInForegrund(BuildContext context, int orderID) async {
+//   try {
+//     print("📱 Foreground order processing started for: $orderID");
+//
+//     bool _autoOrderAccept = false;
+//     bool _autoOrderPrint = false;
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     String? bearerKey = prefs.getString(valueShared_BEARER_KEY);
+//
+//     if (bearerKey == null) {
+//       print("❌ Bearer key not found in SharedPreferences");
+//       return;
+//     }
+//
+//     final result = await ApiRepo().getNewOrderData(bearerKey, orderID);
+//
+//     if (result != null) {
+//       app.appController.addNewOrder(result);
+//       print("📦 New order added to controller: ${result.id}");
+//
+//       _autoOrderAccept = prefs.getBool('auto_order_accept') ?? false;
+//       _autoOrderPrint = prefs.getBool('auto_order_print') ?? false;
+//
+//       print("⚙️ Auto settings - Accept: $_autoOrderAccept, Print: $_autoOrderPrint");
+//
+//       if (_autoOrderAccept) {
+//         print("🤖 Auto accepting order in foreground");
+//
+//         // Step 1: Accept the order first
+//         await getOrders(bearerKey, true, result);
+//
+//         // Step 2: Wait for backend to process
+//         await Future.delayed(Duration(seconds: 2));
+//
+//         // Step 3: Auto print if enabled
+//         if (_autoOrderPrint) {
+//           print("🖨️ Auto printing after accept");
+//
+//           // Get updated order with invoice
+//           final updatedOrder = await ApiRepo().getNewOrderData(bearerKey, orderID);
+//
+//           if (updatedOrder?.invoice != null &&
+//               (updatedOrder?.invoice?.invoiceNumber ?? '').isNotEmpty) {
+//
+//             // Print the order
+//             PrinterHelperEnglish.printTestFromSavedIp(
+//                 context: context,
+//                 order: updatedOrder!,
+//                 store: '',
+//                 auto: true
+//             );
+//             print("✅ Foreground auto print completed");
+//
+//           } else {
+//             print("❌ Invoice not ready after accept. Skipping print.");
+//           }
+//         }
+//       } else if (_autoOrderPrint && !_autoOrderAccept) {
+//         // Auto print only (without auto accept) - for manually accepted orders
+//         print("🖨️ Auto print only (no auto accept)");
+//
+//         if (result.orderStatus == 2) { // Already accepted
+//           PrinterHelperEnglish.printTestFromSavedIp(
+//               context: context,
+//               order: result,
+//               store: '',
+//               auto: true
+//           );
+//         }
+//       }
+//     } else {
+//       String errorMessage = "Failed to get order data";
+//       showSnackbar("Error", errorMessage);
+//       print("❌ $errorMessage for order: $orderID");
+//     }
+//   } catch (e) {
+//     showSnackbar("Api Error", "An error occurred: $e");
+//     print("❌ Foreground order processing error: $e");
+//   }
+// }
+
+
+
+// ORDER ACCEPT/DECLINE (ENHANCED)
 Future<void> getOrdersInForegrund(BuildContext context, int orderID) async {
   try {
     print("📱 Foreground order processing started for: $orderID");
@@ -317,53 +401,75 @@ Future<void> getOrdersInForegrund(BuildContext context, int orderID) async {
       _autoOrderAccept = prefs.getBool('auto_order_accept') ?? false;
       _autoOrderPrint = prefs.getBool('auto_order_print') ?? false;
 
-      print("⚙️ Auto settings - Accept: $_autoOrderAccept, Print: $_autoOrderPrint");
+      print("⚙️ Auto settings - Accept: $_autoOrderAccept,");
+      print("📋 Order Status: ${result.orderStatus} (2=Accepted, 1=Pending)");
 
-      if (_autoOrderAccept) {
-        print("🤖 Auto accepting order in foreground");
+      // ✅ CHECK ORDER STATUS FIRST
+      if (result.orderStatus == 2) {
+        // Order is already ACCEPTED
+        print("✅ Order already accepted, checking auto print");
 
-        // Step 1: Accept the order first
-        await getOrders(bearerKey, true, result);
-
-        // Step 2: Wait for backend to process
-        await Future.delayed(Duration(seconds: 2));
-
-        // Step 3: Auto print if enabled
         if (_autoOrderPrint) {
-          print("🖨️ Auto printing after accept");
+          print("🖨️ Auto printing already accepted order");
 
-          // Get updated order with invoice
-          final updatedOrder = await ApiRepo().getNewOrderData(bearerKey, orderID);
+          // Check if invoice is ready
+          if (result.invoice != null &&
+              (result.invoice?.invoiceNumber ?? '').isNotEmpty) {
 
-          if (updatedOrder?.invoice != null &&
-              (updatedOrder?.invoice?.invoiceNumber ?? '').isNotEmpty) {
-
-            // Print the order
             PrinterHelperEnglish.printTestFromSavedIp(
                 context: context,
-                order: updatedOrder!,
+                order: result,
                 store: '',
                 auto: true
             );
-            print("✅ Foreground auto print completed");
+            print("✅ Auto print completed for accepted order");
 
           } else {
-            print("❌ Invoice not ready after accept. Skipping print.");
+            print("❌ Invoice not ready for accepted order. Skipping print.");
           }
         }
-      } else if (_autoOrderPrint && !_autoOrderAccept) {
-        // Auto print only (without auto accept) - for manually accepted orders
-        print("🖨️ Auto print only (no auto accept)");
 
-        if (result.orderStatus == 2) { // Already accepted
-          PrinterHelperEnglish.printTestFromSavedIp(
-              context: context,
-              order: result,
-              store: '',
-              auto: true
-          );
+      } else {
+        // Order is PENDING - check if auto accept is enabled
+        print("⏳ Order is pending, checking auto accept");
+
+        if (_autoOrderAccept) {
+          print("🤖 Auto accepting pending order");
+
+          // Step 1: Accept the order first
+          await getOrders(bearerKey, true, result);
+
+          // Step 2: Wait for backend to process
+          await Future.delayed(Duration(seconds: 2));
+
+          // Step 3: Auto print if enabled
+          if (_autoOrderPrint) {
+            print("🖨️ Auto printing after accept");
+
+            // Get updated order with invoice
+            final updatedOrder = await ApiRepo().getNewOrderData(bearerKey, orderID);
+
+            if (updatedOrder?.invoice != null &&
+                (updatedOrder?.invoice?.invoiceNumber ?? '').isNotEmpty) {
+
+              // Print the order
+              PrinterHelperEnglish.printTestFromSavedIp(
+                  context: context,
+                  order: updatedOrder!,
+                  store: '',
+                  auto: true
+              );
+              print("✅ Auto print completed after accept");
+
+            } else {
+              print("❌ Invoice not ready after accept. Skipping print.");
+            }
+          }
+        } else {
+          print("🔄 Order pending, auto accept disabled - waiting for manual accept");
         }
       }
+
     } else {
       String errorMessage = "Failed to get order data";
       showSnackbar("Error", errorMessage);
@@ -375,7 +481,6 @@ Future<void> getOrdersInForegrund(BuildContext context, int orderID) async {
   }
 }
 
-// ORDER ACCEPT/DECLINE (ENHANCED)
 Future<void> getOrders(String bearerKey, bool orderStatus, Order updatedOrder) async {
   Map<String, dynamic> jsonData = {
     "order_status": orderStatus ? 2 : 1,

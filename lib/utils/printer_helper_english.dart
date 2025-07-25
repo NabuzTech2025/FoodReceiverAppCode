@@ -558,7 +558,7 @@ class PrinterHelperEnglish {
     required Order order,
     required String ipAddress,
     required String store,
-    String locale = 'en', // अब locale parameter ले रहे हैं
+    String locale = 'de', // अब locale parameter ले रहे हैं
   }) async {
     try {
       print("🖨️ Background printing started for order: ${order.id}");

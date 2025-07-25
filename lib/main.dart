@@ -43,7 +43,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
   // INITIALIZE GETX AND TRANSLATIONS FOR BACKGROUND
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  String savedLocale = prefs.getString('selected_language') ?? 'en';
+  String savedLocale = prefs.getString('selected_language') ?? 'de';
 
   // Initialize GetX in isolation
   Get.put(AppTranslations());
