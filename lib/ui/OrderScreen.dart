@@ -994,6 +994,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                           DateTime startTime = DateTime.tryParse(order.createdAt ?? '') ?? DateTime.now();
                           DateTime endTime = startTime.add(const Duration(minutes: 30));
                           String formattedEnd = DateFormat('hh:mm a').format(endTime);
+                          DateTime dateTime = DateTime.parse(order.createdAt.toString());
+                          String time = DateFormat('hh:mm a').format(dateTime);
 
                           return AnimatedBuilder(
                             animation: _opacityAnimation,
@@ -1051,7 +1053,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                     crossAxisAlignment: CrossAxisAlignment.start,
                                                     children: [
                                                       Text(
-                                                        order.shipping_address!.zip.toString(),
+                                                  order.orderType == 2 ?'pickup'.tr:order.shipping_address!.zip.toString(),
                                                         style: TextStyle(
                                                             fontWeight: FontWeight.w700,
                                                             fontSize: 13,
@@ -1079,6 +1081,32 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                               ),
                                               Row(
                                                 children: [
+                                                  Icon(Icons.access_time,size: 20,),
+                                                  Text(time,
+                                                    style: const TextStyle(
+                                                      fontWeight: FontWeight.w500,
+                                                      fontFamily: "Mulish",
+                                                      fontSize: 10,
+                                                    ),
+                                                  )
+                                                ],
+                                              )
+                                            ],
+                                          ),
+                                          SizedBox(height: 8),
+
+                                          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                '${order.shipping_address?.customer_name ?? "User"} / ${order.shipping_address?.phone ?? "0000000000"}',
+                                                style: const TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                    fontFamily: "Mulish",
+                                                    fontSize: 13
+                                                ),
+                                              ),
+                                              Row(
+                                                children: [
                                                   Text(
                                                     '${'order_id'.tr} :',
                                                     style: const TextStyle(
@@ -1098,16 +1126,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                 ],
                                               ),
                                             ],
-                                          ),
-                                          SizedBox(height: 8),
-
-                                          Text(
-                                            '${order.shipping_address?.customer_name ?? "User"} / ${order.shipping_address?.phone ?? "0000000000"}',
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontFamily: "Mulish",
-                                                fontSize: 13
-                                            ),
                                           ),
 
                                           const SizedBox(height: 8),
