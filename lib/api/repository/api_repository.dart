@@ -4,6 +4,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:food_app/models/Store.dart';
 import 'package:food_app/models/driver/driver_register_model.dart';
+import 'package:food_app/models/today_report.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -238,6 +239,44 @@ class ApiRepo {
     } catch (e) {
       return [
         DailySalesReport.withError(
+          code: 500,
+          mess: e.toString(),
+        )
+      ];
+    }
+  }
+
+  Future<List<GetTodayReport>> todayReportGetApi(String bearer) async {
+    String url = Api.baseUrl + ApiEndPoints.todayReports;
+    try {
+      final response = await apiUtils.get(
+        url: url,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $bearer',
+            'Accept': 'application/json',
+          },
+        ),
+      );
+
+      if (response != null &&
+          response.statusCode == 200 &&
+          response.data is List) {
+        return (response.data as List)
+            .map((json) => GetTodayReport.fromJson(json))
+            .toList();
+      }
+      else {
+        return [
+          GetTodayReport.withError(
+            code: response?.statusCode ?? 500,
+            mess: "Unexpected response format",
+          )
+        ];
+      }
+    } catch (e) {
+      return [
+        GetTodayReport.withError(
           code: 500,
           mess: e.toString(),
         )
