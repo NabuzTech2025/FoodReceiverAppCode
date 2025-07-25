@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -82,6 +84,16 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     );
     initVar();
   }
+  Future<void> _checkAndClearOldData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cachedDate = prefs.getString('cached_sales_date');
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+    if (cachedDate != today) {
+      print("📆 Date changed. Clearing old data.");
+      await SalesCacheHelper.clearSalesData();
+    }
+  }
 
   @override
   void dispose() {
@@ -113,7 +125,9 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       getStoreUserMeData(bearerKey);
     }
     getCurrentDateReport();
-
+    _checkAndClearOldData();      // पुराना डेटा साफ़ करो
+    _loadCachedSalesData();       // Cached data load करो
+    _initializeSocket();
     // Initialize socket ONLY if bearerKey is not null and not empty
     if (bearerKey != null && bearerKey!.isNotEmpty) {
       print("Initializing socket with bearer key"); // Debug print
@@ -123,52 +137,51 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     }
   }
   void _initializeSocket() {
-    print("🔥 Starting socket initialization"); // Debug print
+    print("🔥 Starting socket initialization");
 
-    // Set up socket event callbacks
     _socketService.onSalesUpdate = (data) {
       print('📊 Sales update received in ReportScreen: $data');
-      _handleSalesUpdate(data);
+      _handleSalesUpdate(data, isFromSocket: true);
     };
 
     _socketService.onConnected = () {
       print('🔥 Socket connected - Live data active');
-      setState(() {
-        _isLiveDataActive = true;
-      });
+      setState(() => _isLiveDataActive = true);
     };
 
     _socketService.onDisconnected = () {
       print('❄️ Socket disconnected - Live data inactive');
-      setState(() {
-        _isLiveDataActive = false;
-      });
+      setState(() => _isLiveDataActive = false);
     };
 
     _socketService.onNewOrder = (data) {
       print('🆕 New order received: $data');
-      // Optionally refresh current day data when new order comes
       _refreshCurrentDayData();
     };
 
-    // Connect to socket with proper parameters
     try {
       print("🔌 Attempting to connect socket with bearer: $bearerKey");
-      _socketService.connect(bearerKey!, storeId: 13); // Add storeId parameter if needed
+      _socketService.connect(bearerKey!, storeId: 13);
     } catch (e) {
       print("❌ Socket connection failed: $e");
     }
   }
-  void _handleSalesUpdate(Map<String, dynamic> salesData) {
+
+
+  void _handleSalesUpdate(Map<String, dynamic> salesData, {bool isFromSocket = false}) {
     print('🔄 Updating sales data: $salesData');
 
-    setState(() {
-      _lastUpdateTime = DateTime.now();
-    });
+    // यदि socket से आ रहा है तो SharedPreferences में store करो
+    if (isFromSocket) {
+      SalesCacheHelper.saveSalesData(salesData);
+    }
+
+    setState(() => _lastUpdateTime = DateTime.now());
 
     // Update current date report with live data
     if (_currentDateReport != null) {
-      _currentDateReport!.totalOrders = salesData['total_orders'] as int?; // Keep as int since model expects int
+      _currentDateReport!.totalOrders = salesData['total_orders'] as int?;
+
       if (_currentDateReport!.data == null) {
         _currentDateReport!.data = SalesData(
           topItems: [],
@@ -183,14 +196,11 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         );
       }
 
-      // Since orderTypes, approvalStatuses, taxBreakdown are final,
-      // we need to recreate the entire SalesData object
       _currentDateReport!.data = SalesData(
         netTotal: (salesData['net_total'] as num?)?.toDouble(),
-        topItems: _currentDateReport!.data?.topItems ??
-            (salesData['top_items'] != null
-                ? (salesData['top_items'] as List).map((item) => TopItem.fromJson(item)).toList()
-                : []),
+        topItems: (salesData['top_items'] != null)
+            ? (salesData['top_items'] as List).map((item) => TopItem.fromJson(item)).toList()
+            : _currentDateReport!.data?.topItems ?? [],
         totalTax: (salesData['total_tax'] as num?)?.toDouble(),
         cashTotal: (salesData['cash_total'] as num?)?.toDouble() ?? 0.0,
         byCategory: salesData['by_category'] != null
@@ -218,69 +228,38 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         totalSalesDelivery: (salesData['total_sales + delivery'] as num?)?.toDouble(),
       );
 
-      // Always update the UI regardless of _selectedReport
-      setState(() {
-        reportsss = _currentDateReport!;
-      });
+      setState(() => reportsss = _currentDateReport!);
 
       print('✅ Sales data updated successfully');
-      print('Total Sales: ${_currentDateReport!.totalSales}');
-      print('Total Orders: ${_currentDateReport!.totalOrders}');
-      print('Cash Total: ${_currentDateReport!.cashTotal}');
-      print('Discount Total: ${_currentDateReport!.data?.discountTotal}');
-      print('Delivery Total: ${_currentDateReport!.data?.deliveryTotal}');
-      print('Total Sales + Delivery: ${_currentDateReport!.data?.totalSalesDelivery}');
-      print('Order Types: ${_currentDateReport!.data?.orderTypes}');
-      print('Approval Statuses: ${_currentDateReport!.data?.approvalStatuses}');
-      print('Tax Breakdown: ${_currentDateReport!.data?.taxBreakdown}');
     } else {
       print('❌ Current date report is null, cannot update');
     }
   }
 
-  void _refreshCurrentDayData() {
-
-    getCurrentDateReport();
+  Future<void> _loadCachedSalesData() async {
+    final cachedData = await SalesCacheHelper.loadSalesData();
+    if (cachedData != null) {
+      print("📥 Loading cached sales data into UI");
+      _handleSalesUpdate(cachedData);
+    } else {
+      print("ℹ️ No cached data found, waiting for live socket data");
+    }
   }
+  void _refreshCurrentDayData() => getCurrentDateReport();
+
   void getCurrentDateReport() {
     final today = DateTime.now();
     final todayString = DateFormat('yyyy-MM-dd').format(today);
 
-    print("🔍 Looking for current date report:");
-    print("Today's date string: $todayString");
-    print("Report list length: ${reportList.length}");
-
-    // Debug: Print all report dates
-    for (int i = 0; i < reportList.length; i++) {
-      var report = reportList[i];
-      print("Report $i - startDate: ${report.startDate}");
-      if (report.startDate != null) {
-        try {
-          final reportDate = DateTime.parse(report.startDate!);
-          final reportDateString = DateFormat('yyyy-MM-dd').format(reportDate);
-          print("  Parsed date string: $reportDateString");
-          print("  Matches today: ${reportDateString == todayString}");
-        } catch (e) {
-          print("  Date parsing error: $e");
-        }
-      }
-    }
-
-    // Find report for today's date
+    print("🔍 Looking for current date report: $todayString");
     DailySalesReport? foundReport;
     for (var report in reportList) {
       if (report.startDate != null) {
-        try {
-          final reportDate = DateTime.parse(report.startDate!);
-          final reportDateString = DateFormat('yyyy-MM-dd').format(reportDate);
-          if (reportDateString == todayString) {
-            foundReport = report;
-            print("✅ Found current date report!");
-            break;
-          }
-        } catch (e) {
-          print("❌ Error parsing date ${report.startDate}: $e");
-          continue;
+        final reportDate = DateTime.tryParse(report.startDate!);
+        if (reportDate != null &&
+            DateFormat('yyyy-MM-dd').format(reportDate) == todayString) {
+          foundReport = report;
+          break;
         }
       }
     }
@@ -288,15 +267,11 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     if (foundReport != null) {
       setState(() {
         _currentDateReport = foundReport;
-        reportsss = foundReport!; // Set as default report to show
+        reportsss = foundReport!;
       });
       print("✅ Current date report set successfully");
-      print("Total Sales: ${foundReport.totalSales}");
-      print("Total Orders: ${foundReport.totalOrders}");
     } else {
       print("❌ No report found for today's date: $todayString");
-
-      // Create a default report for today if none exists
       final defaultReport = DailySalesReport(
         startDate: todayString,
         totalSales: 0.0,
@@ -304,16 +279,13 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         cashTotal: 0.0,
         onlineTotal: 0.0,
         totalTax: 0.0,
-        data: null, // Will be populated by socket updates
+        data: null,
       );
-
       setState(() {
         _currentDateReport = defaultReport;
         reportsss = defaultReport;
-        // Optionally add to reportList
         reportList.insert(0, defaultReport);
       });
-
       print("🆕 Created default report for today");
     }
   }
@@ -1281,5 +1253,35 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       Log.loga(title, "Login Api:: e >>>>> $e");
       showSnackbar("Api Error", "An error occurred: $e");
     }
+  }
+}
+class SalesCacheHelper {
+  static const _salesDataKey = 'cached_sales_data';
+  static const _lastDateKey = 'cached_sales_date';
+
+  static Future<void> saveSalesData(Map<String, dynamic> salesData) async {
+    final prefs = await SharedPreferences.getInstance();
+    final todayString = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    await prefs.setString(_salesDataKey, jsonEncode(salesData));
+    await prefs.setString(_lastDateKey, todayString);
+    print("💾 Cached sales data for $todayString");
+  }
+
+  static Future<Map<String, dynamic>?> loadSalesData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final todayString = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final cachedDate = prefs.getString(_lastDateKey);
+    final cachedData = prefs.getString(_salesDataKey);
+
+    if (cachedDate == todayString && cachedData != null) {
+      return jsonDecode(cachedData);
+    }
+    return null;
+  }
+
+  static Future<void> clearSalesData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_salesDataKey);
+    await prefs.remove(_lastDateKey);
   }
 }

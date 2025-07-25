@@ -41,98 +41,56 @@ int badgeCount = 0;
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 
+  // INITIALIZE GETX AND TRANSLATIONS FOR BACKGROUND
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String savedLocale = prefs.getString('selected_language') ?? 'en';
+
+  // Initialize GetX in isolation
+  Get.put(AppTranslations());
+  Get.updateLocale(Locale(savedLocale));
+
   final title = message.notification?.title ?? '';
   final body = message.notification?.body ?? '';
 
   print('📥 Background title: $title');
   print('📥 Background body: $body');
+  print('🌐 Background locale set to: $savedLocale');
 
-  // DETAILED DEBUG LOGS
-  print('🔍 DEBUG: Message data: ${message.data}');
-  print('🔍 DEBUG: Title contains New Order: ${title.contains('New Order')}');
-  print('🔍 DEBUG: Body for regex: "$body"');
-
-  // Show notification first
+  // Rest of your background handler code...
   if (title.contains('New Order')) {
     await _showOrderNotification(title, body);
 
-    // Extract order number with better regex and debug
-    print('🔍 DEBUG: Starting order number extraction...');
     RegExp regex = RegExp(r'#(\d+)');
     Match? match = regex.firstMatch(body);
 
-    print('🔍 DEBUG: Regex match found: ${match != null}');
-
     if (match != null) {
       String orderNumberStr = match.group(1)!;
-      print('🔍 DEBUG: Extracted order number string: "$orderNumberStr"');
-
       try {
         int orderNumber = int.parse(orderNumberStr);
         print("🆔 Background - Processing Order ID: $orderNumber");
 
-        // Check settings before processing
-        SharedPreferences prefs = await SharedPreferences.getInstance();
         bool autoAccept = prefs.getBool('auto_order_accept') ?? false;
         bool autoPrint = prefs.getBool('auto_order_print') ?? false;
 
-        print('🔍 DEBUG: Auto Accept Setting: $autoAccept');
-        print('🔍 DEBUG: Auto Print Setting: $autoPrint');
-
         if (autoAccept || autoPrint) {
-          print('🚀 DEBUG: Starting handleBackgroundOrderComplete...');
-          // Handle complete background order processing
           await handleBackgroundOrderComplete(orderNumber);
-        } else {
-          print('⚠️ DEBUG: Both auto accept and auto print are disabled');
         }
-
       } catch (e) {
         print('❌ DEBUG: Error parsing order number: $e');
       }
-
-    } else {
-      print("❌ Background - No order number found in notification body: '$body'");
-
-      // Try alternative regex patterns
-      print('🔍 DEBUG: Trying alternative regex patterns...');
-
-      // Pattern 1: Order #1234
-      RegExp altRegex1 = RegExp(r'Order #(\d+)');
-      Match? altMatch1 = altRegex1.firstMatch(body);
-
-      // Pattern 2: #1234 (anywhere in text)
-      RegExp altRegex2 = RegExp(r'#(\d+)');
-      Match? altMatch2 = altRegex2.firstMatch(title + ' ' + body);
-
-      print('🔍 DEBUG: Alt regex 1 match: ${altMatch1?.group(1)}');
-      print('🔍 DEBUG: Alt regex 2 match: ${altMatch2?.group(1)}');
-
-      if (altMatch1 != null || altMatch2 != null) {
-        String? orderNumStr = altMatch1?.group(1) ?? altMatch2?.group(1);
-        if (orderNumStr != null) {
-          int orderNumber = int.parse(orderNumStr);
-          print("🆔 Background - Alternative extraction successful: $orderNumber");
-          await handleBackgroundOrderComplete(orderNumber);
-        }
-      }
     }
-  } else {
-    print('🔍 DEBUG: Title does not contain "New Order"');
   }
 
   badgeCount++;
-  print('🔍 DEBUG: Badge count updated to: $badgeCount');
-
   try {
     await AppBadgePlus.updateBadge(badgeCount);
-    print('✅ DEBUG: Badge updated successfully');
   } catch (e) {
     print('❌ DEBUG: Badge update failed: $e');
   }
 }
 
 // Enhanced handleBackgroundOrderComplete with more debug logs
+
 
 Future<void> handleBackgroundOrderComplete(int orderNumber) async {
   try {

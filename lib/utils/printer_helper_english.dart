@@ -180,8 +180,20 @@ class PrinterHelperEnglish {
     var amount = order.invoice?.totalAmount ?? 0.0;
     var discount = order.invoice?.discount_amount ?? 0.0;
     var delFee = order.invoice?.delivery_fee ?? 0.0;
-    var preSubTotal = amount - discount +delFee;
-    final subtotal = preSubTotal;
+    final subtotal = order.items?.fold<double>(0, (sum, item) {
+      if (item == null) return sum;
+
+      // Toppings total for this item
+      final toppingsTotal = item.toppings?.fold<double>(
+        0,
+            (tSum, topping) => tSum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
+      ) ?? 0;
+
+      // Item total (unit price + toppings) * quantity
+      final itemTotal = ((item.unitPrice ?? 0) + toppingsTotal) * (item.quantity ?? 0);
+
+      return sum + itemTotal;
+    }) ?? 0;
 
     final discountData = order.invoice?.discount_amount ?? 0.0;
     final deliveryFee = order.invoice?.delivery_fee ?? 0.0;
@@ -223,7 +235,7 @@ class PrinterHelperEnglish {
     _printItemWithNote(
         printer: printer,
         left: "${'subtotal'.tr}:",
-        right: formatAmount(amount),
+        right: formatAmount(subtotal),
         note: '');
 
     if (discountData != 0.0) {
@@ -246,7 +258,7 @@ class PrinterHelperEnglish {
     _printItemWithNote(
       printer: printer,
       left: "${'grand_total'.tr}:",
-      right: formatAmount(subtotal),
+      right: formatAmount(amount),
       note: '',
     );
     printer.hr();
@@ -491,7 +503,56 @@ class PrinterHelperEnglish {
       SnackBar(content: Text(message)),
     );
   }
-  // Add this method to your PrinterHelperEnglish class
+
+  // Translation map for background printing
+  static  Map<String, Map<String, String>> translations = {
+    'en': {
+      'order': 'Order',
+      'invoice_number': 'Invoice Number',
+      'date': 'Date',
+      'customer': 'Customer',
+      'address': 'Address',
+      'phone': 'Phone',
+      'subtotal': 'Subtotal',
+      'discount': 'Discount',
+      'delivery_fee': 'Delivery Fee',
+      'grand_total': 'Grand Total',
+      'payment_method': 'Payment Method',
+      'paid': 'Paid',
+    },
+    'de': {
+      'order': 'Bestellung',
+      'invoice_number': 'Rechnungsnummer',
+      'date': 'Datum',
+      'customer': 'Kunde',
+      'address': 'Adresse',
+      'phone': 'Telefon',
+      'subtotal': 'Zwischensumme',
+      'discount': 'Rabatt',
+      'delivery_fee': 'Liefergebühr',
+      'grand_total': 'Gesamtbetrag',
+      'payment_method': 'Zahlungsmethode',
+      'paid': 'Bezahlt',
+    },
+    'ch': {
+      'order': 'Bestellung',
+      'invoice_number': 'Rechnungsnummer',
+      'date': 'Datum',
+      'customer': 'Kunde',
+      'address': 'Adresse',
+      'phone': 'Telefon',
+      'subtotal': 'Zwischensumme',
+      'discount': 'Rabatt',
+      'delivery_fee': 'Liefergebühr',
+      'grand_total': 'Gesamtbetrag',
+      'payment_method': 'Zahlungsmethode',
+      'paid': 'Bezahlt',
+    }
+  };
+
+  static  String trBg(String key, String locale) {
+    return translations[locale]?[key] ?? key;
+  }
 
   static Future<void> printInBackground({
     required Order order,
@@ -506,62 +567,82 @@ class PrinterHelperEnglish {
         return;
       }
 
-      // Network printer setup for background
+      // Load locale from SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String savedLocale = prefs.getString('selected_language') ?? 'en';
+
+      // Network printer setup
       final profile = await CapabilityProfile.load();
       final printer = NetworkPrinter(PaperSize.mm80, profile);
 
-      final PosPrintResult connectResult = await printer.connect(ipAddress, port: 9100);
+      final PosPrintResult connectResult =
+      await printer.connect(ipAddress, port: 9100);
 
       if (connectResult == PosPrintResult.success) {
         print("✅ Background printer connected: $ipAddress");
 
         String formatAmount(double? amount) {
           if (amount == null) return "0";
-
-          final locale = Get.locale?.languageCode ?? 'en';
-          String localeToUse = locale == 'de' ? 'de_DE' : 'en_US';
+          String localeToUse = savedLocale == 'de' ? 'de_DE' : 'en_US';
           return NumberFormat('#,##0.00#', localeToUse).format(amount);
         }
+
         final now = DateTime.now();
-        final dateTimeStr = '${now.day}/${now.month}/${now.year},'
-            ' ${now.hour}:${now.minute.toString().padLeft(2, '0')}';
+        final dateTimeStr =
+            '${now.day}/${now.month}/${now.year}, ${now.hour}:${now.minute.toString().padLeft(2, '0')}';
 
         var amount = order.invoice?.totalAmount ?? 0.0;
         var discount = order.invoice?.discount_amount ?? 0.0;
         var delFee = order.invoice?.delivery_fee ?? 0.0;
-        var preSubTotal = amount - discount +delFee;
-        final subtotal = preSubTotal;
 
-        final discountData = order.invoice?.discount_amount ?? 0.0;
-        final deliveryFee = order.invoice?.delivery_fee ?? 0.0;
+        final subtotal = order.items?.fold<double>(0, (sum, item) {
+          if (item == null) return sum;
+          final toppingsTotal = item.toppings?.fold<double>(
+            0,
+                (tSum, topping) =>
+            tSum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
+          ) ??
+              0;
+          return sum +
+              (((item.unitPrice ?? 0) + toppingsTotal) *
+                  (item.quantity ?? 0));
+        }) ??
+            0;
 
-        printer.text(" ${store ?? ''}",
-          styles: PosStyles(align: PosAlign.center, bold: true),);
+        printer.text(
+          " ${store ?? ''}",
+          styles: PosStyles(align: PosAlign.center, bold: true),
+        );
 
-        printer.text("${'order'.tr} # ${order.id ?? ''}",
+        printer.text(
+          "${trBg('order', savedLocale)} # ${order.id ?? ''}",
           styles: PosStyles(align: PosAlign.center, bold: true),
         );
 
         printer.setStyles(PosStyles(align: PosAlign.center));
         printer.text(
-          sanitizeText("${'invoice_number'.tr}: ${order.invoice?.invoiceNumber ?? ''}"),
+          sanitizeText(
+              "${trBg('invoice_number', savedLocale)}: ${order.invoice?.invoiceNumber ?? ''}"),
           styles: PosStyles(bold: true),
         );
         printer.text(
-          sanitizeText("${'date'.tr}: ${order.createdAt ?? dateTimeStr}"),
+          sanitizeText(
+              "${trBg('date', savedLocale)}: ${order.createdAt ?? dateTimeStr}"),
           styles: PosStyles(bold: true),
         );
         printer.hr();
+
         printer.text(
-          sanitizeText("${'customer'.tr}: ${(order.shipping_address?.customer_name ?? '')}"),
+          sanitizeText(
+              "${trBg('customer', savedLocale)}: ${(order.shipping_address?.customer_name ?? '')}"),
           styles: PosStyles(align: PosAlign.left, bold: true),
         );
         printer.text(
-          "${'address'.tr}: ${order.shipping_address?.line1 ?? ""}, ${order.shipping_address?.city ?? ""}",
+          "${trBg('address', savedLocale)}: ${order.shipping_address?.line1 ?? ""}, ${order.shipping_address?.city ?? ""}",
           styles: PosStyles(align: PosAlign.left, bold: true),
         );
         printer.text(
-          "${'phone'.tr}: ${order.shipping_address?.phone ?? ""}",
+          "${trBg('phone', savedLocale)}: ${order.shipping_address?.phone ?? ""}",
           styles: PosStyles(align: PosAlign.left, bold: true),
         );
         printer.hr();
@@ -569,44 +650,51 @@ class PrinterHelperEnglish {
 
         _printOrderItems(printer, order);
         printer.hr();
-        _printItemWithNote(
-            printer: printer,
-            left: "${'subtotal'.tr}:",
-            right: formatAmount(amount),
-            note: '');
 
-        if (discountData != 0.0) {
+        _printItemWithNote(
+          printer: printer,
+          left: "${trBg('subtotal', savedLocale)}:",
+          right: formatAmount(subtotal),
+          note: '',
+        );
+
+        if (discount != 0.0) {
           _printItemWithNote(
-              printer: printer,
-              left: "${'discount'.tr}:",
-              right: formatAmount(discount),
-              note: '');
+            printer: printer,
+            left: "${trBg('discount', savedLocale)}:",
+            right: formatAmount(discount),
+            note: '',
+          );
         }
 
         if (delFee != 0.0) {
           _printItemWithNote(
-              printer: printer,
-              left: "${'delivery_fee'.tr}:",
-              right: formatAmount(delFee),
-              note: '');
+            printer: printer,
+            left: "${trBg('delivery_fee', savedLocale)}:",
+            right: formatAmount(delFee),
+            note: '',
+          );
         }
 
         printer.hr();
         _printItemWithNote(
           printer: printer,
-          left: "${'grand_total'.tr}:",
-          right: formatAmount(subtotal),
+          left: "${trBg('grand_total', savedLocale)}:",
+          right: formatAmount(amount),
           note: '',
         );
         printer.hr();
 
-        printer.text("${'invoice_number'.tr}:  ${order.invoice?.invoiceNumber ?? ''}",
+        printer.text(
+          "${trBg('invoice_number', savedLocale)}:  ${order.invoice?.invoiceNumber ?? ''}",
           styles: PosStyles(align: PosAlign.left, bold: true),
         );
-        printer.text("${'payment_method'.tr}:  ${order.payment?.paymentMethod ?? ''}",
+        printer.text(
+          "${trBg('payment_method', savedLocale)}:  ${order.payment?.paymentMethod ?? ''}",
           styles: PosStyles(align: PosAlign.left, bold: true),
         );
-        printer.text("${'paid'.tr}: ${order.createdAt ?? ''}",
+        printer.text(
+          "${trBg('paid', savedLocale)}: ${order.createdAt ?? ''}",
           styles: PosStyles(align: PosAlign.left, bold: true),
         );
         printer.hr();
@@ -618,21 +706,165 @@ class PrinterHelperEnglish {
 
         printer.feed(1);
         printer.cut();
-        printer.text('*** AUTO PRINTED ***',
-            styles: PosStyles(align: PosAlign.center));
-        printer.feed(3);
-        printer.cut();
-
         printer.disconnect();
         print("✅ Background print completed successfully");
-
       } else {
         print("❌ Background printer connection failed: $connectResult");
       }
-
     } catch (e) {
       print("❌ Background print error: $e");
     }
   }
+
+
+
+// static Future<void> printInBackground({required Order order, required String ipAddress, required String store,}) async {
+  //   try {
+  //     print("🖨️ Background printing started for order: ${order.id}");
+  //
+  //     if (ipAddress.isEmpty) {
+  //       print("❌ Background print failed: IP address is empty");
+  //       return;
+  //     }
+  //
+  //     // Network printer setup for background
+  //     final profile = await CapabilityProfile.load();
+  //     final printer = NetworkPrinter(PaperSize.mm80, profile);
+  //
+  //     final PosPrintResult connectResult = await printer.connect(ipAddress, port: 9100);
+  //
+  //     if (connectResult == PosPrintResult.success) {
+  //       print("✅ Background printer connected: $ipAddress");
+  //
+  //       String formatAmount(double? amount) {
+  //         if (amount == null) return "0";
+  //
+  //         final locale = Get.locale?.languageCode ?? 'en';
+  //         String localeToUse = locale == 'de' ? 'de_DE' : 'en_US';
+  //         return NumberFormat('#,##0.00#', localeToUse).format(amount);
+  //       }
+  //       final now = DateTime.now();
+  //       final dateTimeStr = '${now.day}/${now.month}/${now.year},'
+  //           ' ${now.hour}:${now.minute.toString().padLeft(2, '0')}';
+  //
+  //       var amount = order.invoice?.totalAmount ?? 0.0;
+  //       var discount = order.invoice?.discount_amount ?? 0.0;
+  //       var delFee = order.invoice?.delivery_fee ?? 0.0;
+  //       final subtotal = order.items?.fold<double>(0, (sum, item) {
+  //         if (item == null) return sum;
+  //
+  //         // Toppings total for this item
+  //         final toppingsTotal = item.toppings?.fold<double>(
+  //           0,
+  //               (tSum, topping) => tSum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
+  //         ) ?? 0;
+  //
+  //         // Item total (unit price + toppings) * quantity
+  //         final itemTotal = ((item.unitPrice ?? 0) + toppingsTotal) * (item.quantity ?? 0);
+  //
+  //         return sum + itemTotal;
+  //       }) ?? 0;
+  //
+  //       final discountData = order.invoice?.discount_amount ?? 0.0;
+  //       final deliveryFee = order.invoice?.delivery_fee ?? 0.0;
+  //
+  //       printer.text(" ${store ?? ''}",
+  //         styles: PosStyles(align: PosAlign.center, bold: true),);
+  //
+  //       printer.text("${'order'.tr} # ${order.id ?? ''}",
+  //         styles: PosStyles(align: PosAlign.center, bold: true),
+  //       );
+  //
+  //       printer.setStyles(PosStyles(align: PosAlign.center));
+  //       printer.text(
+  //         sanitizeText("${'invoice_number'.tr}: ${order.invoice?.invoiceNumber ?? ''}"),
+  //         styles: PosStyles(bold: true),
+  //       );
+  //       printer.text(
+  //         sanitizeText("${'date'.tr}: ${order.createdAt ?? dateTimeStr}"),
+  //         styles: PosStyles(bold: true),
+  //       );
+  //       printer.hr();
+  //       printer.text(
+  //         sanitizeText("${'customer'.tr}: ${(order.shipping_address?.customer_name ?? '')}"),
+  //         styles: PosStyles(align: PosAlign.left, bold: true),
+  //       );
+  //       printer.text(
+  //         "${'address'.tr}: ${order.shipping_address?.line1 ?? ""}, ${order.shipping_address?.city ?? ""}",
+  //         styles: PosStyles(align: PosAlign.left, bold: true),
+  //       );
+  //       printer.text(
+  //         "${'phone'.tr}: ${order.shipping_address?.phone ?? ""}",
+  //         styles: PosStyles(align: PosAlign.left, bold: true),
+  //       );
+  //       printer.hr();
+  //       printer.feed(1);
+  //
+  //       _printOrderItems(printer, order);
+  //       printer.hr();
+  //       _printItemWithNote(
+  //           printer: printer,
+  //           left: "${'subtotal'.tr}:",
+  //           right: formatAmount(subtotal),
+  //           note: '');
+  //
+  //       if (discountData != 0.0) {
+  //         _printItemWithNote(
+  //             printer: printer,
+  //             left: "${'discount'.tr}:",
+  //             right: formatAmount(discount),
+  //             note: '');
+  //       }
+  //
+  //       if (delFee != 0.0) {
+  //         _printItemWithNote(
+  //             printer: printer,
+  //             left: "${'delivery_fee'.tr}:",
+  //             right: formatAmount(delFee),
+  //             note: '');
+  //       }
+  //
+  //       printer.hr();
+  //       _printItemWithNote(
+  //         printer: printer,
+  //         left: "${'grand_total'.tr}:",
+  //         right: formatAmount(amount),
+  //         note: '',
+  //       );
+  //       printer.hr();
+  //
+  //       printer.text("${'invoice_number'.tr}:  ${order.invoice?.invoiceNumber ?? ''}",
+  //         styles: PosStyles(align: PosAlign.left, bold: true),
+  //       );
+  //       printer.text("${'payment_method'.tr}:  ${order.payment?.paymentMethod ?? ''}",
+  //         styles: PosStyles(align: PosAlign.left, bold: true),
+  //       );
+  //       printer.text("${'paid'.tr}: ${order.createdAt ?? ''}",
+  //         styles: PosStyles(align: PosAlign.left, bold: true),
+  //       );
+  //       printer.hr();
+  //
+  //       if (order.brutto_netto_summary != null &&
+  //           order.brutto_netto_summary!.isNotEmpty) {
+  //         _printTaxSummary(printer, order);
+  //       }
+  //
+  //       printer.feed(1);
+  //       printer.cut();
+  //
+  //       printer.disconnect();
+  //       print("✅ Background print completed successfully");
+  //
+  //     } else {
+  //       print("❌ Background printer connection failed: $connectResult");
+  //     }
+  //
+  //   } catch (e) {
+  //     print("❌ Background print error: $e");
+  //   }
+  // }
+
+
+
 }
 
