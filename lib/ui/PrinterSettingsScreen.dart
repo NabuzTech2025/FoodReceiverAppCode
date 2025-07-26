@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
@@ -36,7 +38,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
   void initState() {
     super.initState();
     _loadSavedSettings();
-  //  getStoreSetting(bearerKey!);
+  //getStoreSetting(bearerKey!);
   }
 
   // ──────────────────────────────────────────────────  PREFERENCES
@@ -44,7 +46,9 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
     sharedPreferences = await SharedPreferences.getInstance();
     final prefs = await SharedPreferences.getInstance();
     bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
-    getStoreSetting(bearerKey!);
+    if (bearerKey != null) {
+      getStoreSetting(bearerKey!);
+    }
     setState(() {
       _selectedIpIndex = prefs.getInt('selected_ip_index') ?? 0;
       _selectedRemoteIpIndex = prefs.getInt('selected_ip_remote_index') ?? 0;
@@ -140,8 +144,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
     }
   }
 
-  Future<void> poststorePrinting(
-      String bearerKey, bool remote, String ipAddress) async {
+  Future<void> poststorePrinting(String bearerKey, bool remote, String ipAddress) async {
     String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
     Map<String, dynamic> jsonData = {
       "name": "",
@@ -169,20 +172,68 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
     }
   }
 
+  // Future<void> getStoreSetting(String bearerKey) async {
+  //   try {
+  //     String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
+  //     final result = await ApiRepo().getStoreSetting(bearerKey, storeID!);
+  //
+  //     if (result != null) {
+  //       StoreSetting store = result;
+  //       setState(() {
+  //         print("RespnseStoreSetting " + result.toString()!);
+  //       });
+  //     } else {
+  //       showSnackbar("Error", "Failed to get store data");
+  //     }
+  //   } catch (e) {
+  //     Log.loga(title, "Login Api:: e >>>>> $e");
+  //     showSnackbar("Api Error", "An error occurred: $e");
+  //   }
+  // }
+
   Future<void> getStoreSetting(String bearerKey) async {
     try {
+
+      Get.dialog(
+        Center(
+            child: Lottie.asset(
+              'assets/animations/burger.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            )
+        ),
+        barrierDismissible: false,
+      );
+
       String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
       final result = await ApiRepo().getStoreSetting(bearerKey, storeID!);
+      Get.back();
 
       if (result != null) {
         StoreSetting store = result;
         setState(() {
+          // API response se toggle values set karo
+          _autoOrderPrint = store.auto_print_orders_local ?? false;
+          _autoRemoteOrderrAccept = store.auto_accept_orders_remote ?? false;
+          _autoOrderAccept = store.auto_accept_orders_local ?? false;
+          _autoRemoteOrderPrint = store.auto_print_orders_remote ?? false;
+
           print("RespnseStoreSetting " + result.toString()!);
         });
+
+        // SharedPreferences me bhi save karo
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('auto_order_print', _autoOrderPrint);
+        await prefs.setBool('auto_order_remote_accept', _autoRemoteOrderrAccept);
+        await prefs.setBool('auto_order_accept', _autoOrderAccept);
+        await prefs.setBool('auto_order_remote_print', _autoRemoteOrderPrint);
+
       } else {
         showSnackbar("Error", "Failed to get store data");
       }
     } catch (e) {
+      Get.back();
       Log.loga(title, "Login Api:: e >>>>> $e");
       showSnackbar("Api Error", "An error occurred: $e");
     }

@@ -26,6 +26,7 @@ import 'base_repository.dart';
 final title = "ApiRepo";
 
 class ApiRepo {
+
   Future<UserLoginH> loginApi(String email, String password, String deviceToken) async {
     final connectivityResult = await (Connectivity().checkConnectivity());
     if (connectivityResult == ConnectivityResult.none) {
@@ -424,7 +425,6 @@ class ApiRepo {
     }
   }
 
-
   Future<Logout> logoutAPi(String? bearer) async {
     String url = Api.baseUrl + ApiEndPoints.logoutApi;
     try {
@@ -616,6 +616,7 @@ class ApiRepo {
       );
     }
   }
+
   Future<Store> getStoreData(String bearer, String id) async {
     String url = Api.baseUrl + ApiEndPoints.getStoreDetail + id;
     try {
@@ -646,6 +647,7 @@ class ApiRepo {
       );
     }
   }
+
 //
 // /*  Future<List<Order>> orderGetApi(String bearer) async {
 //     final connectivityResult = await (Connectivity().checkConnectivity());

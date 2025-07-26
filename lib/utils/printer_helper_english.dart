@@ -437,6 +437,7 @@ class PrinterHelperEnglish {
     printer.hr();
     printer.feed(1);
   }
+
   static void _printItemWithNote({required NetworkPrinter printer, required String left, required String right, String? note, int lineWidth = 48,}) {
     final availableWidth = lineWidth - right.length;
 
@@ -475,10 +476,10 @@ class PrinterHelperEnglish {
   }
 
   static void _printTaxSummaryLine({required NetworkPrinter printer, required String left, required String middle1, required String middle2, required String right}) {
-    const col1 = 12;
+    const col1 = 11;
     const col2 = 12;
     const col3 = 12;
-    const col4 = 12;
+    const col4 = 11;
 
     final leftStr = left.padRight(col1);
     final middle1Str = middle1.padLeft(col2);
@@ -504,8 +505,8 @@ class PrinterHelperEnglish {
     );
   }
 
-  // Translation map for background printing
-  static  Map<String, Map<String, String>> translations = {
+// Translation map for background printing
+  static Map<String, Map<String, String>> translations = {
     'en': {
       'order': 'Order',
       'invoice_number': 'Invoice Number',
@@ -519,6 +520,10 @@ class PrinterHelperEnglish {
       'grand_total': 'Grand Total',
       'payment_method': 'Payment Method',
       'paid': 'Paid',
+      'vat_rate': 'VAT Rate',
+      'gross': 'Gross',
+      'net': 'Net',
+      'vat': 'VAT',
     },
     'de': {
       'order': 'Bestellung',
@@ -533,6 +538,10 @@ class PrinterHelperEnglish {
       'grand_total': 'Gesamtbetrag',
       'payment_method': 'Zahlungsmethode',
       'paid': 'Bezahlt',
+      'vat_rate': 'MWSt-Satz',
+      'gross': 'Brutto',
+      'net': 'Netto',
+      'vat': 'MWSt',
     },
     'ch': {
       'order': 'Bestellung',
@@ -547,19 +556,24 @@ class PrinterHelperEnglish {
       'grand_total': 'Gesamtbetrag',
       'payment_method': 'Zahlungsmethode',
       'paid': 'Bezahlt',
+      'vat_rate': 'MWSt-Satz',
+      'gross': 'Brutto',
+      'net': 'Netto',
+      'vat': 'MWSt',
     }
   };
 
-  static  String trBg(String key, String locale) {
-    return translations[locale]?[key] ?? key;
+// Modified trBg function with fallback
+  static String trBg(String key, String locale) {
+    String normalizedLocale = translations.containsKey(locale) ? locale : 'de';
+    return translations[normalizedLocale]?[key] ??
+        translations['de']?[key] ??
+        translations['en']?[key] ??
+        key;
   }
 
-  static Future<void> printInBackground({
-    required Order order,
-    required String ipAddress,
-    required String store,
-    String locale = 'de', // अब locale parameter ले रहे हैं
-  }) async {
+// Final printInBackground
+  static Future<void> printInBackground({required Order order, required String ipAddress, required String store, String locale = 'de',}) async {
     try {
       print("🖨️ Background printing started for order: ${order.id}");
       print("🌐 DEBUG: printInBackground() received locale = $locale");
@@ -569,8 +583,8 @@ class PrinterHelperEnglish {
         return;
       }
 
-      // यहाँ अब SharedPreferences से language लेने की ज़रूरत नहीं
-      String savedLocale = locale;
+      // Force default German fallback
+      String savedLocale = 'de';
       print("🌐 Locale in Background Print: $savedLocale");
 
       // Network printer setup
@@ -591,7 +605,7 @@ class PrinterHelperEnglish {
 
         final now = DateTime.now();
         final dateTimeStr =
-            '${now.day}/${now.month}/${now.year}, ${now.hour}:${now.minute.toString().padLeft(2, '0')}';
+            '${now.day}.${now.month}.${now.year}, ${now.hour}:${now.minute.toString().padLeft(2, '0')}';
 
         var amount = order.invoice?.totalAmount ?? 0.0;
         var discount = order.invoice?.discount_amount ?? 0.0;
@@ -703,7 +717,7 @@ class PrinterHelperEnglish {
 
         if (order.brutto_netto_summary != null &&
             order.brutto_netto_summary!.isNotEmpty) {
-          _printTaxSummary(printer, order);
+          _printTaxSummaryBackground(printer, order, locale: locale);
         }
 
         printer.feed(1);
@@ -718,6 +732,34 @@ class PrinterHelperEnglish {
     }
   }
 
+  static void _printTaxSummaryBackground(NetworkPrinter printer, Order order, {String locale = 'de'}) {
+    // Updated amount formatter with forced locale
+    String formatAmount(double? amount) {
+      if (amount == null) return "0";
+      String localeToUse = (locale == 'de') ? 'de_DE' : 'en_US';
+      return NumberFormat('#,##0.00#', localeToUse).format(amount);
+    }
+    print("🔍 DEBUG Tax Locale: $locale");
+    print("🔍 DEBUG Text: ${trBg('vat_rate', locale)}");
+
+    // Using trBg instead of 'xxx'.tr
+    printer.text(
+      '${trBg('vat_rate', locale)}        ${trBg('gross', locale)}       ${trBg('net', locale)}       ${trBg('vat', locale)}',
+      styles: PosStyles(bold: true, align: PosAlign.left),
+    );
+
+    for (var tax in order.brutto_netto_summary!) {
+      _printTaxSummaryLine(
+        printer: printer,
+        left: '${(tax.taxRate ?? 0.0).toStringAsFixed(0)} %',
+        middle1: formatAmount(tax.brutto ?? 0.0),
+        middle2: formatAmount(tax.netto ?? 0.0),
+        right: formatAmount(tax.tax_amount ?? 0.0),
+      );
+    }
+    printer.hr();
+    printer.feed(1);
+  }
 
 
 // static Future<void> printInBackground({required Order order, required String ipAddress, required String store,}) async {

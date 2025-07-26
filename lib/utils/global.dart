@@ -378,6 +378,7 @@ Future<void> getOrdersInBackground() async {
 
 
 // ORDER ACCEPT/DECLINE (ENHANCED)
+
 Future<void> getOrdersInForegrund(BuildContext context, int orderID) async {
   try {
     print("📱 Foreground order processing started for: $orderID");

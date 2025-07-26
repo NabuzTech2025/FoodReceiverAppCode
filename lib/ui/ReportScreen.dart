@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:food_app/api/Socket/socket_service.dart';
+import 'package:food_app/models/today_report.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
@@ -23,6 +24,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
   String? bearerKey;
 
   List<DailySalesReport> reportList = [];
+  List<GetTodayReport> report = [];
   DailySalesReport reportsss = DailySalesReport();
   DailySalesReport? _selectedReport;
   DailySalesReport? _currentDateReport; // Add this for current date report
@@ -35,9 +37,6 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
 
   late AnimationController _controller;
   late Animation<double> _animation;
-
-  final SocketService _socketService = SocketService();
-
   // Live data indicators
   bool _isLiveDataActive = false;
   DateTime? _lastUpdateTime;
@@ -61,7 +60,6 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
   @override
   void dispose() {
     _controller.dispose();
-    _socketService.disconnect();
     super.dispose();
   }
 
@@ -72,146 +70,10 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     print("Bearer Key: $bearerKey"); // Debug print
 
     await getReports(bearerKey);
-    // Get current date report after loading all reports
+    getTodayReports(bearerKey);
     getCurrentDateReport();
 
-    // Initialize socket ONLY if bearerKey is not null and not empty
-    if (bearerKey != null && bearerKey!.isNotEmpty) {
-      print("Initializing socket with bearer key"); // Debug print
-      _initializeSocket();
-    } else {
-      print("Bearer key is null or empty, socket not initialized"); // Debug print
-    }
   }
-
-  void _initializeSocket() {
-    print("🔥 Starting socket initialization"); // Debug print
-
-    // Set up socket event callbacks
-    _socketService.onSalesUpdate = (data) {
-      print('📊 Sales update received in ReportScreen: $data');
-      _handleSalesUpdate(data);
-    };
-
-    _socketService.onConnected = () {
-      print('🔥 Socket connected - Live data active');
-      setState(() {
-        _isLiveDataActive = true;
-      });
-    };
-
-    _socketService.onDisconnected = () {
-      print('❄️ Socket disconnected - Live data inactive');
-      setState(() {
-        _isLiveDataActive = false;
-      });
-    };
-
-    _socketService.onNewOrder = (data) {
-      print('🆕 New order received: $data');
-      // Optionally refresh current day data when new order comes
-      _refreshCurrentDayData();
-    };
-
-    // Connect to socket with proper parameters
-    try {
-      print("🔌 Attempting to connect socket with bearer: $bearerKey");
-      _socketService.connect(bearerKey!, storeId: 13); // Add storeId parameter if needed
-    } catch (e) {
-      print("❌ Socket connection failed: $e");
-    }
-  }
-  void _handleSalesUpdate(Map<String, dynamic> salesData) {
-    print('🔄 Updating sales data: $salesData');
-
-    setState(() {
-      _lastUpdateTime = DateTime.now();
-    });
-
-    // Update current date report with live data
-    if (_currentDateReport != null) {
-      // Update main report fields
-      _currentDateReport!.totalSales = (salesData['total_sales'] as num?)?.toDouble();
-      _currentDateReport!.totalOrders = salesData['total_orders'] as int?; // Keep as int since model expects int
-      _currentDateReport!.cashTotal = (salesData['cash_total'] as num?)?.toDouble();
-      _currentDateReport!.onlineTotal = (salesData['online_total'] as num?)?.toDouble();
-      _currentDateReport!.totalTax = (salesData['total_tax'] as num?)?.toDouble();
-
-      // Initialize data object if null OR recreate with updated values
-      if (_currentDateReport!.data == null) {
-        _currentDateReport!.data = SalesData(
-          topItems: [],
-          cashTotal: 0.0,
-          byCategory: {},
-          orderTypes: {},
-          totalSales: 0.0,
-          onlineTotal: 0.0,
-          totalOrders: 0,
-          paymentMethods: {},
-          approvalStatuses: {},
-        );
-      }
-
-      // Since orderTypes, approvalStatuses, taxBreakdown are final,
-      // we need to recreate the entire SalesData object
-      _currentDateReport!.data = SalesData(
-        netTotal: (salesData['net_total'] as num?)?.toDouble(),
-        topItems: _currentDateReport!.data?.topItems ??
-            (salesData['top_items'] != null
-                ? (salesData['top_items'] as List).map((item) => TopItem.fromJson(item)).toList()
-                : []),
-        totalTax: (salesData['total_tax'] as num?)?.toDouble(),
-        cashTotal: (salesData['cash_total'] as num?)?.toDouble() ?? 0.0,
-        byCategory: salesData['by_category'] != null
-            ? Map<String, int>.from(salesData['by_category'])
-            : (_currentDateReport!.data?.byCategory ?? {}),
-        orderTypes: salesData['order_types'] != null
-            ? Map<String, int>.from(salesData['order_types'])
-            : {},
-        totalSales: (salesData['total_sales'] as num?)?.toDouble() ?? 0.0,
-        onlineTotal: (salesData['online_total'] as num?)?.toDouble() ?? 0.0,
-        totalOrders: (salesData['total_orders'] as num?)?.toInt() ?? 0,
-        taxBreakdown: salesData['tax_breakdown'] != null
-            ? TaxBreakdown.fromJson(salesData['tax_breakdown'])
-            : null,
-        deliveryTotal: (salesData['delivery_total'] as num?)?.toDouble(),
-        discountTotal: salesData['discount_total'] != null
-            ? (salesData['discount_total'] as num).toInt()
-            : null,
-        paymentMethods: salesData['payment_methods'] != null
-            ? Map<String, int>.from(salesData['payment_methods'])
-            : {},
-        approvalStatuses: salesData['approval_statuses'] != null
-            ? Map<String, int>.from(salesData['approval_statuses'])
-            : {},
-        totalSalesDelivery: (salesData['total_sales + delivery'] as num?)?.toDouble(),
-      );
-
-      // Always update the UI regardless of _selectedReport
-      setState(() {
-        reportsss = _currentDateReport!;
-      });
-
-      print('✅ Sales data updated successfully');
-      print('Total Sales: ${_currentDateReport!.totalSales}');
-      print('Total Orders: ${_currentDateReport!.totalOrders}');
-      print('Cash Total: ${_currentDateReport!.cashTotal}');
-      print('Discount Total: ${_currentDateReport!.data?.discountTotal}');
-      print('Delivery Total: ${_currentDateReport!.data?.deliveryTotal}');
-      print('Total Sales + Delivery: ${_currentDateReport!.data?.totalSalesDelivery}');
-      print('Order Types: ${_currentDateReport!.data?.orderTypes}');
-      print('Approval Statuses: ${_currentDateReport!.data?.approvalStatuses}');
-      print('Tax Breakdown: ${_currentDateReport!.data?.taxBreakdown}');
-    } else {
-      print('❌ Current date report is null, cannot update');
-    }
-  }
-
-void _refreshCurrentDayData() {
-
-  getCurrentDateReport();
-}
-
 
   void getCurrentDateReport() {
     final today = DateTime.now();
@@ -315,6 +177,36 @@ void _refreshCurrentDayData() {
     } catch (e) {
       Get.back();
       Log.loga(title, "Login Api:: e >>>>> $e");
+      showSnackbar("Api Error", "An error occurred: $e");
+    }
+  }
+
+  Future<void> getTodayReports(String? bearerKey) async {
+    try {
+      print("Today BearerKEy " + bearerKey!);
+      Get.dialog(
+        Center(
+            child: Lottie.asset(
+              'assets/animations/burger.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            )),
+        barrierDismissible: false,
+      );
+      final result = await ApiRepo().todayReportGetApi(bearerKey!);
+      Get.back();
+      if (result != null) {
+        setState(() {
+          report = result;
+          print(" Today Report   ${reportList.length}");
+        });
+      } else {
+        showSnackbar("Error", " error");
+      }
+    } catch (e) {
+      Get.back();
+      Log.loga(title, "Today Report Error :: e >>>>> $e");
       showSnackbar("Api Error", "An error occurred: $e");
     }
   }
@@ -582,8 +474,6 @@ void _refreshCurrentDayData() {
       ],
     );
   }
-
-
 
   String _monthName(int month) {
     const names = [

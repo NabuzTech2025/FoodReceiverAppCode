@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:audioplayers/audioplayers.dart';
@@ -68,6 +69,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   final SocketService _socketService = SocketService();
   bool _isLiveDataActive = false;
   DateTime? _lastUpdateTime;
+  bool _showNoOrderText = false;
+  Timer? _noOrderTimer;
   @override
   void initState() {
     super.initState();
@@ -101,6 +104,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     //socketService.dispose();
     _blinkController.dispose();
     _socketService.disconnect();
+    _noOrderTimer?.cancel();
     super.dispose();
   }
 
@@ -128,6 +132,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     _checkAndClearOldData();      // पुराना डेटा साफ़ करो
     _loadCachedSalesData();       // Cached data load करो
     _initializeSocket();
+    // Start timer for "no order" text
+    _startNoOrderTimer();
     // Initialize socket ONLY if bearerKey is not null and not empty
     if (bearerKey != null && bearerKey!.isNotEmpty) {
       print("Initializing socket with bearer key"); // Debug print
@@ -136,6 +142,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       print("Bearer key is null or empty, socket not initialized"); // Debug print
     }
   }
+
   void _initializeSocket() {
     print("🔥 Starting socket initialization");
 
@@ -167,6 +174,19 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     }
   }
 
+  void _startNoOrderTimer() {
+    _noOrderTimer?.cancel();
+    _noOrderTimer = Timer(Duration(seconds: 4), () {
+      if (mounted && app.appController.searchResultOrder.isEmpty) {
+        setState(() => _showNoOrderText = true);
+      }
+    });
+  }
+
+  void _stopNoOrderTimer() {
+    _noOrderTimer?.cancel();
+    setState(() => _showNoOrderText = false);
+  }
 
   void _handleSalesUpdate(Map<String, dynamic> salesData, {bool isFromSocket = false}) {
     print('🔄 Updating sales data: $salesData');
@@ -245,6 +265,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       print("ℹ️ No cached data found, waiting for live socket data");
     }
   }
+
   void _refreshCurrentDayData() => getCurrentDateReport();
 
   void getCurrentDateReport() {
@@ -356,6 +377,18 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         setState(() {
           app.appController.setOrders(result);
         });
+        if (result.isNotEmpty && result.first.code == null) {
+          setState(() {
+            app.appController.setOrders(result);
+          });
+          // Stop timer if orders found
+          if (result.isNotEmpty) {
+            _stopNoOrderTimer();
+          }
+        } else {
+          // Restart timer if no orders
+          _startNoOrderTimer();
+        }
       } else {
        /* String errorMessage = result.isNotEmpty
             ? result.first.mess ?? "Unknown error"
@@ -976,7 +1009,12 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                         children: [
                           SizedBox(height: 100),
                           Center(
-                              child: Lottie.asset(
+                              child: _showNoOrderText
+                                  ? Text(
+                                'No orders yet',
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                              )
+                                  : Lottie.asset(
                                 'assets/animations/burger.json',
                                 width: 150,
                                 height: 150,
@@ -1206,6 +1244,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       ),
     );
   }
+
   String getApprovalStatusText(int? status) {
     switch (status) {
       case 1:

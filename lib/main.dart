@@ -91,7 +91,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 // Enhanced handleBackgroundOrderComplete with more debug logs
 
-
 Future<void> handleBackgroundOrderComplete(int orderNumber) async {
   try {
     print("🚀 Background order processing started for: $orderNumber");
@@ -138,54 +137,62 @@ Future<void> handleBackgroundOrderComplete(int orderNumber) async {
       print("✅ Background - Order data retrieved: ID ${orderData.id}");
       print("🔍 DEBUG: Order status: ${orderData.orderStatus}");
 
-      // Step 2: Auto Accept if enabled
-      if (autoAccept) {
-        print("🤖 Background - Auto accepting order: $orderNumber");
+      // ✅ CHECK ORDER STATUS FIRST (just like foreground method)
+      if (orderData.orderStatus == 2) {
+        print("✅ Background - Order already accepted, checking auto print");
 
-        Map<String, dynamic> jsonData = {
-          "order_status": 2,  // 2 = Accepted
-          "approval_status": 2,
-        };
+        if (autoPrint) {
+          print("🖨️ Background - Auto printing already accepted order");
 
-        print("🔍 DEBUG: Sending accept request with data: $jsonData");
-
-        final acceptResult = await ApiRepo().orderAcceptDecline(
-            bearerKey, jsonData, orderData.id ?? 0);
-
-        if (acceptResult != null) {
-          print("✅ Background - Order auto-accepted successfully");
-          print("🔍 DEBUG: Accept result: $acceptResult");
-
-          // Step 3: Auto Print if enabled (after successful accept)
-          if (autoPrint) {
-            print("🖨️ Background - Starting auto print process...");
-
-            // Wait for invoice to be generated
-            print("⏳ Background - Waiting 3 seconds for invoice generation...");
-            await Future.delayed(Duration(seconds: 3));
-
-            // Get updated order with invoice data
-            print("📥 Background - Fetching updated order data...");
-            final updatedOrder = await ApiRepo().getNewOrderData(bearerKey, orderNumber);
-
-            if (updatedOrder?.invoice != null &&
-                (updatedOrder?.invoice?.invoiceNumber ?? '').isNotEmpty) {
-
-              print("✅ Background - Invoice found, printing with invoice...");
-              await backgroundPrintOrder(updatedOrder!, prefs);
-
-            } else {
-              print("⚠️ Background - Invoice not ready, printing without invoice...");
-              await backgroundPrintOrder(orderData, prefs);
-            }
+          if (orderData.invoice != null &&
+              (orderData.invoice?.invoiceNumber ?? '').isNotEmpty) {
+            await backgroundPrintOrder(orderData, prefs);
+            print("✅ Background - Auto print completed for accepted order");
+          } else {
+            print("❌ Background - Invoice not ready for accepted order. Skipping print.");
           }
-        } else {
-          print("❌ Background - Failed to auto-accept order (null response)");
         }
-      } else if (autoPrint) {
-        // If only auto print is enabled (without auto accept)
-        print("🖨️ Background - Auto print enabled, processing without accept...");
-        await backgroundPrintOrder(orderData, prefs);
+      } else {
+        // Order is pending
+        print("⏳ Background - Order is pending, checking auto accept");
+
+        if (autoAccept) {
+          print("🤖 Background - Auto accepting pending order: $orderNumber");
+
+          Map<String, dynamic> jsonData = {
+            "order_status": 2,  // 2 = Accepted
+            "approval_status": 2,
+          };
+
+          final acceptResult = await ApiRepo().orderAcceptDecline(
+              bearerKey, jsonData, orderData.id ?? 0);
+
+          if (acceptResult != null) {
+            print("✅ Background - Order auto-accepted successfully");
+
+            // Auto Print after accept if enabled
+            if (autoPrint) {
+              print("🖨️ Background - Auto printing after accept");
+              await Future.delayed(Duration(seconds: 2));
+
+              final updatedOrder = await ApiRepo().getNewOrderData(bearerKey, orderNumber);
+
+              if (updatedOrder?.invoice != null &&
+                  (updatedOrder?.invoice?.invoiceNumber ?? '').isNotEmpty) {
+                await backgroundPrintOrder(updatedOrder!, prefs);
+                print("✅ Background - Auto print completed after accept");
+              } else {
+                print("❌ Background - Invoice not ready after accept. Skipping print.");
+              }
+            }
+          } else {
+            print("❌ Background - Failed to auto-accept order (null response)");
+          }
+        } else if (autoPrint) {
+          // Only auto print
+          print("🖨️ Background - Auto print enabled, processing without accept...");
+          await backgroundPrintOrder(orderData, prefs);
+        }
       }
 
       // Step 4: Refresh orders in background
@@ -200,7 +207,6 @@ Future<void> handleBackgroundOrderComplete(int orderNumber) async {
 
   } catch (e) {
     print("❌ Background handler error: $e");
-    print("❌ Background handler stack trace: ${e.toString()}");
   }
 }
 
@@ -227,8 +233,9 @@ Future<void> backgroundPrintOrder(Order order, SharedPreferences prefs) async {
       }
     }
 
-    String savedLocale = prefs.getString('selected_language') ?? 'en';
-    print("🌐 DEBUG: Saved locale from SharedPreferences = $savedLocale");
+    // Force German
+    String savedLocale = 'de';
+    print("🌐 DEBUG: Forced locale for background print = $savedLocale");
 
     debugPrint("🖨️ Background - Using printer IP: $selectedIp");
     debugPrint("🌐 Background - Using locale: $savedLocale");
@@ -237,7 +244,7 @@ Future<void> backgroundPrintOrder(Order order, SharedPreferences prefs) async {
       order: order,
       ipAddress: selectedIp,
       store: '',
-      locale: savedLocale, // अब locale pass कर रहे हैं
+      locale: savedLocale,
     );
 
     debugPrint("✅ Background print completed successfully for order: ${order.id}");
