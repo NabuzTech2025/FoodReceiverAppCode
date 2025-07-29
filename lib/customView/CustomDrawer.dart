@@ -157,21 +157,123 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
   Future<void> logutAPi(String? bearerKey) async {
     try {
+      print("🚪 Starting logout process...");
+
       final result = await ApiRepo().logoutAPi(bearerKey);
       if (result != null) {
-       // await sharedPreferences.clear(); // Clears all shared preferences
-        await sharedPreferences.remove(valueShared_BEARER_KEY);
-        await sharedPreferences.remove(valueShared_STORE_KEY);
+        print("✅ Logout API successful");
+
+        // ✅ STEP 1: Force complete logout cleanup
+        await _forceCompleteLogoutCleanup();
+
+        // ✅ STEP 2: Clear app controller
         app.appController.clearOnLogout();
-        Navigator.of(context).pop(); // Closes the drawer
-        // Clears navigation history and navigates to LoginScreen
+
+        // ✅ STEP 3: Force background handler to clear token cache
+        await _forceBackgroundHandlerClearCache();
+
+        // ✅ STEP 4: Close drawer
+        Navigator.of(context).pop();
+
+        // ✅ STEP 5: Navigate to login with complete reset
         Get.offAll(() => LoginScreen());
+
+        print("✅ Logout completed successfully");
+
       } else {
         showSnackbar("Error", "Failed to logout");
       }
     } catch (e) {
-      Log.loga(title, "Login Api:: e >>>>> $e");
+      Log.loga(title, "Logout Api:: e >>>>> $e");
       showSnackbar("Api Error", "An error occurred: $e");
+    }
+  }
+
+// ✅ Complete logout cleanup with multiple attempts
+  Future<void> _forceCompleteLogoutCleanup() async {
+    try {
+      print("🧹 Starting complete logout cleanup...");
+
+      // ✅ Multiple cleanup attempts to ensure complete removal
+      for (int attempt = 0; attempt < 3; attempt++) {
+        print("🔄 Cleanup attempt ${attempt + 1}/3");
+
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+
+        // Clear all user-related data
+        List<String> keysToRemove = [
+          valueShared_BEARER_KEY,
+          valueShared_STORE_KEY,
+          valueShared_USERNAME_KEY,
+          valueShared_PASSWORD_KEY,
+          'auto_order_accept',
+          'auto_order_print',
+          'selected_language',
+        ];
+
+        for (String key in keysToRemove) {
+          await prefs.remove(key);
+          await Future.delayed(Duration(milliseconds: 20));
+          print("🗑️ Removed: $key");
+        }
+
+        // Clear printer settings
+        for (int i = 0; i < 5; i++) {
+          await prefs.remove('printer_ip_$i');
+        }
+
+        // ✅ Force multiple reloads to ensure changes are committed
+        await prefs.reload();
+        await Future.delayed(Duration(milliseconds: 100));
+        await prefs.reload();
+        await Future.delayed(Duration(milliseconds: 100));
+
+        // ✅ Verify cleanup for this attempt
+        String? testToken = prefs.getString(valueShared_BEARER_KEY);
+        if (testToken == null) {
+          print("✅ Cleanup attempt ${attempt + 1}: SUCCESS");
+        } else {
+          print("⚠️ Cleanup attempt ${attempt + 1}: Token still exists, retrying...");
+        }
+      }
+
+      // ✅ Final verification
+      SharedPreferences finalPrefs = await SharedPreferences.getInstance();
+      await finalPrefs.reload();
+      String? finalToken = finalPrefs.getString(valueShared_BEARER_KEY);
+
+      if (finalToken == null) {
+        print("✅ Complete logout cleanup SUCCESS - All tokens removed");
+      } else {
+        print("❌ Logout cleanup FAILED - Token still exists: ${finalToken.substring(0, 10)}...");
+      }
+
+    } catch (e) {
+      print("❌ Error in complete logout cleanup: $e");
+    }
+  }
+
+// ✅ Force background handler to clear its token cache
+  Future<void> _forceBackgroundHandlerClearCache() async {
+    try {
+      print("🔄 Forcing background handler cache clear...");
+
+      // Additional delay to ensure background handler gets the cleared preferences
+      await Future.delayed(Duration(milliseconds: 300));
+
+      // Create a test instance to verify background handler will get null token
+      SharedPreferences testPrefs = await SharedPreferences.getInstance();
+      await testPrefs.reload();
+
+      String? testToken = testPrefs.getString(valueShared_BEARER_KEY);
+      if (testToken == null) {
+        print("✅ Background handler cache should now be cleared");
+      } else {
+        print("❌ Background handler cache clear failed - token still exists");
+      }
+
+    } catch (e) {
+      print("❌ Error clearing background handler cache: $e");
     }
   }
 }

@@ -56,8 +56,8 @@ class PrinterHelper {
     var discount = (order.invoice?.discount_amount ?? 0.0).toStringAsFixed(1);
     var delFee = (order.invoice?.delivery_fee ?? 0.0).toStringAsFixed(1);
     var preSubTotal =
-        (double.parse(amount) + double.parse(discount) - double.parse(delFee))
-            .toStringAsFixed(1);
+    (double.parse(amount) + double.parse(discount) - double.parse(delFee))
+        .toStringAsFixed(1);
     final subtotal = preSubTotal;
 
     final discountData = order.invoice?.discount_amount ?? 0.0;
@@ -135,7 +135,7 @@ class PrinterHelper {
     printer.hr();
     printer.text(
       "Rcchnungsnr:  ${order.invoice!.invoiceNumber.toString()}",
-     // "Rcchnungsnr:  ${order.invoice?.invoiceNumber ?? ''}",
+      // "Rcchnungsnr:  ${order.invoice?.invoiceNumber ?? ''}",
       styles: PosStyles(align: PosAlign.left, bold: true),
     );
     printer.text(
@@ -181,17 +181,17 @@ class PrinterHelper {
         final variantPrice = orderItem.variant!.price != null
             ? _formatCurrency(orderItem.variant!.price!)
             : '0,00';
-  //       final variantLine = '$quantity x $variantName [$variantPrice ]';
-  //       printer.text(variantLine);
-  //     }
-  //
-  //     if (orderItem.note != null && orderItem.note!.trim().isNotEmpty) {
-  //       printer.text('+ ${sanitizeText(orderItem.note!.trim())}');
-  //     }
-  //
-  //     printer.feed(0);
-  //   }
-  // }
+        //       final variantLine = '$quantity x $variantName [$variantPrice ]';
+        //       printer.text(variantLine);
+        //     }
+        //
+        //     if (orderItem.note != null && orderItem.note!.trim().isNotEmpty) {
+        //       printer.text('+ ${sanitizeText(orderItem.note!.trim())}');
+        //     }
+        //
+        //     printer.feed(0);
+        //   }
+        // }
         printer.text('$quantity x $variantName [$variantPrice]');
       }
       // Print Toppings
@@ -216,8 +216,8 @@ class PrinterHelper {
     var discount = (order.invoice?.discount_amount ?? 0.0).toStringAsFixed(1);
     var delFee = (order.invoice?.delivery_fee ?? 0.0).toStringAsFixed(1);
     var preSubTotal =
-        (double.parse(amount) + double.parse(discount) - double.parse(delFee))
-            .toStringAsFixed(1);
+    (double.parse(amount) + double.parse(discount) - double.parse(delFee))
+        .toStringAsFixed(1);
     final subtotal = preSubTotal;
     final discountStr = _formatCurrency(order.invoice?.discount_amount ?? 0.0);
     final deliveryFee = _formatCurrency(order.invoice?.delivery_fee ?? 0.0);

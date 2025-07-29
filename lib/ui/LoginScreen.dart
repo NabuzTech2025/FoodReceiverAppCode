@@ -12,6 +12,7 @@ import '../api/responses/userLogin_h.dart';
 import '../constants/constant.dart';
 import '../customView/custom_button.dart';
 import '../customView/custom_text_form_prefiex.dart';
+import '../models/StoreSetting.dart';
 import '../utils/log_util.dart';
 import '../utils/my_application.dart';
 import '../utils/validators.dart';
@@ -263,34 +264,91 @@ class _LoginScreenState extends State<LoginScreen>
     //if (validateData()) {}
   }
 
-  Future<void> postloginData(
-      String email, String password, String deviceToken) async {
+  Future<void> postloginData(String email, String password, String deviceToken) async {
     try {
       Get.dialog(
         Center(
-            child:  Lottie.asset(
+            child: Lottie.asset(
               'assets/animations/burger.json',
               width: 150,
               height: 150,
-              repeat: true, )
-        //     CupertinoActivityIndicator(
-        //   radius: 20,
-        //   color: Colors.orange,
-        // )
+              repeat: true,
+            )
         ),
         barrierDismissible: false,
       );
+
       final result = await ApiRepo().loginApi(email, password, deviceToken);
       Log.loga(title, "LoginData :: result >>>>> ${result?.toJson()}");
       Get.back();
+
       if (result != null) {
-        // Handle navigation or success here
-        sharedPreferences.setString(valueShared_BEARER_KEY, result.access_token!);
-        sharedPreferences.setString(valueShared_USERNAME_KEY, _EmailController.text.toString());
-        sharedPreferences.setString(valueShared_PASSWORD_KEY, _PasswordController.text.toString());
-        print("LoginData  " + result.role_id.toString());
-        print("LoginDataaccess_token  " + result.access_token.toString());
-        Get.to(() => HomeScreen());
+        print("🔐 Login successful, clearing old data and saving new token...");
+
+        // ✅ STEP 1: Complete data cleanup
+        await _forceCompleteCleanup();
+
+        // ✅ STEP 2: Wait for cleanup to complete
+        await Future.delayed(Duration(milliseconds: 500));
+
+        // ✅ STEP 3: Create completely fresh SharedPreferences instance
+        SharedPreferences freshPrefs = await SharedPreferences.getInstance();
+
+        // ✅ STEP 4: Set new values with verification
+        print("💾 Saving bearer token...");
+        await freshPrefs.setString(valueShared_BEARER_KEY, result.access_token!);
+        await Future.delayed(Duration(milliseconds: 100));
+
+        print("💾 Saving username...");
+        await freshPrefs.setString(valueShared_USERNAME_KEY, _EmailController.text.toString());
+        await Future.delayed(Duration(milliseconds: 100));
+
+        print("💾 Saving password...");
+        await freshPrefs.setString(valueShared_PASSWORD_KEY, _PasswordController.text.toString());
+        await Future.delayed(Duration(milliseconds: 100));
+
+        // ✅ STEP 5: IMPORTANT - Save store ID if available from login response
+        // if (result.store_id != null && result.address..toString().isNotEmpty) {
+        //   print("💾 Saving store ID: ${result.store_id}");
+        //   await freshPrefs.setString(valueShared_STORE_KEY, result.store_id.toString());
+        //   await Future.delayed(Duration(milliseconds: 100));
+        // } else {
+        //   print("⚠️ No store ID in login response - this might cause background issues");
+        // }
+
+        // ✅ STEP 6: Force commit and reload multiple times
+        await freshPrefs.reload();
+        await Future.delayed(Duration(milliseconds: 200));
+        await freshPrefs.reload();
+
+        // ✅ STEP 7: Comprehensive verification
+        String? verifyToken = freshPrefs.getString(valueShared_BEARER_KEY);
+        String? verifyStore = freshPrefs.getString(valueShared_STORE_KEY);
+        String? verifyUsername = freshPrefs.getString(valueShared_USERNAME_KEY);
+
+        print("🔍 Verification Results:");
+        print("🔑 Token: ${verifyToken?.substring(0, 20) ?? 'NULL'}...");
+        print("🏪 Store: $verifyStore");
+        print("👤 Username: $verifyUsername");
+
+        if (verifyToken != null && verifyToken == result.access_token) {
+          print("✅ Token verification: PASSED");
+          print("👤 Role ID: ${result.role_id}");
+          print("🆔 Token Length: ${result.access_token?.length}");
+
+          // ✅ STEP 8: Update class instance
+          sharedPreferences = freshPrefs;
+
+          // ✅ STEP 9: Force background handler to refresh token cache
+          await _forceBackgroundHandlerTokenRefresh();
+
+          // ✅ STEP 10: Test background handler access
+          await SettingsSync.syncSettingsAfterLogin();
+          Get.to(() => HomeScreen());
+        } else {
+          print("❌ Token verification failed!");
+          showSnackbar("Error", "Failed to save login credentials");
+        }
       } else {
         showSnackbar("Error", "Error on login");
       }
@@ -300,6 +358,180 @@ class _LoginScreenState extends State<LoginScreen>
       Get.back();
     }
   }
+// Add this method to sync settings after login
+  Future<void> syncSettingsAfterLogin() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? bearerKey = prefs.getString(valueShared_BEARER_KEY);
+      String? storeID = prefs.getString(valueShared_STORE_KEY);
+
+      if (bearerKey != null && storeID != null) {
+        print("🔄 Syncing settings after login...");
+
+        // Get settings from server
+        final result = await ApiRepo().getStoreSetting(bearerKey, storeID);
+
+        if (result != null) {
+          StoreSetting store = result;
+
+          // Save to SharedPreferences
+          await prefs.setBool('auto_order_accept', store.auto_accept_orders_local ?? false);
+          await prefs.setBool('auto_order_print', store.auto_print_orders_local ?? false);
+          await prefs.setBool('auto_order_remote_accept', store.auto_accept_orders_remote ?? false);
+          await prefs.setBool('auto_order_remote_print', store.auto_print_orders_remote ?? false);
+
+          print("✅ Settings synced after login:");
+          print("🔍 Auto Accept: ${store.auto_accept_orders_local ?? false}");
+          print("🔍 Auto Print: ${store.auto_print_orders_local ?? false}");
+        } else {
+          print("❌ Failed to sync settings after login");
+        }
+      }
+    } catch (e) {
+      print("❌ Error syncing settings after login: $e");
+    }
+  }
+
+// Call this method after successful login in your login screen
+// Example:
+// After successful login:
+// await syncSettingsAfterLogin();
+
+// ✅ Complete cleanup function
+  Future<void> _forceCompleteCleanup() async {
+    try {
+      print("🧹 Starting complete cleanup...");
+
+      // Multiple cleanup attempts
+      for (int i = 0; i < 3; i++) {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+
+        // Clear all user-related keys
+        List<String> keysToRemove = [
+          valueShared_BEARER_KEY,
+          valueShared_USERNAME_KEY,
+          valueShared_PASSWORD_KEY,
+          valueShared_STORE_KEY,
+          'auto_order_accept',
+          'auto_order_print',
+        ];
+
+        for (String key in keysToRemove) {
+          await prefs.remove(key);
+          await Future.delayed(Duration(milliseconds: 20));
+        }
+
+        // Clear printer settings
+        for (int j = 0; j < 5; j++) {
+          await prefs.remove('printer_ip_$j');
+        }
+
+        await prefs.reload();
+        await Future.delayed(Duration(milliseconds: 100));
+      }
+
+      print("✅ Complete cleanup finished");
+    } catch (e) {
+      print("❌ Error in complete cleanup: $e");
+    }
+  }
+
+// ✅ Force background handler to refresh token cache
+  Future<void> _forceBackgroundHandlerTokenRefresh() async {
+    try {
+      print("🔄 Forcing background handler token refresh...");
+
+      // Multiple attempts to ensure background handler can access new token
+      for (int i = 0; i < 3; i++) {
+        SharedPreferences testPrefs = await SharedPreferences.getInstance();
+        await testPrefs.reload();
+
+        String? testToken = testPrefs.getString(valueShared_BEARER_KEY);
+        String? testStore = testPrefs.getString(valueShared_STORE_KEY);
+
+        print("🔍 Background test $i - Token: ${testToken?.substring(0, 20) ?? 'NULL'}...");
+        print("🔍 Background test $i - Store: $testStore");
+
+        if (testToken != null && testToken.isNotEmpty) {
+          print("✅ Background handler token refresh verified on attempt $i");
+          break;
+        }
+
+        await Future.delayed(Duration(milliseconds: 200));
+      }
+
+    } catch (e) {
+      print("❌ Error refreshing background handler token: $e");
+    }
+  }
+
+// ✅ Test background handler access to stored data
+  Future<void> _testBackgroundHandlerAccess() async {
+    try {
+      print("🧪 Testing background handler data access...");
+
+      // Simulate what background handler does
+      SharedPreferences bgPrefs = await SharedPreferences.getInstance();
+      await bgPrefs.reload();
+
+      String? bgToken = bgPrefs.getString(valueShared_BEARER_KEY);
+      String? bgStore = bgPrefs.getString(valueShared_STORE_KEY);
+      bool bgAutoAccept = bgPrefs.getBool('auto_order_accept') ?? false;
+      bool bgAutoPrint = bgPrefs.getBool('auto_order_print') ?? false;
+
+      print("🧪 Background simulation results:");
+      print("🔑 Token available: ${bgToken != null && bgToken.isNotEmpty ? 'YES' : 'NO'}");
+      print("🏪 Store available: ${bgStore != null && bgStore.isNotEmpty ? 'YES' : 'NO'}");
+      print("🤖 Auto Accept: $bgAutoAccept");
+      print("🖨️ Auto Print: $bgAutoPrint");
+
+      if (bgToken != null && bgToken.isNotEmpty) {
+        print("✅ Background handler should work correctly");
+      } else {
+        print("❌ Background handler will fail - token not accessible");
+      }
+
+    } catch (e) {
+      print("❌ Error testing background handler access: $e");
+    }
+  }
+
+  // Future<void> postloginData(String email, String password, String deviceToken) async {
+  //   try {
+  //     Get.dialog(
+  //       Center(
+  //           child:  Lottie.asset(
+  //             'assets/animations/burger.json',
+  //             width: 150,
+  //             height: 150,
+  //             repeat: true, )
+  //       //     CupertinoActivityIndicator(
+  //       //   radius: 20,
+  //       //   color: Colors.orange,
+  //       // )
+  //       ),
+  //       barrierDismissible: false,
+  //     );
+  //     final result = await ApiRepo().loginApi(email, password, deviceToken);
+  //     Log.loga(title, "LoginData :: result >>>>> ${result?.toJson()}");
+  //     Get.back();
+  //     if (result != null) {
+  //       // Handle navigation or success here
+  //       sharedPreferences.setString(valueShared_BEARER_KEY, result.access_token!);
+  //       sharedPreferences.setString(valueShared_USERNAME_KEY, _EmailController.text.toString());
+  //       sharedPreferences.setString(valueShared_PASSWORD_KEY, _PasswordController.text.toString());
+  //       print("LoginData  " + result.role_id.toString());
+  //       print("LoginDataaccess_token  " + result.access_token.toString());
+  //       Get.to(() => HomeScreen());
+  //     } else {
+  //       showSnackbar("Error", "Error on login");
+  //     }
+  //   } catch (e) {
+  //     Log.loga(title, "Login Api:: e >>>>> $e");
+  //     showSnackbar("Api Error", "An error occurred: $e");
+  //     Get.back();
+  //   }
+  // }
 
   Future<void> changeLanguage(String langCode) async {
     Locale locale = Locale(langCode);
@@ -358,4 +590,73 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
 
+}
+// Add this utility class or method to your app
+// Add this class to a new file or at the top of your main.dart
+
+class SettingsSync {
+
+  /// Call this method immediately after successful login
+  static Future<void> syncSettingsAfterLogin() async {
+    try {
+      print("🔄 Starting settings sync after login...");
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.reload(); // Force fresh data
+
+      String? bearerKey = prefs.getString(valueShared_BEARER_KEY);
+      String? storeID = prefs.getString(valueShared_STORE_KEY);
+
+      if (bearerKey == null || bearerKey.isEmpty) {
+        print("❌ No bearer token found for settings sync");
+        return;
+      }
+
+      if (storeID == null || storeID.isEmpty) {
+        print("❌ No store ID found for settings sync");
+        return;
+      }
+
+      print("✅ Syncing settings with token: ${bearerKey.substring(0, 20)}... and store: $storeID");
+
+      // Get settings from server
+      final result = await ApiRepo().getStoreSetting(bearerKey, storeID);
+
+      if (result != null) {
+        StoreSetting store = result;
+
+        // ✅ Save all settings to SharedPreferences with proper keys
+        await prefs.setBool('auto_order_accept', store.auto_accept_orders_local ?? false);
+        await prefs.setBool('auto_order_print', store.auto_print_orders_local ?? false);
+        await prefs.setBool('auto_order_remote_accept', store.auto_accept_orders_remote ?? false);
+        await prefs.setBool('auto_order_remote_print', store.auto_print_orders_remote ?? false);
+
+        // ✅ Force save to disk
+        await prefs.reload();
+
+        print("✅ Settings synced successfully after login:");
+        print("🔍 Auto Accept Local: ${store.auto_accept_orders_local ?? false}");
+        print("🔍 Auto Print Local: ${store.auto_print_orders_local ?? false}");
+        print("🔍 Auto Accept Remote: ${store.auto_accept_orders_remote ?? false}");
+        print("🔍 Auto Print Remote: ${store.auto_print_orders_remote ?? false}");
+
+        // ✅ Verify the saved values
+        bool savedAccept = prefs.getBool('auto_order_accept') ?? false;
+        bool savedPrint = prefs.getBool('auto_order_print') ?? false;
+        bool savedRemoteAccept = prefs.getBool('auto_order_remote_accept') ?? false;
+        bool savedRemotePrint = prefs.getBool('auto_order_remote_print') ?? false;
+
+        print("✅ Verified saved values:");
+        print("🔍 Saved Auto Accept: $savedAccept");
+        print("🔍 Saved Auto Print: $savedPrint");
+        print("🔍 Saved Remote Accept: $savedRemoteAccept");
+        print("🔍 Saved Remote Print: $savedRemotePrint");
+
+      } else {
+        print("❌ Failed to get store settings from server");
+      }
+    } catch (e) {
+      print("❌ Error syncing settings after login: $e");
+    }
+  }
 }
