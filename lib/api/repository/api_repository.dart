@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:food_app/models/Store.dart';
 import 'package:food_app/models/driver/driver_register_model.dart';
 import 'package:food_app/models/today_report.dart';
+import 'package:get/get.dart' hide FormData;
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -240,44 +241,6 @@ class ApiRepo {
     } catch (e) {
       return [
         DailySalesReport.withError(
-          code: 500,
-          mess: e.toString(),
-        )
-      ];
-    }
-  }
-
-  Future<List<GetTodayReport>> todayReportGetApi(String bearer) async {
-    String url = Api.baseUrl + ApiEndPoints.todayReports;
-    try {
-      final response = await apiUtils.get(
-        url: url,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $bearer',
-            'Accept': 'application/json',
-          },
-        ),
-      );
-
-      if (response != null &&
-          response.statusCode == 200 &&
-          response.data is List) {
-        return (response.data as List)
-            .map((json) => GetTodayReport.fromJson(json))
-            .toList();
-      }
-      else {
-        return [
-          GetTodayReport.withError(
-            code: response?.statusCode ?? 500,
-            mess: "Unexpected response format",
-          )
-        ];
-      }
-    } catch (e) {
-      return [
-        GetTodayReport.withError(
           code: 500,
           mess: e.toString(),
         )
@@ -648,123 +611,29 @@ class ApiRepo {
     }
   }
 
-//
-// /*  Future<List<Order>> orderGetApi(String bearer) async {
-//     final connectivityResult = await (Connectivity().checkConnectivity());
-//  */ /*   if (connectivityResult == ConnectivityResult.none) {
-//       print("Error Internet connectivity");
-//       return Order.withError(
-//           code: CODE_NO_INTERNET, mess: apiUtils.getNetworkError());
-//     }*/ /*
-//     String url = Api.baseUrl + ApiEndPoints.getOrders;
-//     print("URlToken "+url);
-//
-//    // String Token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMiIsInNlc3Npb25faWQiOiI4MGFlN2Q2Ny03MjMwLTRjMjUtODZjOS1lN2RiZTczMjU5M2YiLCJleHAiOjE3NDY0NjIwNjR9.vxdMBFo8D7dGuVztUgzp1jhe04u6Ck6Rec_3SJpyvQA";
-//     try {
-//       final response = await apiUtils.get(url: url, options:  Options(
-//         headers: {
-//           'Authorization': 'Bearer $bearer',
-//           'Accept': 'application/json',
-//         },
-//       ),);
-//      */ /* final response = await Dio().get(
-//         url,
-//         options: Options(
-//           headers: {
-//             'Authorization': 'Bearer Token $Token',
-//           },
-//         ),
-//       );*/ /*
-//
-//       print("REsponseData " + response.toString());
-//       if (response != null) {
-//         List<Order> orders = (response.data as List)
-//             .map((json) => Order.fromJson(json))
-//             .toList();
-//         return orders;
-//         //return Order.fromJson(response.data);
-//       }
-//
-//       //return null;
-//      // return Order.withError(code: CODE_RESPONSE_NULL, mess: "");
-//     } catch (e) {
-//       //return Order.withError(code: CODE_ERROR, mess: apiUtils.handleError(e));
-//     }
-//   }*/
-// /*
-//
-//   Future<RegistrationResponse> registerApi(
-//       String email, String name, String lastname, String password) async {
-//     final connectivityResult = await (Connectivity().checkConnectivity());
-//     if (connectivityResult == ConnectivityResult.none) {
-//       return RegistrationResponse.withError(
-//           code: CODE_NO_INTERNET, mess: apiUtils.getNetworkError());
-//     }
-//
-//     String url = Api.baseUrlSelected + ApiEndPoints.createUser;
-//     Map<String, dynamic> loginData = {
-//       'email': email,
-//       'firstName': name,
-//       'lastName': lastname,
-//       'password': password,
-//     };
-//
-//     FormData formData = FormData.fromMap(loginData);
-//
-//     try {
-//       final response = await apiUtils.post(url: url, data: formData);
-//
-//       if (response != null) {
-//         //UserData userLogin=UserData.fromJson(response.data);
-//         */
-// /*List<ProductModel> products = List<ProductModel>.from(
-//             response.data.map((x) => ProductModel.fromJson(x)));*/ /*
-//
-//
-//         return RegistrationResponse.fromJson(response.data);
-//       }
-//
-//       //return null;
-//       return RegistrationResponse.withError(code: CODE_RESPONSE_NULL, mess: "");
-//     } catch (e) {
-//       return RegistrationResponse.withError(
-//           code: CODE_ERROR, mess: apiUtils.handleError(e));
-//     }
-//   }
-//
-//   Future<BaseResponse> resetPassworddApi(String email) async {
-//     final connectivityResult = await (Connectivity().checkConnectivity());
-//     if (connectivityResult == ConnectivityResult.none) {
-//       return BaseResponse.withError(
-//           code: CODE_NO_INTERNET, mess: apiUtils.getNetworkError());
-//     }
-//
-//     String url = Api.baseUrlSelected + ApiEndPoints.resetPassword;
-//     Map<String, dynamic> loginData = {
-//       'email': email,
-//     };
-//
-//     FormData formData = FormData.fromMap(loginData);
-//
-//     try {
-//       final response = await apiUtils.post(url: url, data: formData);
-//
-//       if (response != null) {
-//         return BaseResponse.fromJson(response.data);
-//       }
-//
-//       //return null;
-//       return BaseResponse.withError(code: CODE_RESPONSE_NULL, mess: "");
-//     } catch (e) {
-//       return BaseResponse.withError(
-//           code: CODE_ERROR, mess: apiUtils.handleError(e));
-//     }
-//   }
-// */
+}
 
-// Driver
-//1.) Driver Register
+class CallService extends GetConnect {
 
+  Future<GetTodayReport> getLiveSaleData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is :$accessToken");
+    httpClient.baseUrl = Api.baseUrl ;
+    var res = await get('reports/today',
+      headers: {
+        'accept': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+    );
+    if (res.statusCode == 200) {
+      print("Today Report Response Is : ${res.statusCode.toString()}",);
+      print("Today Report Is : ${res.body}",);
+      return GetTodayReport.fromJson(res.body);
+    } else {
+      throw Exception(Error());
+    }
+  }
 
 
 

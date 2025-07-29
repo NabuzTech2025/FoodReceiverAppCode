@@ -45,11 +45,12 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
       if (result != null) {
         Store store = result;
-        setState(() {
-          storeName = store.name.toString();
-          print("StoreName2 " + storeName!);
-        });
-      } else {
+        if (mounted) {
+          setState(() {
+            storeName = store.name.toString();
+            print("StoreName2 $storeName");
+          });
+        }} else {
         showSnackbar("Error", "Failed to get store data");
       }
     } catch (e) {
@@ -157,25 +158,39 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
   Future<void> logutAPi(String? bearerKey) async {
     try {
+      Get.dialog(
+        Center(
+            child: Lottie.asset(
+              'assets/animations/burger.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            )
+        ),
+        barrierDismissible: false,
+      );
       print("🚪 Starting logout process...");
 
       final result = await ApiRepo().logoutAPi(bearerKey);
       if (result != null) {
         print("✅ Logout API successful");
 
-        // ✅ STEP 1: Force complete logout cleanup
+        // ✅ STEP 1: Save IP data before clearing everything
+        await _preserveUserIPData();
+
+        // ✅ STEP 2: Force complete logout cleanup (without clearing IP data)
         await _forceCompleteLogoutCleanup();
 
-        // ✅ STEP 2: Clear app controller
+        // ✅ STEP 3: Clear app controller
         app.appController.clearOnLogout();
 
-        // ✅ STEP 3: Force background handler to clear token cache
+        // ✅ STEP 4: Force background handler to clear token cache
         await _forceBackgroundHandlerClearCache();
 
-        // ✅ STEP 4: Close drawer
+        // ✅ STEP 5: Close drawer
         Navigator.of(context).pop();
 
-        // ✅ STEP 5: Navigate to login with complete reset
+        // ✅ STEP 6: Navigate to login with complete reset
         Get.offAll(() => LoginScreen());
 
         print("✅ Logout completed successfully");
@@ -189,7 +204,78 @@ class _CustomDrawerState extends State<CustomDrawer> {
     }
   }
 
-// ✅ Complete logout cleanup with multiple attempts
+// ✅ NEW: Preserve IP data for the current user before logout
+  Future<void> _preserveUserIPData() async {
+    try {
+      print("💾 Preserving IP data for current user...");
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? currentStoreId = prefs.getString(valueShared_STORE_KEY);
+
+      if (currentStoreId != null && currentStoreId.isNotEmpty) {
+        // Save current IP data with store ID prefix
+        String userPrefix = "user_${currentStoreId}_";
+
+        // Preserve local printer IPs
+        for (int i = 0; i < 5; i++) {
+          String? currentIP = prefs.getString('printer_ip_$i');
+          if (currentIP != null && currentIP.isNotEmpty) {
+            await prefs.setString('${userPrefix}printer_ip_$i', currentIP);
+            print("💾 Saved ${userPrefix}printer_ip_$i: $currentIP");
+          }
+        }
+
+        // Preserve remote printer IPs
+        for (int i = 0; i < 5; i++) {
+          String? currentRemoteIP = prefs.getString('printer_ip_remote_$i');
+          if (currentRemoteIP != null && currentRemoteIP.isNotEmpty) {
+            await prefs.setString('${userPrefix}printer_ip_remote_$i', currentRemoteIP);
+            print("💾 Saved ${userPrefix}printer_ip_remote_$i: $currentRemoteIP");
+          }
+        }
+
+        // Preserve selected indices
+        int? selectedIndex = prefs.getInt('selected_ip_index');
+        if (selectedIndex != null) {
+          await prefs.setInt('${userPrefix}selected_ip_index', selectedIndex);
+        }
+
+        int? selectedRemoteIndex = prefs.getInt('selected_ip_remote_index');
+        if (selectedRemoteIndex != null) {
+          await prefs.setInt('${userPrefix}selected_ip_remote_index', selectedRemoteIndex);
+        }
+
+        // Preserve toggle settings
+        bool? autoOrderAccept = prefs.getBool('auto_order_accept');
+        if (autoOrderAccept != null) {
+          await prefs.setBool('${userPrefix}auto_order_accept', autoOrderAccept);
+        }
+
+        bool? autoOrderPrint = prefs.getBool('auto_order_print');
+        if (autoOrderPrint != null) {
+          await prefs.setBool('${userPrefix}auto_order_print', autoOrderPrint);
+        }
+
+        bool? autoRemoteAccept = prefs.getBool('auto_order_remote_accept');
+        if (autoRemoteAccept != null) {
+          await prefs.setBool('${userPrefix}auto_order_remote_accept', autoRemoteAccept);
+        }
+
+        bool? autoRemotePrint = prefs.getBool('auto_order_remote_print');
+        if (autoRemotePrint != null) {
+          await prefs.setBool('${userPrefix}auto_order_remote_print', autoRemotePrint);
+        }
+
+        print("✅ IP data preserved for store: $currentStoreId");
+      } else {
+        print("⚠️ No store ID found, cannot preserve IP data");
+      }
+    } catch (e) {
+      print("❌ Error preserving IP data: $e");
+    }
+  }
+
+// ✅ Complete logout cleanup WITHOUT clearing IP data
   Future<void> _forceCompleteLogoutCleanup() async {
     try {
       print("🧹 Starting complete logout cleanup...");
@@ -200,15 +286,10 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
         SharedPreferences prefs = await SharedPreferences.getInstance();
 
-        // Clear all user-related data
+        // Clear only authentication-related data (NOT IP data)
         List<String> keysToRemove = [
           valueShared_BEARER_KEY,
           valueShared_STORE_KEY,
-          valueShared_USERNAME_KEY,
-          valueShared_PASSWORD_KEY,
-          'auto_order_accept',
-          'auto_order_print',
-          'selected_language',
         ];
 
         for (String key in keysToRemove) {
@@ -217,10 +298,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
           print("🗑️ Removed: $key");
         }
 
-        // Clear printer settings
-        for (int i = 0; i < 5; i++) {
-          await prefs.remove('printer_ip_$i');
-        }
+        // ✅ DON'T clear printer settings - they are preserved with user prefix
+        // The old code was clearing these, which was the problem:
+        // for (int i = 0; i < 5; i++) {
+        //   await prefs.remove('printer_ip_$i');
+        // }
 
         // ✅ Force multiple reloads to ensure changes are committed
         await prefs.reload();

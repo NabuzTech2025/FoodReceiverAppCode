@@ -20,6 +20,8 @@ import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/Store.dart';
+
 class OrderScreenNew extends StatefulWidget {
   @override
   _OrderScreenState createState() => _OrderScreenState();
@@ -60,7 +62,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   final AudioPlayer _audioPlayer = AudioPlayer();
   String dateSeleted = "";
   late UserMe userMe;
-
+  String? storeName;
   late AnimationController _blinkController;
   late Animation<double> _opacityAnimation;
   DailySalesReport? _currentDateReport;
@@ -122,16 +124,23 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     sharedPreferences = await SharedPreferences.getInstance();
     bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
 
+    await _preloadStoreData();
     final storeID = sharedPreferences.getString(valueShared_STORE_KEY);
     if (storeID != null) {
       getOrders(bearerKey, false, false, storeID);
     } else {
       getStoreUserMeData(bearerKey);
     }
+    if (bearerKey != null) {
+      // ✅ CRITICAL: Wait for store name to be loaded before proceeding
+      await getStoredta(bearerKey!);
+      print("✅ Store name loaded in initVar: $storeName");
+    }
     getCurrentDateReport();
     _checkAndClearOldData();      // पुराना डेटा साफ़ करो
     _loadCachedSalesData();       // Cached data load करो
     _initializeSocket();
+
     // Start timer for "no order" text
     _startNoOrderTimer();
     // Initialize socket ONLY if bearerKey is not null and not empty
@@ -140,6 +149,84 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       _initializeSocket();
     } else {
       print("Bearer key is null or empty, socket not initialized"); // Debug print
+    }
+  }
+  Future<String?> getStoredta(String bearerKey) async {
+    try {
+      String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
+      print("🔍 DEBUG - bearerKey: ${bearerKey.substring(0, 10)}...");
+      print("🔍 DEBUG - storeID: $storeID");
+
+      if (storeID == null) {
+        print("❌ DEBUG - Store ID is null, cannot fetch store data");
+        return null;
+      }
+
+      print("🌐 DEBUG - Calling ApiRepo().getStoreData...");
+      final result = await ApiRepo().getStoreData(bearerKey, storeID);
+      print("🔍 DEBUG - API result: ${result != null ? 'Success' : 'Null'}");
+
+      if (result != null) {
+        Store store = result;
+        print("🔍 DEBUG - Store object: ${store.toString()}");
+        print("🔍 DEBUG - Store name from API: ${store.name}");
+
+        String fetchedStoreName = store.name?.toString() ?? "Unknown Store";
+
+        setState(() {
+          storeName = fetchedStoreName;
+        });
+
+        print("✅ DEBUG - Final storeName set to: '$storeName'");
+        return storeName;
+      } else {
+        print("❌ DEBUG - API returned null result");
+        showSnackbar("Error", "Failed to get store data");
+        return null;
+      }
+    } catch (e) {
+      print("❌ DEBUG - Exception in getStoredta: $e");
+      print("❌ DEBUG - Exception type: ${e.runtimeType}");
+      Log.loga(title, "getStoredta Api:: e >>>>> $e");
+      showSnackbar("Api Error", "An error occurred: $e");
+      return null;
+    }
+  }
+
+// Alternative approach - get store name from SharedPreferences if available:
+  Future<String?> getStoreNameFallback() async {
+    try {
+      // Try to get from previous session
+      String? cachedName = sharedPreferences.getString('last_store_name');
+      if (cachedName != null && cachedName.isNotEmpty) {
+        print("✅ Using cached store name: $cachedName");
+        return cachedName;
+      }
+
+      // Try to get from user preferences or default
+      return "Default Restaurant"; // Replace with your app's default name
+    } catch (e) {
+      print("❌ Fallback failed: $e");
+      return "Restaurant";
+    }
+  }
+
+
+  Future<void> _preloadStoreData() async {
+    if (bearerKey != null) {
+      try {
+        String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
+        if (storeID != null) {
+          final result = await ApiRepo().getStoreData(bearerKey!, storeID);
+          if (result != null) {
+            // Cache store name for quick access by OrderDetail screen
+            await sharedPreferences.setString('cached_store_name', result.name.toString());
+            print("✅ Store data pre-loaded and cached");
+          }
+        }
+      } catch (e) {
+        print("❌ Store data preload failed: $e");
+      }
     }
   }
 
@@ -453,441 +540,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         return 0;
     }
   }
-
-
-  // ─────────────────── UI ───────────────────
-  // @override
-  // Widget build(BuildContext context) {
-  //   super.build(context);
-  //   return Scaffold(
-  //     backgroundColor: const Color(0xFFF5F5F5),
-  //     body: Padding(
-  //       padding: const EdgeInsets.all(12),
-  //       child: Column(
-  //         crossAxisAlignment: CrossAxisAlignment.start,
-  //         children: [
-  //           // ────────── Header row ──────────
-  //           Row(
-  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //             children: [
-  //               // Date + title
-  //               GestureDetector(
-  //                 onTap: openCalendarScreen,
-  //                 child: Column(
-  //                   crossAxisAlignment: CrossAxisAlignment.start,
-  //                   children: [
-  //                     Text('order'.tr,
-  //                         style: const TextStyle(
-  //                             fontSize: 18, fontWeight: FontWeight.bold)),
-  //                     Text(
-  //                       dateSeleted.isEmpty
-  //                           ? DateFormat('d MMMM, y').format(DateTime.now())
-  //                           : dateSeleted,
-  //                       style: const TextStyle(fontSize: 16),
-  //                     ),
-  //                   ],
-  //                 ),
-  //               ),
-  //
-  //               Row(
-  //                 children: [
-  //                   Text(
-  //                     'Total Orders: ${_currentDateReport?.totalOrders ?? 0}',
-  //                     style: TextStyle(
-  //                         fontSize: 14,
-  //                         fontWeight: FontWeight.w800,
-  //                         fontFamily: "Mulish",
-  //                         color: Colors.black
-  //                     ),
-  //                   ),
-  //                   IconButton(
-  //                     iconSize: 33,
-  //                     icon: const Icon(Icons.refresh),
-  //                     onPressed: _manualRefresh,
-  //                   ),
-  //                 ],
-  //               ),
-  //               const SizedBox(height: 7),
-  //               Row(
-  //                 children: [
-  //                   // Accepted Orders
-  //                   Container(
-  //                     padding: EdgeInsets.all(5),
-  //                     decoration: BoxDecoration(
-  //                       color: Colors.white,
-  //                       borderRadius: BorderRadius.circular(3),
-  //                       boxShadow: [
-  //                         BoxShadow(
-  //                           color: Colors.black.withOpacity(0.1),
-  //                           spreadRadius: 0,
-  //                           blurRadius: 4,
-  //                           offset: Offset(0, 2),
-  //                         ),
-  //                       ],
-  //                     ),
-  //                     child: Text(
-  //                       'Accepted: ${_getApprovalStatusCount("accepted")}',
-  //                       style: TextStyle(
-  //                           fontFamily: "Mulish",
-  //                           fontWeight: FontWeight.w700,
-  //                           fontSize: 10,
-  //                           color: Colors.black
-  //                       ),
-  //                     ),
-  //                   ),
-  //                   SizedBox(width: 3),
-  //
-  //                   // Declined Orders
-  //                   Container(
-  //                     padding: EdgeInsets.all(5),
-  //                     decoration: BoxDecoration(
-  //                       color: Colors.white,
-  //                       borderRadius: BorderRadius.circular(3),
-  //                       boxShadow: [
-  //                         BoxShadow(
-  //                           color: Colors.black.withOpacity(0.1),
-  //                           spreadRadius: 0,
-  //                           blurRadius: 4,
-  //                           offset: Offset(0, 2),
-  //                         ),
-  //                       ],
-  //                     ),
-  //                     child: Text(
-  //                       'Decline: ${_getApprovalStatusCount("declined")}',
-  //                       style: TextStyle(
-  //                           fontFamily: "Mulish",
-  //                           fontWeight: FontWeight.w700,
-  //                           fontSize: 10,
-  //                           color: Colors.black
-  //                       ),
-  //                     ),
-  //                   ),
-  //                   SizedBox(width: 3),
-  //
-  //                   // Pending Orders
-  //                   Container(
-  //                     padding: EdgeInsets.all(5),
-  //                     decoration: BoxDecoration(
-  //                       color: Colors.white,
-  //                       borderRadius: BorderRadius.circular(3),
-  //                       boxShadow: [
-  //                         BoxShadow(
-  //                           color: Colors.black.withOpacity(0.1),
-  //                           spreadRadius: 0,
-  //                           blurRadius: 4,
-  //                           offset: Offset(0, 2),
-  //                         ),
-  //                       ],
-  //                     ),
-  //                     child: Text(
-  //                       'Pending: ${_getApprovalStatusCount("pending")}',
-  //                       style: TextStyle(
-  //                           fontFamily: "Mulish",
-  //                           fontWeight: FontWeight.w700,
-  //                           fontSize: 10,
-  //                           color: Colors.black
-  //                       ),
-  //                     ),
-  //                   ),
-  //                   SizedBox(width: 3),
-  //
-  //                   // Pickup Orders
-  //                   Container(
-  //                     padding: EdgeInsets.all(5),
-  //                     decoration: BoxDecoration(
-  //                       color: Colors.white,
-  //                       borderRadius: BorderRadius.circular(3),
-  //                       boxShadow: [
-  //                         BoxShadow(
-  //                           color: Colors.black.withOpacity(0.1),
-  //                           spreadRadius: 0,
-  //                           blurRadius: 4,
-  //                           offset: Offset(0, 2),
-  //                         ),
-  //                       ],
-  //                     ),
-  //                     child: Text(
-  //                       'PickUp: ${_getOrderTypeCount("pickup")}',
-  //                       style: TextStyle(
-  //                           fontFamily: "Mulish",
-  //                           fontWeight: FontWeight.w700,
-  //                           fontSize: 10,
-  //                           color: Colors.black
-  //                       ),
-  //                     ),
-  //                   ),
-  //                   SizedBox(width: 2),
-  //
-  //                   // Delivery Orders
-  //                   Container(
-  //                     padding: EdgeInsets.all(5),
-  //                     decoration: BoxDecoration(
-  //                       color: Colors.white,
-  //                       borderRadius: BorderRadius.circular(3),
-  //                       boxShadow: [
-  //                         BoxShadow(
-  //                           color: Colors.black.withOpacity(0.1),
-  //                           spreadRadius: 0,
-  //                           blurRadius: 4,
-  //                           offset: Offset(0, 2),
-  //                         ),
-  //                       ],
-  //                     ),
-  //                     child: Text(
-  //                       'Delivery: ${_getOrderTypeCount("delivery")}',
-  //                       style: TextStyle(
-  //                           fontFamily: "Mulish",
-  //                           fontWeight: FontWeight.w700,
-  //                           fontSize: 10,
-  //                           color: Colors.black
-  //                       ),
-  //                     ),
-  //                   ),
-  //                 ],
-  //               ),
-  //           // ────────── Orders list with pull‑to‑refresh ──────────
-  //           SizedBox(height: 10,),
-  //           Expanded(
-  //             child: RefreshIndicator(                          // ✨ NEW
-  //               onRefresh: _handleRefresh,
-  //               color: Colors.green, // Loader (circular progress) color
-  //               backgroundColor: Colors.white, // Background behind the loader// ✨ NEW
-  //               displacement: 60,                               // optional
-  //               child: Obx(() {
-  //                 if (app.appController.searchResultOrder.isEmpty) {
-  //                   return ListView(
-  //                     physics: const AlwaysScrollableScrollPhysics(),
-  //                     children: [
-  //                       SizedBox(height: 100),
-  //                       Center(
-  //                           child: Lottie.asset(
-  //                             'assets/animations/burger.json',
-  //                             width: 150,
-  //                             height: 150,
-  //                             repeat: true,)
-  //                         // Text(
-  //                         //   'There is no order at this time',
-  //                         //   style: TextStyle(fontSize: 20, fontWeight: FontWeight.normal),
-  //                         // ),
-  //                       ),
-  //                     ],
-  //                   );
-  //                 }
-  //                 return ListView.builder(
-  //                     physics: const AlwaysScrollableScrollPhysics(), // ✨ NEW
-  //                     itemCount: app.appController.searchResultOrder.length,
-  //                     itemBuilder: (context, index) {
-  //                       final order = app.appController
-  //                           .searchResultOrder[index];
-  //
-  //
-  //                       // … existing card code unchanged …
-  //                       DateTime startTime = DateTime.tryParse(
-  //                           order.createdAt ?? '') ??
-  //                           DateTime.now();
-  //                       DateTime endTime = startTime.add(const Duration(
-  //                           minutes: 30));
-  //                       String formattedEnd =
-  //                       DateFormat('hh:mm a').format(endTime);
-  //
-  //                       return
-  //                         AnimatedBuilder(
-  //                           animation: _opacityAnimation,
-  //                           builder: (context, child) {
-  //                             final bool isPending = (order.approvalStatus ?? 0) == 1;
-  //
-  //                             return Opacity(
-  //                               opacity: isPending ? _opacityAnimation.value : 1.0,
-  //                               child: Container(
-  //                                 margin: EdgeInsets.only(bottom: 12),
-  //                                 decoration: BoxDecoration(
-  //                                   color: Colors.white,
-  //                                   borderRadius: BorderRadius.circular(7),
-  //                                   boxShadow: [
-  //                                     BoxShadow(
-  //                                       color: Colors.black.withOpacity(0.1),
-  //                                       spreadRadius: 0,
-  //                                       blurRadius: 4,
-  //                                       offset: Offset(0, 2),
-  //                                     ),
-  //                                   ],
-  //                                 ),
-  //                                 // shape: RoundedRectangleBorder(
-  //                                 //   borderRadius: BorderRadius.circular(12),
-  //                                 // ),
-  //                                 child: Padding(
-  //                                   padding: EdgeInsets.all(10),
-  //                                   child: GestureDetector(
-  //                                     behavior: HitTestBehavior.opaque,
-  //                                     onTap: () => Get.to(() => OrderDetailEnglish(order)),
-  //                                     child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-  //                                       children: [
-  //                                         // top row
-  //                                         Row(crossAxisAlignment: CrossAxisAlignment.start,
-  //                                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //                                           children: [
-  //                                             Row(crossAxisAlignment: CrossAxisAlignment.start,
-  //                                               children: [
-  //                                                 CircleAvatar(
-  //                                                   radius: 14,
-  //                                                   backgroundColor: Colors.green,
-  //                                                   child: SvgPicture.asset(
-  //                                                     order.orderType == 1
-  //                                                         ? 'assets/images/ic_delivery.svg'
-  //                                                         : order.orderType == 2
-  //                                                         ? 'assets/images/ic_pickup.svg'
-  //                                                         : 'assets/images/ic_pickup.svg',
-  //                                                     height: 14,
-  //                                                     width: 14,
-  //                                                     color: Colors.white,
-  //                                                   ),
-  //                                                 ),
-  //                                                 SizedBox(width: 6),
-  //                                                 // Text(
-  //                                                 //   order.orderType == 1
-  //                                                 //       ? 'delivery'.tr + ' : $formattedEnd' : order.orderType == 2
-  //                                                 //       ? 'pickup'.tr +
-  //                                                 //       ' : $formattedEnd'
-  //                                                 //       : order.orderType == 3
-  //                                                 //       ? 'dine_in'.tr +
-  //                                                 //       ' : $formattedEnd'
-  //                                                 //       : '',
-  //                                                 //   style: const TextStyle(
-  //                                                 //       fontWeight: FontWeight.bold),
-  //                                                 // ),
-  //                                                 Column(crossAxisAlignment: CrossAxisAlignment.start,
-  //                                                   children: [
-  //                                                     Text(order.shipping_address!.zip.toString(),
-  //                                                       style: TextStyle(fontWeight: FontWeight.w700,
-  //                                                           fontSize: 13,
-  //                                                           fontFamily: "Mulish-Regular"
-  //                                                       ),),
-  //                                                     Visibility(
-  //                                                       visible: order.shipping_address != null,
-  //                                                       child: Text(
-  //                                                         order.orderType == 1 &&
-  //                                                             order.shipping_address != null
-  //                                                             ? '${order.shipping_address!.line1!}, '''
-  //                                                             '${order.shipping_address!.city!}'
-  //                                                             : '',
-  //                                                         style: const TextStyle(
-  //                                                             fontWeight: FontWeight.w500,
-  //                                                             fontSize: 11,
-  //                                                             letterSpacing: 0,
-  //                                                             height: 0,
-  //                                                             fontFamily: "Mulish"),
-  //                                                       ),
-  //                                                     ),
-  //
-  //                                                   ],
-  //                                                 )
-  //                                               ],
-  //                                             ),
-  //                                             Row(
-  //                                               children: [
-  //                                                 Text(
-  //                                                   '${'order_id'.tr} :',
-  //                                                   style: const TextStyle(
-  //                                                       fontWeight: FontWeight
-  //                                                           .w700,
-  //                                                       fontSize: 11,
-  //                                                       fontFamily: "Mulish"),
-  //                                                 ), Text(
-  //                                                   '${order.id}',
-  //                                                   style: const TextStyle(
-  //                                                       fontWeight: FontWeight
-  //                                                           .w500,
-  //                                                       fontSize: 11,
-  //                                                       fontFamily: "Mulish"),
-  //                                                 ),
-  //                                               ],
-  //                                             ),
-  //                                           ],
-  //                                         ),
-  //                                         SizedBox(height: 1),
-  //                                         SizedBox(height: 6),
-  //
-  //                                         Text(
-  //                                           '${order.shipping_address
-  //                                               ?.customer_name ?? "User"} '
-  //                                               '/ ${order.shipping_address
-  //                                               ?.phone ?? "0000000000"}',
-  //                                           style: const TextStyle(
-  //                                               fontWeight: FontWeight.w700,
-  //                                               fontFamily: "Mulish",
-  //                                               fontSize: 13),
-  //                                         ),
-  //
-  //                                         const SizedBox(height: 8),
-  //
-  //                                         Row(
-  //                                           mainAxisAlignment:
-  //                                           MainAxisAlignment.spaceBetween,
-  //                                           children: [
-  //                                             // Text(
-  //                                             //   order.payment != null
-  //                                             //       ? '${'currency'.tr} '
-  //                                             //       '${order.payment!.amount}'
-  //                                             //       : '${'currency'.tr} 00',
-  //                                             //   style: const TextStyle(
-  //                                             //       fontWeight: FontWeight.bold,
-  //                                             //       fontSize: 18),
-  //                                             // ),
-  //                                             Text(
-  //                                               order.payment != null ? '${'currency'.tr} ${formatAmount(order.payment!.amount ?? 0)}' :
-  //                                               '${'currency'.tr} ${formatAmount(0)}',
-  //                                               style: const TextStyle(
-  //                                                   fontWeight: FontWeight.w800,
-  //                                                   fontFamily: "Mulish",
-  //                                                   fontSize: 16),
-  //                                             ),
-  //                                             Row(
-  //                                               children: [
-  //                                                 Text(getApprovalStatusText(
-  //                                                     order.approvalStatus),
-  //                                                   style: const TextStyle(
-  //                                                       fontWeight: FontWeight
-  //                                                           .w800,
-  //                                                       fontFamily: "Mulish-Regular",
-  //                                                       fontSize: 13
-  //                                                   ),
-  //                                                 ),
-  //                                                 const SizedBox(width: 6),
-  //                                                 CircleAvatar(
-  //                                                   radius: 14,
-  //                                                   backgroundColor: getStatusColor(
-  //                                                       order.approvalStatus ??
-  //                                                           0),
-  //                                                   child: Icon(
-  //                                                     getStatusIcon(order
-  //                                                         .approvalStatus ?? 0),
-  //                                                     color: Colors.white,
-  //                                                     size: 16,
-  //                                                   ),
-  //                                                 ),
-  //                                               ],
-  //                                             ),
-  //                                           ],
-  //                                         ),
-  //                                       ],
-  //                                     ),
-  //                                   ),
-  //                                 ),
-  //                               ),
-  //                             );
-  //                           },
-  //                         );
-  //                     });
-  //               })
-  //                 ),
-  //           ),
-  //         ],
-  //       ),
-  //     ]),
-  //   ));
-  // }
-
-  // ─────────────────── Misc helpers (unchanged) ───────────────────
   @override
   Widget build(BuildContext context) {
     super.build(context);

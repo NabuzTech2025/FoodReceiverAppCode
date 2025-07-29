@@ -44,28 +44,6 @@ class DailySalesReport {
       : this.code = code,
         this.mess = mess;
 
-//   factory DailySalesReport.fromJson(Map<String, dynamic> json) {
-//     return DailySalesReport(
-//       storeId: json['store_id'],
-//       type: json['type'],
-//       startDate:json['start_date'],
-//       endDate: json['end_date'],
-//       isManual: json['is_manual'],
-//       note: json['note'],
-//       id: json['id'],
-//       uniqueKey: json['unique_key'],
-//       data: json['data'] != null ? SalesData.fromJson(json['data']) : null,
-//       //data: SalesData.fromJson(json['data']),
-//       totalSales: (json['total_sales'] as num).toDouble(),
-//       totalOrders: json['total_orders'],
-//       totalTax: (json['total_tax'] as num).toDouble(),
-//       cashTotal: (json['cash_total'] as num).toDouble(),
-//       onlineTotal: (json['online_total'] as num).toDouble(),
-//       generatedBy: json['generated_by'],
-//       generatedAt: json['generated_at'],
-//     );
-//   }
-// }
   factory DailySalesReport.fromJson(Map<String, dynamic> json) {
     print("=== Parsing DailySalesReport ===");
     print("JSON keys: ${json.keys.toList()}");
@@ -108,46 +86,6 @@ class DailySalesReport {
     }
   }
 }
-//
-// class SalesData {
-//   final List<TopItem> topItems;
-//   final double cashTotal;
-//   final Map<String, int> byCategory;
-//   final Map<String, int> orderTypes;
-//   final double totalSales;
-//   final double onlineTotal;
-//   final int totalOrders;
-//   final Map<String, int> paymentMethods;
-//   final Map<String, int> approvalStatuses;
-//
-//   SalesData({
-//     required this.topItems,
-//     required this.cashTotal,
-//     required this.byCategory,
-//     required this.orderTypes,
-//     required this.totalSales,
-//     required this.onlineTotal,
-//     required this.totalOrders,
-//     required this.paymentMethods,
-//     required this.approvalStatuses,
-//   });
-//
-//   factory SalesData.fromJson(Map<String, dynamic> json) {
-//     return SalesData(
-//       topItems: (json['top_items'] as List)
-//           .map((item) => TopItem.fromJson(item))
-//           .toList(),
-//       cashTotal: (json['cash_total'] as num).toDouble(),
-//       byCategory: Map<String, int>.from(json['by_category']),
-//       orderTypes: Map<String, int>.from(json['order_types']),
-//       totalSales: (json['total_sales'] as num).toDouble(),
-//       onlineTotal: (json['online_total'] as num).toDouble(),
-//       totalOrders: json['total_orders'],
-//       paymentMethods: Map<String, int>.from(json['payment_methods']),
-//       approvalStatuses: Map<String, int>.from(json['approval_statuses']),
-//     );
-//   }
-// }
 class SalesData {
   double? netTotal;
   final List<TopItem> topItems;
@@ -188,32 +126,72 @@ class SalesData {
       var netTotal = json['net_total'] != null
           ? (json['net_total'] as num).toDouble()
           : null;
-      var topItems = (json['top_items'] as List)
+
+      // Fix: Handle null top_items
+      var topItems = json['top_items'] != null
+          ? (json['top_items'] as List)
           .map((item) => TopItem.fromJson(item))
-          .toList();
+          .toList()
+          : <TopItem>[]; // Return empty list if null
+
       var totalTax = json['total_tax'] != null
           ? (json['total_tax'] as num).toDouble()
           : null;
-      var cashTotal = (json['cash_total'] as num).toDouble();
-      var byCategory = Map<String, int>.from(json['by_category']);
-      var orderTypes = Map<String, int>.from(json['order_types']);
-      var totalSales = (json['total_sales'] as num).toDouble();
-      var onlineTotal = (json['online_total'] as num).toDouble();
-      var totalOrders = json['total_orders'];
+
+      // Fix: Handle null cash_total
+      var cashTotal = json['cash_total'] != null
+          ? (json['cash_total'] as num).toDouble()
+          : 0.0;
+
+      // Fix: Handle null by_category
+      var byCategory = json['by_category'] != null
+          ? Map<String, int>.from(json['by_category'])
+          : <String, int>{};
+
+      // Fix: Handle null order_types
+      var orderTypes = json['order_types'] != null
+          ? Map<String, int>.from(json['order_types'])
+          : <String, int>{};
+
+      // Fix: Handle null total_sales
+      var totalSales = json['total_sales'] != null
+          ? (json['total_sales'] as num).toDouble()
+          : 0.0;
+
+      // Fix: Handle null online_total
+      var onlineTotal = json['online_total'] != null
+          ? (json['online_total'] as num).toDouble()
+          : 0.0;
+
+      // Fix: Handle null total_orders
+      var totalOrders = json['total_orders'] ?? 0;
+
       var taxBreakdown = json['tax_breakdown'] != null
           ? TaxBreakdown.fromJson(json['tax_breakdown'])
           : null;
+
       var deliveryTotal = json['delivery_total'] != null
           ? (json['delivery_total'] as num).toDouble()
           : null;
+
       var discountTotal = json['discount_total'] != null
-          ? (json['discount_total'] as num).toInt()  // Convert to int
+          ? (json['discount_total'] as num).toInt()
           : null;
-      var paymentMethods = Map<String, int>.from(json['payment_methods']);
-      var approvalStatuses = Map<String, int>.from(json['approval_statuses']);
+
+      // Fix: Handle null payment_methods
+      var paymentMethods = json['payment_methods'] != null
+          ? Map<String, int>.from(json['payment_methods'])
+          : <String, int>{};
+
+      // Fix: Handle null approval_statuses
+      var approvalStatuses = json['approval_statuses'] != null
+          ? Map<String, int>.from(json['approval_statuses'])
+          : <String, int>{};
+
       var totalSalesDelivery = json['total_sales + delivery'] != null
           ? (json['total_sales + delivery'] as num).toDouble()
           : null;
+
       return SalesData(
         netTotal: netTotal,
         topItems: topItems,

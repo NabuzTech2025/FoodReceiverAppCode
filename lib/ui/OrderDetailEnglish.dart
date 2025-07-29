@@ -28,6 +28,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
   late Order updatedOrder;
   int? orderType = 0;
   String? storeName;
+  String? storeid;
   bool isPrint = false;
   bool isAutoAccept = false;
   bool isLoading = false;
@@ -38,76 +39,24 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     initVar();
   }
 
+// Replace the initVar() method in OrderDetailEnglish.dart:
   Future<void> initVar() async {
     updatedOrder = widget.order;
     sharedPreferences = await SharedPreferences.getInstance();
     bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
+
     if (bearerKey != null) {
-      getStoredta(
-        bearerKey!,
-      );
+      // ✅ CRITICAL: Wait for store name to be loaded before proceeding
+      await getStoredta(bearerKey!);
+      print("✅ Store name loaded in initVar: $storeName");
     }
   }
 
-  Future<void> getStoredta(String bearerKey) async {
-    try {
-      String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
-      final result = await ApiRepo().getStoreData(bearerKey, storeID!);
-
-      if (result != null) {
-        Store store = result;
-        setState(() {
-          storeName = store.name.toString();
-          print("StoreName2 " + storeName!);
-        });
-      } else {
-        showSnackbar("Error", "Failed to get store data");
-      }
-    } catch (e) {
-      Log.loga(title, "Login Api:: e >>>>> $e");
-      showSnackbar("Api Error", "An error occurred: $e");
-    }
-  }
-
-  // Future<void> getOrders(String bearerKey, bool orderStatus) async {
-  //   Map<String, dynamic> jsonData = {
-  //     "order_status": orderStatus ? 2 : 1,
-  //     "approval_status": orderStatus ? 2 : 3,
-  //   };
-  //
-  //   try {
-  //     Get.dialog(
-  //       Center(
-  //           child: CupertinoActivityIndicator(
-  //             radius: 20,
-  //             color: Colors.orange,
-  //           )),
-  //       barrierDismissible: false,
-  //     );
-  //     final result = await ApiRepo()
-  //         .orderAcceptDecline(bearerKey, jsonData, updatedOrder.id ?? 0);
-  //     Get.back();
-  //     if (result != null) {
-  //       setState(() {
-  //         isPrint = true;
-  //         updatedOrder = result;
-  //         app.appController.updateOrder(result);
-  //         orderType = orderStatus ? 1 : 2;
-  //       });
-  //     } else {
-  //       showSnackbar("Error", "Failed to update order status");
-  //     }
-  //   } catch (e) {
-  //     Log.loga(title, "Login Api:: e >>>>> $e");
-  //     showSnackbar("Api Error", "An error occurred: $e");
-  //   }
-  // }
-
-
+// Replace the getOrders() method:
   Future<void> getOrders(String bearerKey, bool isAccept) async {
     Map<String, dynamic> jsonData = {
-      "order_status": 2, // Hamesha 2 rahega
-      "approval_status": isAccept ? 2 : 3, // Accept pe 2, Decline pe 3
+      "order_status": 2,
+      "approval_status": isAccept ? 2 : 3,
     };
 
     try {
@@ -121,28 +70,47 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
             )),
         barrierDismissible: false,
       );
+
       final prefs = await SharedPreferences.getInstance();
       bool _autoOrderPrint = prefs.getBool('auto_order_print') ?? false;
       bool _isAutoAccept = prefs.getBool('is_auto_accept') ?? false;
 
       final result = await ApiRepo().orderAcceptDecline(bearerKey, jsonData, updatedOrder.id ?? 0);
       Get.back();
+
       if (result != null) {
         setState(() {
           isPrint = true;
           updatedOrder = result;
           app.appController.updateOrder(result);
-          orderType = isAccept ? 1 : 2; // Ye waise hi rehne do jaisa tha
+          orderType = isAccept ? 1 : 2;
         });
 
         if (isAccept && _autoOrderPrint && !_isAutoAccept) {
           final refreshedOrder = await ApiRepo().getNewOrderData(bearerKey, updatedOrder.id!);
+
           if (refreshedOrder.invoice != null &&
               (refreshedOrder.invoice?.invoiceNumber ?? '').isNotEmpty) {
+
+            // ✅ Try multiple approaches to get store name
+            String? finalStoreName = storeName;
+
+            if (finalStoreName == null || finalStoreName.isEmpty) {
+              print("⚠️ Store name is null, trying to fetch...");
+              finalStoreName = await getStoredta(bearerKey);
+            }
+
+            if (finalStoreName == null || finalStoreName.isEmpty) {
+              print("⚠️ Still null, trying fallback...");
+              finalStoreName = await getStoreNameFallback();
+            }
+
+            print("🖨️ Final store name for printing: '$finalStoreName'");
+
             PrinterHelperEnglish.printTestFromSavedIp(
                 context: Get.context!,
                 order: refreshedOrder,
-                store: storeName,
+                store: finalStoreName ?? "Restaurant",
                 auto: true);
           }
         }
@@ -153,70 +121,74 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
       Log.loga(title, "Order Accept API Exception: $e");
     } finally {
       setState(() {
-        isLoading = false; // Loader band karna hai
+        isLoading = false;
       });
     }
   }
 
+// Update the getStoredta() method to be more reliable:
+  Future<String?> getStoredta(String bearerKey) async {
+    try {
+      String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
+      print("🔍 DEBUG - bearerKey: ${bearerKey.substring(0, 10)}...");
+      print("🔍 DEBUG - storeID: $storeID");
 
-  // Future<void> getOrders(String bearerKey, bool orderStatus) async {
-  //   Map<String, dynamic> jsonData = {
-  //     "order_status": orderStatus ? 2 : 1,
-  //     "approval_status": orderStatus ? 2 : 3,
-  //   };
-  //
-  //   try {
-  //     Get.dialog(
-  //       Center(
-  //           child: CupertinoActivityIndicator(
-  //             radius: 20,
-  //             color: Colors.orange,
-  //           )),
-  //       barrierDismissible: false,
-  //     );
-  //
-  //     final result = await ApiRepo()
-  //         .orderAcceptDecline(bearerKey, jsonData, updatedOrder.id ?? 0);
-  //     Get.back();
-  //
-  //     if (result != null) {
-  //       setState(() {
-  //         isPrint = true;
-  //         updatedOrder = result;
-  //         app.appController.updateOrder(result);
-  //         orderType = orderStatus ? 1 : 2;
-  //       });
-  //
-  //       // ✅ Auto Print after Manual Accept
-  //       if (orderStatus == true) { // Only for Accept
-  //         SharedPreferences prefs = await SharedPreferences.getInstance();
-  //         bool _autoOrderPrint = prefs.getBool('auto_order_print') ?? false;
-  //
-  //         if (_autoOrderPrint) {
-  //           // Fetch latest order with invoice data
-  //           final refreshedOrder = await ApiRepo().getNewOrderData(bearerKey, updatedOrder.id!);
-  //
-  //           if (refreshedOrder.invoice != null &&
-  //               (refreshedOrder.invoice?.invoiceNumber ?? '').isNotEmpty) {
-  //             PrinterHelperEnglish.printTestFromSavedIp(
-  //                 context: Get.context!,
-  //                 order: refreshedOrder,
-  //                 store:storeName,
-  //                 auto: true);
-  //           } else {
-  //             print("❌ Invoice missing after manual accept. Skipping print.");
-  //           }
-  //         }
-  //       }
-  //
-  //     } else {
-  //       showSnackbar("Error", "Failed to update order status");
-  //     }
-  //   } catch (e) {
-  //     Log.loga(title, "Login Api:: e >>>>> $e");
-  //     showSnackbar("Api Error", "An error occurred: $e");
-  //   }
-  // }
+      if (storeID == null) {
+        print("❌ DEBUG - Store ID is null, cannot fetch store data");
+        return null;
+      }
+
+      print("🌐 DEBUG - Calling ApiRepo().getStoreData...");
+      final result = await ApiRepo().getStoreData(bearerKey, storeID);
+      print("🔍 DEBUG - API result: ${result != null ? 'Success' : 'Null'}");
+
+      if (result != null) {
+        Store store = result;
+        print("🔍 DEBUG - Store object: ${store.toString()}");
+        print("🔍 DEBUG - Store name from API: ${store.name}");
+
+        String fetchedStoreName = store.name?.toString() ?? "Unknown Store";
+        String fetchedStoreid = store.code?.toString() ?? "Unknown id";
+
+        setState(() {
+          storeName = fetchedStoreName;
+          storeID = fetchedStoreid;
+        });
+
+        print("✅ DEBUG - Final storeName set to: '$storeName'");
+        return storeName;
+      } else {
+        print("❌ DEBUG - API returned null result");
+        showSnackbar("Error", "Failed to get store data");
+        return null;
+      }
+    } catch (e) {
+      print("❌ DEBUG - Exception in getStoredta: $e");
+      print("❌ DEBUG - Exception type: ${e.runtimeType}");
+      Log.loga(title, "getStoredta Api:: e >>>>> $e");
+      showSnackbar("Api Error", "An error occurred: $e");
+      return null;
+    }
+  }
+
+// Alternative approach - get store name from SharedPreferences if available:
+  Future<String?> getStoreNameFallback() async {
+    try {
+      // Try to get from previous session
+      String? cachedName = sharedPreferences.getString('last_store_name');
+      if (cachedName != null && cachedName.isNotEmpty) {
+        print("✅ Using cached store name: $cachedName");
+        return cachedName;
+      }
+
+      // Try to get from user preferences or default
+      return "Default Restaurant"; // Replace with your app's default name
+    } catch (e) {
+      print("❌ Fallback failed: $e");
+      return "Restaurant";
+    }
+  }
+
 
   String formatAmount(double? amount) {
     if (amount == null) return "0";
@@ -366,29 +338,6 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                     SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
                     SizedBox(height: 2),
-
-                    // ListView.builder(
-                    //   shrinkWrap: true,
-                    //   physics: NeverScrollableScrollPhysics(),
-                    //   padding: EdgeInsets.all(1),
-                    //   itemCount: updatedOrder.items?.length ?? 0,
-                    //   itemBuilder: (context, index) {
-                    //     final order = updatedOrder.items?[index];
-                    //     final toppingsTotal = order?.toppings?.fold<double>(
-                    //       0,
-                    //           (sum, topping) => sum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
-                    //     ) ?? 0;
-                    //     final combinedUnitPrice = (order?.unitPrice ?? 0) + toppingsTotal;
-                    //     if (order == null) return SizedBox.shrink();
-                    //     return _orderItem(
-                    //       order.productName ?? "Unknown",
-                    //       //order.unitPrice?.toString() ?? "0",
-                    //       combinedUnitPrice.toString(),
-                    //       order,
-                    //       note: order.note ?? "",
-                    //     );
-                    //   },
-                    // ),
                     ListView.builder(
                       shrinkWrap: true,
                       physics: NeverScrollableScrollPhysics(),
@@ -729,88 +678,6 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     return SizedBox.shrink();
   }
 
-  // Widget _orderItem(String title, String price, OrderItem item, {String? note}) {
-  //   return Padding(
-  //     padding: const EdgeInsets.only(bottom: 12),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         // Product title and price row
-  //         Row(
-  //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //           children: [
-  //             // Expanded(
-  //             //   child: Text(
-  //             //     '${item.quantity ?? 0}X $title [${formatAmount(item.unitPrice)}]',
-  //             //     style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-  //             //     overflow: TextOverflow.ellipsis,
-  //             //     maxLines: 3,
-  //             //   ),
-  //             // ),
-  //             Expanded(
-  //               child: Text(
-  //                 '${item.quantity ?? 0}X $title'
-  //                 '${((item.toppings?.isNotEmpty ?? false) && item.variant == null) ? ' [${formatAmount(item.unitPrice)}]' : ''}',
-  //                 style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-  //                 overflow: TextOverflow.ellipsis,
-  //                 maxLines: 3,
-  //               ),
-  //             ),
-  //             // Text( '${'currency'.tr} ${formatAmount((item.unitPrice ?? 0) * (item.quantity ?? 0))}',
-  //             //   //'${'currency'.tr} ${((item.unitPrice ?? 0) * (item.quantity ?? 0)).toStringAsFixed(2)}',
-  //             //   style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-  //             // ),
-  //             Text(
-  //               '${'currency'.tr} ${formatAmount(((item.unitPrice ?? 0) + (item.toppings?.fold<double>(
-  //                 0,
-  //                     (sum, topping) => sum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
-  //               ) ?? 0)) * (item.quantity ?? 0))}',
-  //               style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-  //             ),
-  //
-  //           ],
-  //         ),
-  //
-  //         // Variant info
-  //         if (item.variant != null)
-  //           Padding(
-  //             padding: const EdgeInsets.only(left: 10, top: 2),
-  //             child: Text("${item.quantity} × ${item.variant!.name ?? ''} [${formatAmount(item.variant!.price ?? 0)} ${'currency'.tr}]",
-  //               //"${item.quantity} × ${item.variant!.name ?? ''} [${item.variant!.price ?? 0} ${'currency'.tr}]",
-  //               style:TextStyle(fontWeight: FontWeight.w400, fontSize: 13)
-  //             ),
-  //           ),
-  //
-  //         // Toppings info
-  //         if ((item.toppings?.isNotEmpty ?? false))
-  //           Padding(
-  //             padding: const EdgeInsets.only(left: 10, top: 2),
-  //             child: Column(
-  //               crossAxisAlignment: CrossAxisAlignment.start,
-  //               children: item.toppings!.map((topping) {
-  //                 final totalPrice = (topping.price ?? 0) * (topping.quantity ?? 0);
-  //                 return Text("${topping.quantity} × ${topping.name} [${formatAmount(totalPrice)}]",
-  //                     // "${topping.quantity} × ${topping.name} [${totalPrice.toStringAsFixed(2)}]",
-  //                   style: const TextStyle(color: Colors.black, fontSize: 12),
-  //                 );
-  //               }).toList(),
-  //             ),
-  //           ),
-  //
-  //         // Optional note
-  //         if (note?.isNotEmpty ?? false)
-  //           Padding(
-  //             padding: const EdgeInsets.only(left: 10, top: 2),
-  //             child: Text(
-  //               "+ $note",
-  //               style: const TextStyle(color: Colors.grey, fontSize: 12),
-  //             ),
-  //           ),
-  //       ],
-  //     ),
-  //   );
-  // }
-  //
   Widget _orderItem(String title, String price, OrderItem item, {String? note}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),

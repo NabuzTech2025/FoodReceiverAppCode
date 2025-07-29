@@ -266,6 +266,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   Future<void> postloginData(String email, String password, String deviceToken) async {
     try {
+      // Show loader
       Get.dialog(
         Center(
             child: Lottie.asset(
@@ -280,8 +281,6 @@ class _LoginScreenState extends State<LoginScreen>
 
       final result = await ApiRepo().loginApi(email, password, deviceToken);
       Log.loga(title, "LoginData :: result >>>>> ${result?.toJson()}");
-      Get.back();
-
       if (result != null) {
         print("🔐 Login successful, clearing old data and saving new token...");
 
@@ -289,7 +288,7 @@ class _LoginScreenState extends State<LoginScreen>
         await _forceCompleteCleanup();
 
         // ✅ STEP 2: Wait for cleanup to complete
-        await Future.delayed(Duration(milliseconds: 500));
+        await Future.delayed(Duration(milliseconds: 50));
 
         // ✅ STEP 3: Create completely fresh SharedPreferences instance
         SharedPreferences freshPrefs = await SharedPreferences.getInstance();
@@ -297,28 +296,19 @@ class _LoginScreenState extends State<LoginScreen>
         // ✅ STEP 4: Set new values with verification
         print("💾 Saving bearer token...");
         await freshPrefs.setString(valueShared_BEARER_KEY, result.access_token!);
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(Duration(milliseconds: 50));
 
         print("💾 Saving username...");
         await freshPrefs.setString(valueShared_USERNAME_KEY, _EmailController.text.toString());
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(Duration(milliseconds: 50));
 
         print("💾 Saving password...");
         await freshPrefs.setString(valueShared_PASSWORD_KEY, _PasswordController.text.toString());
-        await Future.delayed(Duration(milliseconds: 100));
-
-        // ✅ STEP 5: IMPORTANT - Save store ID if available from login response
-        // if (result.store_id != null && result.address..toString().isNotEmpty) {
-        //   print("💾 Saving store ID: ${result.store_id}");
-        //   await freshPrefs.setString(valueShared_STORE_KEY, result.store_id.toString());
-        //   await Future.delayed(Duration(milliseconds: 100));
-        // } else {
-        //   print("⚠️ No store ID in login response - this might cause background issues");
-        // }
+        await Future.delayed(Duration(milliseconds: 50));
 
         // ✅ STEP 6: Force commit and reload multiple times
         await freshPrefs.reload();
-        await Future.delayed(Duration(milliseconds: 200));
+        await Future.delayed(Duration(milliseconds: 100));
         await freshPrefs.reload();
 
         // ✅ STEP 7: Comprehensive verification
@@ -344,20 +334,28 @@ class _LoginScreenState extends State<LoginScreen>
 
           // ✅ STEP 10: Test background handler access
           await SettingsSync.syncSettingsAfterLogin();
+
+          // ✅ STEP 11: Close loader ONLY after all operations complete
+          Get.back();
+
+          // ✅ STEP 12: Navigate to home screen
           Get.to(() => HomeScreen());
         } else {
           print("❌ Token verification failed!");
+          Get.back(); // Close loader on error
           showSnackbar("Error", "Failed to save login credentials");
         }
       } else {
+        Get.back(); // Close loader on error
         showSnackbar("Error", "Error on login");
       }
     } catch (e) {
       Log.loga(title, "Login Api:: e >>>>> $e");
+      Get.back(); // Close loader on error
       showSnackbar("Api Error", "An error occurred: $e");
-      Get.back();
     }
   }
+
 // Add this method to sync settings after login
   Future<void> syncSettingsAfterLogin() async {
     try {
@@ -392,10 +390,6 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-// Call this method after successful login in your login screen
-// Example:
-// After successful login:
-// await syncSettingsAfterLogin();
 
 // ✅ Complete cleanup function
   Future<void> _forceCompleteCleanup() async {
@@ -409,11 +403,7 @@ class _LoginScreenState extends State<LoginScreen>
         // Clear all user-related keys
         List<String> keysToRemove = [
           valueShared_BEARER_KEY,
-          valueShared_USERNAME_KEY,
-          valueShared_PASSWORD_KEY,
           valueShared_STORE_KEY,
-          'auto_order_accept',
-          'auto_order_print',
         ];
 
         for (String key in keysToRemove) {
@@ -427,7 +417,7 @@ class _LoginScreenState extends State<LoginScreen>
         }
 
         await prefs.reload();
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(Duration(milliseconds: 50));
       }
 
       print("✅ Complete cleanup finished");
@@ -465,36 +455,7 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-// ✅ Test background handler access to stored data
-  Future<void> _testBackgroundHandlerAccess() async {
-    try {
-      print("🧪 Testing background handler data access...");
 
-      // Simulate what background handler does
-      SharedPreferences bgPrefs = await SharedPreferences.getInstance();
-      await bgPrefs.reload();
-
-      String? bgToken = bgPrefs.getString(valueShared_BEARER_KEY);
-      String? bgStore = bgPrefs.getString(valueShared_STORE_KEY);
-      bool bgAutoAccept = bgPrefs.getBool('auto_order_accept') ?? false;
-      bool bgAutoPrint = bgPrefs.getBool('auto_order_print') ?? false;
-
-      print("🧪 Background simulation results:");
-      print("🔑 Token available: ${bgToken != null && bgToken.isNotEmpty ? 'YES' : 'NO'}");
-      print("🏪 Store available: ${bgStore != null && bgStore.isNotEmpty ? 'YES' : 'NO'}");
-      print("🤖 Auto Accept: $bgAutoAccept");
-      print("🖨️ Auto Print: $bgAutoPrint");
-
-      if (bgToken != null && bgToken.isNotEmpty) {
-        print("✅ Background handler should work correctly");
-      } else {
-        print("❌ Background handler will fail - token not accessible");
-      }
-
-    } catch (e) {
-      print("❌ Error testing background handler access: $e");
-    }
-  }
 
   // Future<void> postloginData(String email, String password, String deviceToken) async {
   //   try {
@@ -591,8 +552,6 @@ class _LoginScreenState extends State<LoginScreen>
 
 
 }
-// Add this utility class or method to your app
-// Add this class to a new file or at the top of your main.dart
 
 class SettingsSync {
 

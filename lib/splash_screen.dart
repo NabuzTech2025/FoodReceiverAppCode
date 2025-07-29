@@ -33,8 +33,6 @@ class _SplashScreenState extends State<SplashScreen> {
     _prefs = await SharedPreferences.getInstance();
     final sessionID = _prefs.getString(valueShared_BEARER_KEY);
     await Api.init();
-    // After 3 s decide where to go
-    // Load and apply stored language
     String? savedLangCode = _prefs.getString(valueShared_LANGUAGE);
     if (savedLangCode != null && supportedLocales.contains(savedLangCode)) {
       changeLanguage(savedLangCode);

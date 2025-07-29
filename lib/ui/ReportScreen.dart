@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -20,19 +22,23 @@ class ReportScreen extends StatefulWidget {
 }
 
 class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderStateMixin {
+
   late SharedPreferences sharedPreferences;
   String? bearerKey;
 
   List<DailySalesReport> reportList = [];
-  List<GetTodayReport> report = [];
   DailySalesReport reportsss = DailySalesReport();
   DailySalesReport? _selectedReport;
-  DailySalesReport? _currentDateReport; // Add this for current date report
+  DailySalesReport? _currentDateReport;
   DateTime? _selectedDate;
-  // Track displayed calendar month and year
+
   late int displayedMonth;
   late int displayedYear;
-  String dateSeleted = '';
+  String dateSeleted = '', salesDelivery = '0', totalSales = '0', totalOrder = '0',
+      totalTax = '0', cashTotal = '0', online = '0', net = '0', discount = '0',
+      deliveryFee = '0', cashMethod = '0', delivery = '0', pickUp = '0',
+      dineIn = '0', pending = '0', accepted = '0', declined = '0',
+      tax19 = '0', tax7 = '0';
   bool showCalendar = false;
 
   late AnimationController _controller;
@@ -40,7 +46,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
   // Live data indicators
   bool _isLiveDataActive = false;
   DateTime? _lastUpdateTime;
-
+  Timer? _liveDataTimer;
   @override
   void initState() {
     super.initState();
@@ -54,7 +60,33 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     )..repeat(reverse: true);
 
     _animation = Tween<double>(begin: 0.3, end: 1.0).animate(_controller);
+    ever(app.appController.reportRefreshTrigger, (_) {
+      print("ReportScreen: Refresh triggered!");
+      _refreshReportData();
+    });
+
     initVar();
+
+    _startLiveDataUpdates();
+  }
+
+  Future<void> _refreshReportData() async {
+    print("🔄 Refreshing report data...");
+
+    try {
+      // Refresh the main reports data
+      await getReports(bearerKey);
+
+      // Update current date report
+      getCurrentDateReport();
+
+      // Refresh live sales data
+      await getLiveSaleReport();
+
+      print("✅ Report data refreshed successfully");
+    } catch (e) {
+      print("❌ Error refreshing report data: $e");
+    }
   }
 
   @override
@@ -70,9 +102,10 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     print("Bearer Key: $bearerKey"); // Debug print
 
     await getReports(bearerKey);
-    getTodayReports(bearerKey);
+
     getCurrentDateReport();
 
+    await getLiveSaleReport();
   }
 
   void getCurrentDateReport() {
@@ -151,6 +184,14 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     }
   }
 
+  void _startLiveDataUpdates() {
+    _liveDataTimer = Timer.periodic(Duration(seconds: 30), (timer) {
+      if (!showCalendar) { // Only update when showing today's data
+        getLiveSaleReport();
+      }
+    });
+  }
+
   Future<void> getReports(String? bearerKey) async {
     try {
       print("DataBearerKEy " + bearerKey!);
@@ -181,35 +222,113 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     }
   }
 
-  Future<void> getTodayReports(String? bearerKey) async {
+  Future<void> getLiveSaleReport() async {
     try {
-      print("Today BearerKEy " + bearerKey!);
-      Get.dialog(
-        Center(
-            child: Lottie.asset(
-              'assets/animations/burger.json',
-              width: 150,
-              height: 150,
-              repeat: true,
-            )),
-        barrierDismissible: false,
-      );
-      final result = await ApiRepo().todayReportGetApi(bearerKey!);
-      Get.back();
-      if (result != null) {
-        setState(() {
-          report = result;
-          print(" Today Report   ${reportList.length}");
-        });
-      } else {
-        showSnackbar("Error", " error");
-      }
+      GetTodayReport model = await CallService().getLiveSaleData();
+
+      setState(() {
+        // Safe type conversions with null checks
+        totalSales = '€${formatAmount(model.totalSales ?? 0.0)}';
+        totalOrder = '${model.totalOrders ?? 0}';
+        totalTax = '€${formatAmount(model.totalTax ?? 0.0)}';
+        cashTotal = '€${formatAmount(model.cashTotal ?? 0.0)}';
+
+        // Handle onlineTotal - can be int or double, convert to double
+        double onlineValue = 0.0;
+        if (model.onlineTotal != null) {
+          if (model.onlineTotal is int) {
+            onlineValue = (model.onlineTotal as int).toDouble();
+          } else if (model.onlineTotal is double) {
+            onlineValue = model.onlineTotal as double;
+          }
+        }
+        online = '€${formatAmount(onlineValue)}';
+
+        net = '€${formatAmount(model.netTotal ?? 0.0)}';
+
+        // Handle discountTotal - can be int or double, convert to int for display
+        int discountValue = 0;
+        if (model.discountTotal != null) {
+          if (model.discountTotal is double) {
+            discountValue = (model.discountTotal as double).toInt();
+          } else if (model.discountTotal is int) {
+            discountValue = model.discountTotal as int;
+          }
+        }
+        discount = '$discountValue';
+
+        // Handle deliveryTotal - can be int or double, convert to double
+        double deliveryValue = 0.0;
+        if (model.deliveryTotal != null) {
+          if (model.deliveryTotal is int) {
+            deliveryValue = (model.deliveryTotal as int).toDouble();
+          } else if (model.deliveryTotal is double) {
+            deliveryValue = model.deliveryTotal as double;
+          }
+        }
+        deliveryFee = '€${formatAmount(deliveryValue)}';
+
+        salesDelivery = '€${formatAmount(model.totalSalesDelivery ?? 0.0)}';
+        cashMethod = '${model.paymentMethods?.cash ?? 0}';
+        delivery = '${model.orderTypes?.delivery ?? 0}';
+        pickUp = '${model.orderTypes?.pickup ?? 0}';
+        dineIn = '${model.orderTypes?.dineIn ?? 0}';
+        pending = '${model.approvalStatuses?.pending ?? 0}';
+        accepted = '${model.approvalStatuses?.accepted ?? 0}';
+        declined = '${model.approvalStatuses?.declined ?? 0}';
+        tax19 = '€${formatAmount(model.taxBreakdown?.d19 ?? 0.0)}';
+        tax7 = '€${formatAmount(model.taxBreakdown?.d7 ?? 0.0)}';
+
+        // Update live data indicators
+        _isLiveDataActive = true;
+        _lastUpdateTime = DateTime.now();
+      });
+
+      print('Total Sales value is $salesDelivery');
+      print('All values updated successfully');
+      print('Live data variables updated:');
+      print('totalSales: $totalSales');
+      print('totalOrder: $totalOrder');
+      print('cashTotal: $cashTotal');
+      print('online: $online');
     } catch (e) {
-      Get.back();
-      Log.loga(title, "Today Report Error :: e >>>>> $e");
-      showSnackbar("Api Error", "An error occurred: $e");
+      print('Error in getLiveSaleReport: $e');
+      print('Stack trace: ${StackTrace.current}');
+      setState(() {
+        _isLiveDataActive = false;
+      });
     }
   }
+
+  // Future<void> getToday(String? bearerKey) async {
+  //   try {
+  //     print("Today BearerKEy " + bearerKey!);
+  //     Get.dialog(
+  //       Center(
+  //           child: Lottie.asset(
+  //             'assets/animations/burger.json',
+  //             width: 150,
+  //             height: 150,
+  //             repeat: true,
+  //           )),
+  //       barrierDismissible: false,
+  //     );
+  //     final result = await ApiRepo().todayReport(bearerKey!);
+  //     Get.back();
+  //     if (result != null) {
+  //       setState(() {
+  //         today = result;
+  //         print(" Today Report   ${reportList.length}");
+  //       });
+  //     } else {
+  //       showSnackbar("Error", " error");
+  //     }
+  //   } catch (e) {
+  //     Get.back();
+  //     Log.loga(title, "Today Report Error :: e >>>>> $e");
+  //     showSnackbar("Api Error", "An error occurred: $e");
+  //   }
+  // }
 
   String formatAmount(double amount) {
     final locale = Get.locale?.languageCode ?? 'en';
@@ -337,9 +456,9 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
               const SizedBox(height: 16),
             ],
 
-            // Show current date report by default, or selected report if any
-            _todayStatus(_selectedReport ?? _currentDateReport ?? reportsss),
-
+            showCalendar
+                ? _historyStatus(_selectedReport ?? _currentDateReport ?? reportsss)
+                : _todayStatus(),
             const SizedBox(height: 16),
           ],
         ),
@@ -484,67 +603,6 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     return names[month];
   }
 
-  // Widget _calendarCellWithDate(DateTime date, DailySalesReport? report, bool isCurrentMonth) {
-  //   final textColor = isCurrentMonth ? Colors.black : Colors.grey[600];
-  //
-  //   return GestureDetector(
-  //     onTap: () {
-  //       if (report != null) {
-  //         setState(() {
-  //           _selectedReport = report;
-  //           _selectedDate = date;
-  //           dateSeleted = DateFormat('MMMM y').format(date);
-  //         });
-  //       }
-  //       if (report != null) {
-  //         print("Total Sales: ${report.totalSales}");
-  //         print("Data null: ${report.data == null}");
-  //       }
-  //     },
-  //
-  //     child: Container(
-  //       padding: const EdgeInsets.all(6),
-  //       color: Colors.white, // Ensure no background color is inherited
-  //       child: SizedBox(
-  //         height: 65, // Set a fixed height for all cells
-  //         child: Column(
-  //           mainAxisAlignment: MainAxisAlignment.center,
-  //           children: [
-  //             Text(
-  //               "${date.day}",
-  //               style: TextStyle(
-  //                 fontWeight: FontWeight.bold,
-  //                 color: textColor,
-  //               ),
-  //             ),
-  //             const SizedBox(height: 2),
-  //             if (report != null) ...[
-  //               Column(
-  //                 crossAxisAlignment: CrossAxisAlignment.start,
-  //                 children: [
-  //                   SvgPicture.asset(
-  //                     'assets/images/ic_report.svg',
-  //                     height: 12,
-  //                     width: 12,
-  //                   ),
-  //                   const SizedBox(height: 2),
-  //                   Text("€${formatAmount(report.totalSales ?? 0)}",
-  //                     // "€${report.totalSales!.toStringAsFixed(2)}",
-  //                     style: TextStyle(
-  //                       fontSize: 10,
-  //                       color: Colors.green,
-  //                     ),
-  //                   ),
-  //                 ],
-  //               )
-  //             ],
-  //           ],
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  //
-  // }
   Widget _calendarCellWithDate(DateTime date, DailySalesReport? report, bool isCurrentMonth) {
     print("=== Calendar Cell Debug ===");
     print("Date: ${date.day}");
@@ -629,7 +687,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     );
   }
 
-  Widget _todayStatus(DailySalesReport? report) {
+  Widget _historyStatus(DailySalesReport? report) {
     if (report == null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1015,6 +1073,379 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
               ),
               TextSpan(
                 text:"${taxBreakdown ?? 0}",
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+      ],
+    );
+  }
+  Widget _todayStatus() {
+    print("=== _todayStatus Debug ===");
+    print("totalSales: '$totalSales'");
+    print("totalOrder: '$totalOrder'");
+    print("showCalendar: $showCalendar");
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+              children: [
+                Lottie.asset(
+                    'assets/animations/sales.json',
+                    width: 30,
+                    height: 30,
+                    repeat: true, ),
+                Text( _selectedDate != null
+                    ?  DateFormat('dd MMMM y').format(_selectedDate!)
+                    : "Sales Report",
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              ],
+            ),
+
+        if (_isLiveDataActive && _selectedReport == null && _lastUpdateTime != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            "Last updated: ${DateFormat('HH:mm:ss').format(_lastUpdateTime!)}",
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.grey[600],
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+        const SizedBox(height: 8),
+        RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: "Total Sales  ",
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text: totalSales,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: "Total Order  ",
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text:totalOrder, // Convert to int for display
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: "Total tax ",
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text: totalTax,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: "Cash Total  ",
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text: cashTotal,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: "Online ",
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text: online,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: "Net (Subtotal) ",
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text: net,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: "Discounts  ",
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text: discount, // Keep as int for display
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: "Delivery Fees  ",
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text: deliveryFee,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: "Total Sales(+ Delivery Fees)  ",
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text: salesDelivery,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Lottie.asset(
+              'assets/animations/payment.json',
+              width: 30,
+              height: 30,
+              repeat: true, ),
+            Text("Payment Methods",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: "Cash : ",
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text:cashMethod,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Lottie.asset(
+              'assets/animations/orderType.json',
+              width: 30,
+              height: 30,
+              repeat: true, ),
+            Text("Order Types",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: "Delivery : ",
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text: delivery,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: "Pickup : ",
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text: pickUp,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: "Dine In : ",
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text:dineIn,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+        Row(
+          children: [
+            Lottie.asset(
+              'assets/animations/approval.json',
+              width: 30,
+              height: 30,
+              repeat: true, ),
+            const Text("Approval Status",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: "Pending: ",
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text: pending,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: "Accepted : ",
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text: accepted,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: "Declined : ",
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text: declined,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Lottie.asset(
+              'assets/animations/tax.json',
+              width: 30,
+              height: 30,
+              repeat: true, ),
+            const Text("Tax Breakdown",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: "19: ",
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text:tax19,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        RichText(
+          text: TextSpan(
+            children: [
+              const TextSpan(
+                text: "7: ",
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text:tax7,
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),

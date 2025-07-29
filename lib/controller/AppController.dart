@@ -16,8 +16,23 @@ class AppController extends GetxController {
 
   int get selectedTabIndex => _selectedTabIndex.value;
 
+  // ✅ ADD THIS: Getter for reactive access
+  RxInt get selectedTabIndexRx => _selectedTabIndex;
+
+  // ✅ ADD THIS: Report refresh trigger
+  var _reportRefreshTrigger = 0.obs;
+
+  RxInt get reportRefreshTrigger => _reportRefreshTrigger;
+
   void onTabChanged(int index) {
     _selectedTabIndex.value = index;
+    print("AppController: Tab changed to $index"); // Add this for debugging
+
+    // ✅ ADD THIS: Trigger report refresh when Report tab is selected
+    if (index == 1) { // Report tab index
+      _reportRefreshTrigger.value++;
+      print("Report refresh triggered: ${_reportRefreshTrigger.value}");
+    }
   }
 
   var _ordersList = <Order>[].obs;
@@ -55,17 +70,17 @@ class AppController extends GetxController {
         _ordersList.where((order) {
           // Search in order ID
           final inOrderId =
-              order.id.toString().toLowerCase().contains(lowerQuery);
+          order.id.toString().toLowerCase().contains(lowerQuery);
 
           // Search in order items
           final inItems = order.items?.any((item) =>
-                  item.productName
-                          ?.toLowerCase()
-                          .contains(lowerQuery) ==
-                      true ||
-                  item.variantName?.toLowerCase().contains(lowerQuery) ==
-                      true ||
-                  item.note?.toLowerCase().contains(lowerQuery) == true) ??
+          item.productName
+              ?.toLowerCase()
+              .contains(lowerQuery) ==
+              true ||
+              item.variantName?.toLowerCase().contains(lowerQuery) ==
+                  true ||
+              item.note?.toLowerCase().contains(lowerQuery) == true) ??
               false;
 
           return inOrderId || inItems;
@@ -92,7 +107,7 @@ class AppController extends GetxController {
 
     // Find index in searchResultOrder and update
     int searchIndex =
-        searchResultOrder.indexWhere((order) => order.id == result.id);
+    searchResultOrder.indexWhere((order) => order.id == result.id);
     if (searchIndex != -1) {
       searchResultOrder[searchIndex] = result;
       searchResultOrder.value = [...searchResultOrder];
@@ -107,13 +122,20 @@ class AppController extends GetxController {
   void onSetPendingOrder(int index) {
     _pendingOrders.value = index;
   }
+
   void clearOnLogout() {
     _ordersList.clear();
     searchResultOrder.clear();
     _pendingOrders.value = 0;
     _selectedTabIndex.value = 0;
+    _reportRefreshTrigger.value = 0; // ✅ ADD THIS: Reset refresh trigger
     // If needed, reset loading state as well
     _isLoading.value = false;
   }
 
+  // ✅ ADD THIS: Manual method to trigger report refresh
+  void triggerReportRefresh() {
+    _reportRefreshTrigger.value++;
+    print("Manual report refresh triggered: ${_reportRefreshTrigger.value}");
+  }
 }

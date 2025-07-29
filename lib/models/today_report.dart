@@ -2,9 +2,9 @@ class GetTodayReport {
   double? totalSales;
   int? totalOrders;
   double? cashTotal;
-  int? onlineTotal;
-  double? discountTotal;
-  int? deliveryTotal;
+  double? onlineTotal;  // Changed from int? to double?
+  double? discountTotal; // Changed from int? to double?
+  double? deliveryTotal; // Changed from int? to double?
   double? totalTax;
   double? netTotal;
   TaxBreakdown? taxBreakdown;
@@ -42,14 +42,14 @@ class GetTodayReport {
         this.mess = mess;
 
   GetTodayReport.fromJson(Map<String, dynamic> json) {
-    totalSales = json['total_sales'];
-    totalOrders = json['total_orders'];
-    cashTotal = json['cash_total'];
-    onlineTotal = json['online_total'];
-    discountTotal = json['discount_total'];
-    deliveryTotal = json['delivery_total'];
-    totalTax = json['total_tax'];
-    netTotal = json['net_total'];
+    totalSales = json['total_sales']?.toDouble();
+    totalOrders = json['total_orders']?.toInt();
+    cashTotal = json['cash_total']?.toDouble();
+    onlineTotal = json['online_total']?.toDouble(); // Safe conversion to double
+    discountTotal = json['discount_total']?.toDouble(); // Safe conversion to double
+    deliveryTotal = json['delivery_total']?.toDouble(); // Safe conversion to double
+    totalTax = json['total_tax']?.toDouble();
+    netTotal = json['net_total']?.toDouble();
     taxBreakdown = json['tax_breakdown'] != null
         ? new TaxBreakdown.fromJson(json['tax_breakdown'])
         : null;
@@ -71,7 +71,7 @@ class GetTodayReport {
     byCategory = json['by_category'] != null
         ? new ByCategory.fromJson(json['by_category'])
         : null;
-    totalSalesDelivery = json['total_sales + delivery'];
+    totalSalesDelivery = json['total_sales + delivery']?.toDouble();
   }
 
   Map<String, dynamic> toJson() {
