@@ -17,7 +17,7 @@ class SocketService {
 
   bool get isConnected => _isConnected;
 
-  void connect(String accessToken, {int storeId = 14}) {
+  void connect(String accessToken, {int storeId = 13}) {
     if (_socket != null && _isConnected) {
       print('Socket already connected');
       return;

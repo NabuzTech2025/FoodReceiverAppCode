@@ -63,6 +63,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   String dateSeleted = "";
   late UserMe userMe;
   String? storeName;
+  String? dynamicStoreId;
   late AnimationController _blinkController;
   late Animation<double> _opacityAnimation;
   DailySalesReport? _currentDateReport;
@@ -131,11 +132,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     } else {
       getStoreUserMeData(bearerKey);
     }
-    if (bearerKey != null) {
-      // ✅ CRITICAL: Wait for store name to be loaded before proceeding
-      await getStoredta(bearerKey!);
-      print("✅ Store name loaded in initVar: $storeName");
-    }
     getCurrentDateReport();
     _checkAndClearOldData();      // पुराना डेटा साफ़ करो
     _loadCachedSalesData();       // Cached data load करो
@@ -154,45 +150,35 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   Future<String?> getStoredta(String bearerKey) async {
     try {
       String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
-      print("🔍 DEBUG - bearerKey: ${bearerKey.substring(0, 10)}...");
-      print("🔍 DEBUG - storeID: $storeID");
 
       if (storeID == null) {
         print("❌ DEBUG - Store ID is null, cannot fetch store data");
         return null;
       }
 
-      print("🌐 DEBUG - Calling ApiRepo().getStoreData...");
       final result = await ApiRepo().getStoreData(bearerKey, storeID);
-      print("🔍 DEBUG - API result: ${result != null ? 'Success' : 'Null'}");
 
       if (result != null) {
         Store store = result;
-        print("🔍 DEBUG - Store object: ${store.toString()}");
-        print("🔍 DEBUG - Store name from API: ${store.name}");
-
         String fetchedStoreName = store.name?.toString() ?? "Unknown Store";
+        String fetchedStoreId = store.code?.toString() ?? storeID; // Get store ID from API
 
         setState(() {
           storeName = fetchedStoreName;
+          dynamicStoreId = fetchedStoreId; // Store API fetched ID
         });
 
-        print("✅ DEBUG - Final storeName set to: '$storeName'");
+        // Save the API store ID to SharedPreferences for next use
+        await sharedPreferences.setString(valueShared_STORE_KEY, fetchedStoreId);
+
+        print("✅ DEBUG - Final storeName: '$storeName', apiStoreId: '$dynamicStoreId'");
         return storeName;
-      } else {
-        print("❌ DEBUG - API returned null result");
-        showSnackbar("Error", "Failed to get store data");
-        return null;
       }
     } catch (e) {
       print("❌ DEBUG - Exception in getStoredta: $e");
-      print("❌ DEBUG - Exception type: ${e.runtimeType}");
-      Log.loga(title, "getStoredta Api:: e >>>>> $e");
-      showSnackbar("Api Error", "An error occurred: $e");
       return null;
     }
   }
-
 // Alternative approach - get store name from SharedPreferences if available:
   Future<String?> getStoreNameFallback() async {
     try {
@@ -233,6 +219,12 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   void _initializeSocket() {
     print("🔥 Starting socket initialization");
 
+    // Get dynamic store ID
+    String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
+    int dynamicStoreId = int.tryParse(storeID ?? "13") ?? 13;
+
+    print("🆔 Using store ID: $dynamicStoreId"); // Debug print
+
     _socketService.onSalesUpdate = (data) {
       print('📊 Sales update received in ReportScreen: $data');
       _handleSalesUpdate(data, isFromSocket: true);
@@ -255,7 +247,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
     try {
       print("🔌 Attempting to connect socket with bearer: $bearerKey");
-      _socketService.connect(bearerKey!, storeId: 13);
+      print("🔌 Attempting to connect socket with storeId: $dynamicStoreId");
+      _socketService.connect(bearerKey!, storeId: dynamicStoreId); // ✅ Use dynamic ID
     } catch (e) {
       print("❌ Socket connection failed: $e");
     }
