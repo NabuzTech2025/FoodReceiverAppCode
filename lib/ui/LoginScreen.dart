@@ -263,7 +263,6 @@ class _LoginScreenState extends State<LoginScreen>
     }
     //if (validateData()) {}
   }
-
   Future<void> postloginData(String email, String password, String deviceToken) async {
     try {
       // Show loader
@@ -281,7 +280,8 @@ class _LoginScreenState extends State<LoginScreen>
 
       final result = await ApiRepo().loginApi(email, password, deviceToken);
       Log.loga(title, "LoginData :: result >>>>> ${result?.toJson()}");
-      if (result != null) {
+
+      if (result != null && result.access_token != null && result.access_token!.isNotEmpty) {
         print("🔐 Login successful, clearing old data and saving new token...");
 
         // ✅ STEP 1: Complete data cleanup
@@ -335,28 +335,58 @@ class _LoginScreenState extends State<LoginScreen>
           // ✅ STEP 10: Test background handler access
           await SettingsSync.syncSettingsAfterLogin();
 
-          // ✅ STEP 11: Close loader ONLY after all operations complete
-          Get.back();
-
-          // ✅ STEP 12: Navigate to home screen
+          // ✅ STEP 11: Navigate to home screen और loader को बंद करना
+          Get.back(); // Close loader just before navigation
           Get.to(() => HomeScreen());
         } else {
           print("❌ Token verification failed!");
-          Get.back(); // Close loader on error
+          Get.back(); // Close loader on verification failure
           showSnackbar("Error", "Failed to save login credentials");
         }
       } else {
-        Get.back(); // Close loader on error
-        showSnackbar("Error", "Error on login");
+        // ✅ Handle login failure cases - Keep original specific error messages
+        Get.back(); // Close loader on login failure
+
+        if (result != null) {
+          // Check if it's an authentication error
+          if (result.code == "401" || result.message?.toLowerCase().contains("unauthorized") == true ||
+              result.message?.toLowerCase().contains("invalid") == true ||
+              result.message?.toLowerCase().contains("password") == true ||
+              result.message?.toLowerCase().contains("credentials") == true) {
+            showSnackbar("Login Failed", "Your password is wrong. Please try again.");
+          } else if (result.message != null && result.message!.isNotEmpty) {
+            // Show server error message
+            showSnackbar("Login Failed", result.message!);
+          } else {
+            showSnackbar("Login Failed", "Invalid credentials. Please check your username and password.");
+          }
+        } else {
+          showSnackbar("Login Failed", "Your password is wrong. Please try again.");
+        }
       }
     } catch (e) {
       Log.loga(title, "Login Api:: e >>>>> $e");
       Get.back(); // Close loader on error
-      showSnackbar("Api Error", "An error occurred: $e");
+
+      // ✅ Better error message handling - Keep original specific messages
+      String errorMessage = "invalid Email password. Please try again.";
+
+      if (e.toString().contains("DioException") || e.toString().contains("DioError")) {
+        if (e.toString().contains("401") || e.toString().contains("Unauthorized")) {
+          errorMessage = "invalid Email password. Please try again.";
+        } else if (e.toString().contains("404")) {
+          errorMessage = "Service not found. Please try again later.";
+        } else if (e.toString().contains("500")) {
+          errorMessage = "Server error. Please try again later.";
+        } else {
+          errorMessage = "Network error. Please check your connection.";
+        }
+      }
+
+      showSnackbar("Login Error", errorMessage);
     }
   }
-
-// Add this method to sync settings after login
+  // Add this method to sync settings after login
   Future<void> syncSettingsAfterLogin() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -389,7 +419,6 @@ class _LoginScreenState extends State<LoginScreen>
       print("❌ Error syncing settings after login: $e");
     }
   }
-
 
 // ✅ Complete cleanup function
   Future<void> _forceCompleteCleanup() async {

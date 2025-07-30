@@ -10,7 +10,7 @@ import 'package:get/get.dart' hide FormData;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../constants/constant.dart';
-import '../../models/DailySalesReport.dart';
+import '../../models/DailySalesReport.dart' hide TaxBreakdown, PaymentMethods, ApprovalStatuses;
 import '../../models/Logout.dart';
 import '../../models/PrinterSetting.dart';
 import '../../models/StoreDetail.dart';
@@ -50,12 +50,6 @@ class ApiRepo {
       print("REsponseData " + response.toString());
       if (response != null) {
         return UserLoginH.fromJson(response.data);
-        /*  if (response.data['code'] == 0) {
-          return UserLoginH.fromJson(response.data);
-        } else {
-          return UserLoginH.withError(
-              code: CODE_RESPONSE_NULL, mess: response.data['message']);
-        }*/
       }
 
       //return null;
@@ -615,25 +609,133 @@ class ApiRepo {
 
 class CallService extends GetConnect {
 
+  //get live reports for today sales
   Future<GetTodayReport> getLiveSaleData() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+
+      print("🔑 User Access Token Value is: $accessToken");
+
+      if (accessToken == null || accessToken.isEmpty) {
+        print("❌ Access token is null or empty");
+        throw Exception("Access token not found");
+      }
+
+      httpClient.baseUrl = Api.baseUrl;
+      print("🌐 Making API call to: ${Api.baseUrl}/reports/today");
+
+      var res = await get('reports/today',
+        headers: {
+          'accept': 'application/json',
+          'Authorization': "Bearer $accessToken",
+        },
+      );
+
+      print("📡 API Response Status Code: ${res.statusCode}");
+      print("📄 API Response Body: ${res.body}");
+
+      if (res.statusCode == 200) {
+        print("✅ Today Report Response Is Success: ${res.statusCode}");
+
+        if (res.body == null || res.body.toString().trim().isEmpty) {
+          print("❌ Response body is empty despite 200 status");
+          return _createEmptyReport();
+        }
+
+        try {
+          final parsedResponse = GetTodayReport.fromJson(res.body);
+          print("✅ Successfully parsed response");
+          return parsedResponse;
+        } catch (parseError) {
+          print("❌ JSON Parsing Error: $parseError");
+          return _createEmptyReport();
+        }
+
+      } else if (res.statusCode == 204) {
+        // ✅ Handle 204 No Content - this is normal for no data
+        print("ℹ️ No Content (204) - No sales data available for today");
+        print("ℹ️ This is normal if there are no orders yet today");
+
+        return _createEmptyReport();
+
+      } else if (res.statusCode == 401) {
+        print("❌ Unauthorized - Token may be expired");
+        throw Exception("Unauthorized: Please login again");
+
+      } else if (res.statusCode == 404) {
+        print("❌ API endpoint not found");
+        throw Exception("API endpoint not found");
+
+      } else if (res.statusCode == 500) {
+        print("❌ Server error");
+        throw Exception("Server error: ${res.statusCode}");
+
+      } else {
+        print("❌ API call failed with status: ${res.statusCode}");
+        print("❌ Response body: ${res.body}");
+        throw Exception("API call failed with status ${res.statusCode}: ${res.body}");
+      }
+
+    } catch (e) {
+      print("❌ Exception in getLiveSaleData: $e");
+
+      // ✅ For 204 responses, return empty data instead of throwing error
+      if (e.toString().contains('204')) {
+        print("ℹ️ Returning empty report for 204 response");
+        return _createEmptyReport();
+      }
+
+      rethrow;
+    }
+  }
+  GetTodayReport _createEmptyReport() {
+    print("📊 Creating empty report with zero values");
+
+    return GetTodayReport(
+      totalSales: 0.0,
+      totalOrders: 0,
+      cashTotal: 0.0,
+      onlineTotal: 0.0,
+      discountTotal: 0.0,
+      deliveryTotal: 0.0,
+      totalTax: 0.0,
+      netTotal: 0.0,
+      totalSalesDelivery: 0.0,
+      taxBreakdown: TaxBreakdown(d7: 0.0, d19: 0.0),
+      paymentMethods: PaymentMethods(cash: 0),
+      orderTypes: OrderTypes(delivery: 0, pickup: 0, dineIn: 0),
+      approvalStatuses: ApprovalStatuses(pending: 0, accepted: 0, declined: 0),
+      topItems: [],
+      byCategory: null,
+    );
+  }
+  //Driver Section
+
+  //1.) Create Driver
+  Future<DriverRegisterModel> registerDriver(dynamic body) async {
+    httpClient.baseUrl = Api.baseUrl ;
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? accessToken = prefs.getString(valueShared_BEARER_KEY);
-    print("User Access Token Value is :$accessToken");
-    httpClient.baseUrl = Api.baseUrl ;
-    var res = await get('reports/today',
-      headers: {
+    print("User Access Token Value is : $accessToken");
+    var res = await post(
+      'delivery/register-driver/', body, headers: {
         'accept': 'application/json',
         'Authorization': "Bearer $accessToken",
       },
     );
+    print("response is ${res.statusCode}");
     if (res.statusCode == 200) {
-      print("Today Report Response Is : ${res.statusCode.toString()}",);
-      print("Today Report Is : ${res.body}",);
-      return GetTodayReport.fromJson(res.body);
+      print("Driver Register Response is : ${res.statusCode.toString()}");
+      print("Driver Register Response Body  is : ${res.body}");
+      return DriverRegisterModel.fromJson(res.body);
     } else {
       throw Exception(Error());
     }
   }
+
+
+
 
 
 

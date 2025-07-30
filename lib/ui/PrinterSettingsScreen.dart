@@ -174,8 +174,13 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       String ip = _ipControllers[0].text.trim();
 
       if (ip.isEmpty || _validateIP(ip) != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Enter valid Local IP')),
+        // Using Get.snackbar instead of ScaffoldMessenger
+        Get.snackbar(
+          'Invalid IP',
+          'Enter valid Local IP',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
         );
         return;
       }
@@ -187,14 +192,25 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
         await poststorePrinting(bearerKey!, false, ip);
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Local IP saved'),
-          backgroundColor: Colors.green,
-        ),
+      // Using Get.snackbar for success message
+      Get.snackbar(
+        'Success',
+        'Local IP saved',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
       );
     } catch (e) {
       print("❌ Save Local IP error: $e");
+
+      // Show error snackbar
+      Get.snackbar(
+        'Error',
+        'Failed to save Local IP',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 

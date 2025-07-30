@@ -1,3 +1,5 @@
+// socket_service.dart में ये changes करें:
+
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class SocketService {
@@ -17,13 +19,17 @@ class SocketService {
 
   bool get isConnected => _isConnected;
 
-  void connect(String accessToken, {int storeId = 13}) {
+  // ✅ FIX: Remove default value और proper storeId pass करें
+  void connect(String accessToken, {required int storeId}) {
     if (_socket != null && _isConnected) {
       print('Socket already connected');
       return;
     }
 
     try {
+      // ✅ Debug print to verify storeId
+      print('🔌 Connecting to socket with storeId: $storeId');
+
       _socket = IO.io('https://magskr.com', <String, dynamic>{
         'path': '/ws-sio/socket.io',
         'transports': ['websocket'],
@@ -40,10 +46,12 @@ class SocketService {
         print('✅ Connected to Socket.IO');
         _isConnected = true;
 
-        // Join store room for order notifications
+        // ✅ Use dynamic storeId instead of hardcoded 13
+        print('🏪 Joining store room with ID: $storeId');
         _socket!.emit('join_store', {'store_id': storeId});
 
-        // Join sales room for live sales updates
+        // ✅ Use dynamic storeId for sales room too
+        print('💰 Joining sales room with ID: $storeId');
         _socket!.emit('join_store_sales', {'store_id': storeId});
 
         onConnected?.call();
@@ -51,7 +59,7 @@ class SocketService {
 
       // Joined store room confirmation
       _socket!.on('joined_store', (data) {
-        print('✅ Joined room: ${data['room']}');
+        print('✅ Joined STORE room: ${data['room']}');
       });
 
       // Joined sales room confirmation

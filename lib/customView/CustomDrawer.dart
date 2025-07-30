@@ -106,13 +106,13 @@ class _CustomDrawerState extends State<CustomDrawer> {
             Navigator.of(context).pop(); // close drawer
             widget.onSelectTab(1); // open tab index 3 (PrinterSettingsScreen)
           }),
-          // _drawerItem('Driver', onTap: () {
-          //   Navigator.of(context).pop(); // First close drawer
-          //   // Then navigate to DriverScreen
-          //   Future.delayed(Duration(milliseconds: 100), () {
-          //     Get.to(() => DriverScreen());
-          //   });
-          // }),
+          _drawerItem('Driver', onTap: () {
+            Navigator.of(context).pop(); // First close drawer
+            // Then navigate to DriverScreen
+            Future.delayed(Duration(milliseconds: 100), () {
+              Get.to(() => DriverScreen());
+            });
+          }),
           _drawerItem('setting'.tr, onTap: () {
             Navigator.of(context).pop(); // close drawer
             widget.onSelectTab(2); // open tab index 3 (PrinterSettingsScreen)

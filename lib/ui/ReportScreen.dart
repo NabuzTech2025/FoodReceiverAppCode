@@ -25,7 +25,6 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
 
   late SharedPreferences sharedPreferences;
   String? bearerKey;
-
   List<DailySalesReport> reportList = [];
   DailySalesReport reportsss = DailySalesReport();
   DailySalesReport? _selectedReport;
@@ -68,25 +67,6 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     initVar();
 
     _startLiveDataUpdates();
-  }
-
-  Future<void> _refreshReportData() async {
-    print("🔄 Refreshing report data...");
-
-    try {
-      // Refresh the main reports data
-      await getReports(bearerKey);
-
-      // Update current date report
-      getCurrentDateReport();
-
-      // Refresh live sales data
-      await getLiveSaleReport();
-
-      print("✅ Report data refreshed successfully");
-    } catch (e) {
-      print("❌ Error refreshing report data: $e");
-    }
   }
 
   @override
@@ -221,50 +201,77 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
       showSnackbar("Api Error", "An error occurred: $e");
     }
   }
+  void _resetCalendarToCurrentMonth() {
+    final now = DateTime.now();
+    setState(() {
+      showCalendar = false;
+      displayedMonth = now.month;
+      displayedYear = now.year;
+      _selectedReport = null;
+      _selectedDate = null;
+      dateSeleted = '';
+    });
+    print("📅 Calendar reset to current month: ${displayedMonth}/${displayedYear}");
+  }
 
   Future<void> getLiveSaleReport() async {
     try {
+      print("🔄 Starting getLiveSaleReport...");
+
+      if (bearerKey == null || bearerKey!.isEmpty) {
+        print("❌ Bearer token is null or empty");
+        _setEmptyValues();
+        return;
+      }
+
+      print("✅ Bearer token available: ${bearerKey!.substring(0, 20)}...");
+
+      // Call the API
       GetTodayReport model = await CallService().getLiveSaleData();
 
+      print("✅ API call completed successfully");
+      print("📊 Model Data - totalSales: ${model.totalSales}, totalOrders: ${model.totalOrders}");
+
+      // Check if model has error code
+      if (model.code != null && model.code != 200) {
+        print("⚠️ API returned code: ${model.code}, message: ${model.mess}");
+        _setEmptyValues();
+        return;
+      }
+
+      // ✅ Update state with received data (even if it's all zeros)
       setState(() {
-        // Safe type conversions with null checks
         totalSales = '€${formatAmount(model.totalSales ?? 0.0)}';
         totalOrder = '${model.totalOrders ?? 0}';
         totalTax = '€${formatAmount(model.totalTax ?? 0.0)}';
         cashTotal = '€${formatAmount(model.cashTotal ?? 0.0)}';
 
-        // Handle onlineTotal - can be int or double, convert to double
+        // Handle onlineTotal
         double onlineValue = 0.0;
         if (model.onlineTotal != null) {
-          if (model.onlineTotal is int) {
-            onlineValue = (model.onlineTotal as int).toDouble();
-          } else if (model.onlineTotal is double) {
-            onlineValue = model.onlineTotal as double;
-          }
+          onlineValue = model.onlineTotal is int
+              ? (model.onlineTotal as int).toDouble()
+              : model.onlineTotal as double;
         }
         online = '€${formatAmount(onlineValue)}';
 
         net = '€${formatAmount(model.netTotal ?? 0.0)}';
 
-        // Handle discountTotal - can be int or double, convert to int for display
+        // Handle discountTotal
         int discountValue = 0;
         if (model.discountTotal != null) {
-          if (model.discountTotal is double) {
-            discountValue = (model.discountTotal as double).toInt();
-          } else if (model.discountTotal is int) {
-            discountValue = model.discountTotal as int;
-          }
+          discountValue = model.discountTotal is double
+              ? (model.discountTotal as double).toInt()
+              : model.discountTotal as int;
         }
         discount = '$discountValue';
 
-        // Handle deliveryTotal - can be int or double, convert to double
+        // Handle deliveryTotal
         double deliveryValue = 0.0;
         if (model.deliveryTotal != null) {
-          if (model.deliveryTotal is int) {
-            deliveryValue = (model.deliveryTotal as int).toDouble();
-          } else if (model.deliveryTotal is double) {
-            deliveryValue = model.deliveryTotal as double;
-          }
+          deliveryValue = model.deliveryTotal is int
+              ? (model.deliveryTotal as int).toDouble()
+              : model.deliveryTotal as double;
         }
         deliveryFee = '€${formatAmount(deliveryValue)}';
 
@@ -279,56 +286,78 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         tax19 = '€${formatAmount(model.taxBreakdown?.d19 ?? 0.0)}';
         tax7 = '€${formatAmount(model.taxBreakdown?.d7 ?? 0.0)}';
 
-        // Update live data indicators
+        // Set live data as active even for empty data
         _isLiveDataActive = true;
         _lastUpdateTime = DateTime.now();
       });
 
-      print('Total Sales value is $salesDelivery');
-      print('All values updated successfully');
-      print('Live data variables updated:');
-      print('totalSales: $totalSales');
-      print('totalOrder: $totalOrder');
-      print('cashTotal: $cashTotal');
-      print('online: $online');
-    } catch (e) {
-      print('Error in getLiveSaleReport: $e');
-      print('Stack trace: ${StackTrace.current}');
-      setState(() {
-        _isLiveDataActive = false;
-      });
+      print('✅ State updated successfully');
+      print('📊 UI Variables - totalSales: $totalSales, totalOrder: $totalOrder');
+
+      // ✅ Show user-friendly message if all values are zero
+      bool hasData = (model.totalSales ?? 0) > 0 || (model.totalOrders ?? 0) > 0;
+      if (!hasData) {
+        print("ℹ️ No sales data available for today yet");
+        // Optionally show a subtle indicator in UI
+      }
+
+    } catch (e, stackTrace) {
+      print('❌ Error in getLiveSaleReport: $e');
+      print('📋 Stack trace: $stackTrace');
+
+      // ✅ Set empty values instead of crashing
+      _setEmptyValues();
+
+      // ✅ Don't show error to user for 204 responses
+      if (!e.toString().contains('204')) {
+        // Only show actual errors, not "no data" scenarios
+        showSnackbar("Info", "Unable to load live sales data");
+      }
     }
   }
+  void _setEmptyValues() {
+    setState(() {
+      _isLiveDataActive = false;
 
-  // Future<void> getToday(String? bearerKey) async {
-  //   try {
-  //     print("Today BearerKEy " + bearerKey!);
-  //     Get.dialog(
-  //       Center(
-  //           child: Lottie.asset(
-  //             'assets/animations/burger.json',
-  //             width: 150,
-  //             height: 150,
-  //             repeat: true,
-  //           )),
-  //       barrierDismissible: false,
-  //     );
-  //     final result = await ApiRepo().todayReport(bearerKey!);
-  //     Get.back();
-  //     if (result != null) {
-  //       setState(() {
-  //         today = result;
-  //         print(" Today Report   ${reportList.length}");
-  //       });
-  //     } else {
-  //       showSnackbar("Error", " error");
-  //     }
-  //   } catch (e) {
-  //     Get.back();
-  //     Log.loga(title, "Today Report Error :: e >>>>> $e");
-  //     showSnackbar("Api Error", "An error occurred: $e");
-  //   }
-  // }
+      totalSales = '€0.00';
+      totalOrder = '0';
+      totalTax = '€0.00';
+      cashTotal = '€0.00';
+      online = '€0.00';
+      net = '€0.00';
+      discount = '0';
+      deliveryFee = '€0.00';
+      salesDelivery = '€0.00';
+      cashMethod = '0';
+      delivery = '0';
+      pickUp = '0';
+      dineIn = '0';
+      pending = '0';
+      accepted = '0';
+      declined = '0';
+      tax19 = '€0.00';
+      tax7 = '€0.00';
+    });
+
+    print("📊 Set empty/default values for UI");
+  }
+
+  Future<void> _refreshReportData() async {
+    print("🔄 Refreshing report data...");
+
+    try {
+      // ✅ Add this line at the beginning
+      _resetCalendarToCurrentMonth();
+
+      await getReports(bearerKey);
+      getCurrentDateReport();
+      await getLiveSaleReport();
+
+      print("✅ Report data refresh completed");
+    } catch (e) {
+      print("❌ Error refreshing report data: $e");
+    }
+  }
 
   String formatAmount(double amount) {
     final locale = Get.locale?.languageCode ?? 'en';
@@ -357,6 +386,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                         _selectedReport = null;
                         _selectedDate = null; // Reset selected date
                         dateSeleted = '';
+                        _resetCalendarToCurrentMonth();
                       });
                     }
                   },
@@ -424,6 +454,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                         _selectedReport = null;
                         _selectedDate = null; // Reset selected date
                         dateSeleted = '';
+                        _resetCalendarToCurrentMonth();
                       }
                     });
                   },

@@ -89,7 +89,7 @@ class PrinterHelperEnglish {
 
     final discountData = order.invoice?.discount_amount ?? 0.0;
     final deliveryFee = order.invoice?.delivery_fee ?? 0.0;
-    final orderType =   order.orderType == 2 ?'pickup'.tr:order.shipping_address!.zip.toString();
+    final orderType =   order.orderType == 2 ?'pickup'.tr:'delivery'.tr;
 
 
     printer.text(" ${store ?? ''}",
@@ -116,8 +116,13 @@ class PrinterHelperEnglish {
       sanitizeText("${'customer'.tr}: ${(order.shipping_address?.customer_name ?? '')}"),
       styles: PosStyles(align: PosAlign.left, bold: true),
     );
+    // printer.text(
+    //   "${'address'.tr}: ${order.shipping_address?.line1 ?? ""}, ${order.shipping_address?.city ?? ""}",
+    //   styles: PosStyles(align: PosAlign.left, bold: true),
+    // );
     printer.text(
-      "${'address'.tr}: ${order.shipping_address?.line1 ?? ""}, ${order.shipping_address?.city ?? ""}",
+      "${'address'.tr}: ${order.shipping_address?.line1 ?? ""}, ${order.shipping_address?.city ?? ""}"
+          "${order.orderType != 2 ? ',${order.shipping_address?.zip ?? ""}' : ''}",
       styles: PosStyles(align: PosAlign.left, bold: true),
     );
     printer.text(
@@ -496,7 +501,7 @@ class PrinterHelperEnglish {
               (((item.unitPrice ?? 0) + toppingsTotal) *
                   (item.quantity ?? 0));
         }) ?? 0;
-        final orderType =   order.orderType == 2 ?'pickup'.tr:order.shipping_address!.zip.toString();
+        final orderType =   order.orderType == 2 ?'pickup'.tr:'delivery'.tr;
 
         printer.text(" ${store ?? ''}",
           styles: PosStyles(align: PosAlign.center, bold: true,),);
@@ -527,8 +532,21 @@ class PrinterHelperEnglish {
               "${trBg('customer', savedLocale)}: ${(order.shipping_address?.customer_name ?? '')}"),
           styles: PosStyles(align: PosAlign.left, bold: true),
         );
+        // printer.text(
+        //   "${trBg('address', savedLocale)}: "
+        //       "${order.shipping_address?.line1 ?? ""}, ${order.shipping_address?.city ?? ""},${order.shipping_address!.zip}",
+        //   styles: PosStyles(align: PosAlign.left, bold: true),
+        // );
+        String addressText = "${trBg('address', savedLocale)}: "
+            "${order.shipping_address?.line1 ?? ""}, ${order.shipping_address?.city ?? ""}";
+
+        // Only add ZIP code if order type is NOT pickup (orderType != 2)
+        if (order.orderType != 2) {
+          addressText += ",${order.shipping_address?.zip ?? ""}";
+        }
+
         printer.text(
-          "${trBg('address', savedLocale)}: ${order.shipping_address?.line1 ?? ""}, ${order.shipping_address?.city ?? ""}",
+          addressText,
           styles: PosStyles(align: PosAlign.left, bold: true),
         );
         printer.text(

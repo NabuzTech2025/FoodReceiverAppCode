@@ -120,31 +120,66 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   }
 
   // ─────────────────── Initialisation ───────────────────
+  // initVar method को इससे replace करें:
+
   Future<void> initVar() async {
-    print("Callingapp When refresh reumed 3333 ");
+    print("Callingapp When refresh resumed 3333");
     sharedPreferences = await SharedPreferences.getInstance();
     bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
 
     await _preloadStoreData();
-    final storeID = sharedPreferences.getString(valueShared_STORE_KEY);
-    if (storeID != null) {
-      getOrders(bearerKey, false, false, storeID);
-    } else {
-      getStoreUserMeData(bearerKey);
-    }
-    getCurrentDateReport();
-    _checkAndClearOldData();      // पुराना डेटा साफ़ करो
-    _loadCachedSalesData();       // Cached data load करो
-    _initializeSocket();
 
-    // Start timer for "no order" text
-    _startNoOrderTimer();
-    // Initialize socket ONLY if bearerKey is not null and not empty
-    if (bearerKey != null && bearerKey!.isNotEmpty) {
-      print("Initializing socket with bearer key"); // Debug print
-      _initializeSocket();
+    final storeID = sharedPreferences.getString(valueShared_STORE_KEY);
+    print("🆔 DEBUG - initVar storeID: '$storeID'");
+
+    if (storeID != null && storeID.isNotEmpty) {
+      print("✅ Using existing store ID: $storeID");
+      getOrders(bearerKey, false, false, storeID);
+
+      // ✅ Store ID available होने के बाद socket initialize करें
+      if (bearerKey != null && bearerKey!.isNotEmpty) {
+        print("🔌 Initializing socket with store ID: $storeID");
+        _initializeSocket();
+      }
     } else {
-      print("Bearer key is null or empty, socket not initialized"); // Debug print
+      print("❌ No store ID found, getting user data first");
+      // पहले user data get करें, फिर socket connect करें
+      await getStoreUserMeData(bearerKey);
+    }
+
+    getCurrentDateReport();
+    _checkAndClearOldData();
+    _loadCachedSalesData();
+    _startNoOrderTimer();
+  }
+
+// ✅ getStoreUserMeData में socket initialization add करें:
+  Future<void> getStoreUserMeData(String? bearerKey) async {
+    try {
+      final result = await ApiRepo().getUserMe(bearerKey);
+      if (result != null) {
+        setState(() {
+          userMe = result;
+        });
+
+        // ✅ Store ID को save करें
+        await sharedPreferences.setString(valueShared_STORE_KEY, userMe.store_id.toString());
+        print("✅ Store ID saved from API: ${userMe.store_id}");
+
+        // ✅ Orders get करें
+        getOrders(bearerKey, true, false, userMe.store_id.toString());
+
+        // ✅ अब socket connect करें proper store ID के साथ
+        if (bearerKey != null && bearerKey!.isNotEmpty) {
+          print("🔌 Initializing socket after getting user data");
+          _initializeSocket();
+        }
+      } else {
+        showSnackbar("Error", "Failed to get user data");
+      }
+    } catch (e) {
+      Log.loga(title, "getUserMe Api:: e >>>>> $e");
+      showSnackbar("Api Error", "An error occurred: $e");
     }
   }
   Future<String?> getStoredta(String bearerKey) async {
@@ -216,17 +251,56 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     }
   }
 
+  // OrderScreen.dart में _initializeSocket method को ये replace करें:
+// OrderScreen.dart में _initializeSocket method को इससे replace करें:
+
   void _initializeSocket() {
     print("🔥 Starting socket initialization");
 
-    // Get dynamic store ID
+    // Get dynamic store ID from SharedPreferences
     String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
-    int dynamicStoreId = int.tryParse(storeID ?? "13") ?? 13;
 
-    print("🆔 Using store ID: $dynamicStoreId"); // Debug print
+    // ✅ DEBUG: Print करें कि क्या मिल रहा है
+    print("🆔 Raw storeID from SharedPreferences: '$storeID'");
+    print("🆔 storeID type: ${storeID.runtimeType}");
+    print("🆔 storeID isEmpty: ${storeID?.isEmpty}");
+    print("🆔 storeID isNull: ${storeID == null}");
 
+    int dynamicStoreId;
+
+    if (storeID != null && storeID.isNotEmpty) {
+      // ✅ Parse attempt के साथ detailed logging
+      int? parsedId = int.tryParse(storeID);
+      print("🆔 Parse attempt result: $parsedId");
+
+      if (parsedId != null) {
+        dynamicStoreId = parsedId;
+        print("✅ Successfully parsed storeID: $dynamicStoreId");
+      } else {
+        print("❌ Parse failed for storeID: '$storeID'");
+        // ❌ यहाँ default 13 की बजाय error handle करें
+        print("❌ CRITICAL: Cannot parse store ID, socket connection may fail!");
+        return; // Socket connect न करें अगर proper ID नहीं मिला
+      }
+    } else {
+      print("❌ Store ID not found or empty in SharedPreferences");
+      // ✅ Try to get from API call data या user input
+      if (userMe != null && userMe.store_id != null) {
+        dynamicStoreId = userMe.store_id!;
+        print("✅ Using userMe.store_id: $dynamicStoreId");
+        // Save it for next time
+        sharedPreferences.setString(valueShared_STORE_KEY, dynamicStoreId.toString());
+      } else {
+        print("❌ No store ID available anywhere, cannot connect socket");
+        return;
+      }
+    }
+
+    print("🆔 Final store ID for socket: $dynamicStoreId");
+
+    // Rest of socket initialization...
     _socketService.onSalesUpdate = (data) {
-      print('📊 Sales update received in ReportScreen: $data');
+      print('📊 Sales update received in OrderScreen: $data');
       _handleSalesUpdate(data, isFromSocket: true);
     };
 
@@ -246,14 +320,31 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     };
 
     try {
-      print("🔌 Attempting to connect socket with bearer: $bearerKey");
-      print("🔌 Attempting to connect socket with storeId: $dynamicStoreId");
-      _socketService.connect(bearerKey!, storeId: dynamicStoreId); // ✅ Use dynamic ID
+      print("🔌 Attempting to connect socket:");
+      print("   Bearer: ${bearerKey?.substring(0, 20)}...");
+      print("   Store ID: $dynamicStoreId");
+
+      _socketService.connect(bearerKey!, storeId: dynamicStoreId);
     } catch (e) {
       print("❌ Socket connection failed: $e");
     }
   }
 
+// ✅ Additional method to ensure store ID is properly saved
+  Future<void> _ensureStoreIdIsSaved() async {
+    String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
+
+    if (storeID == null || storeID.isEmpty) {
+      print("⚠️ Store ID missing, fetching from API...");
+
+      if (userMe != null && userMe.store_id != null) {
+        await sharedPreferences.setString(valueShared_STORE_KEY, userMe.store_id.toString());
+        print("✅ Store ID saved: ${userMe.store_id}");
+      } else {
+        print("❌ Cannot save store ID - userMe data unavailable");
+      }
+    }
+  }
   void _startNoOrderTimer() {
     _noOrderTimer?.cancel();
     _noOrderTimer = Timer(Duration(seconds: 4), () {
@@ -404,23 +495,23 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   }
 
   // ─────────────────── API calls – unchanged except for params ───────────────────
-  Future<void> getStoreUserMeData(String? bearerKey) async {
-    try {
-      final result = await ApiRepo().getUserMe(bearerKey);
-      if (result != null) {
-        setState(() {
-          userMe = result;
-          sharedPreferences.setString(valueShared_STORE_KEY, userMe.store_id.toString());
-          getOrders(bearerKey, true, false, userMe.store_id.toString());
-        });
-      } else {
-        showSnackbar("Error", "Failed to update order status");
-      }
-    } catch (e) {
-      Log.loga(title, "Login Api:: e >>>>> $e");
-      showSnackbar("Api Error", "An error occurred: $e");
-    }
-  }
+  // Future<void> getStoreUserMeData(String? bearerKey) async {
+  //   try {
+  //     final result = await ApiRepo().getUserMe(bearerKey);
+  //     if (result != null) {
+  //       setState(() {
+  //         userMe = result;
+  //         sharedPreferences.setString(valueShared_STORE_KEY, userMe.store_id.toString());
+  //         getOrders(bearerKey, true, false, userMe.store_id.toString());
+  //       });
+  //     } else {
+  //       showSnackbar("Error", "Failed to update order status");
+  //     }
+  //   } catch (e) {
+  //     Log.loga(title, "Login Api:: e >>>>> $e");
+  //     showSnackbar("Api Error", "An error occurred: $e");
+  //   }
+  // }
 
   Future<void> getOrders(String? bearerKey, bool orderType, bool isBellRunning, String? id) async {
     try {

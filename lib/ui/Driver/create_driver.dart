@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:food_app/api/repository/api_repository.dart';
 import 'package:food_app/customView/CustomAppBar.dart';
 import 'package:food_app/customView/custom_button.dart';
 import 'package:food_app/customView/custom_text_form_prefiex.dart';
+import 'package:food_app/models/driver/driver_register_model.dart';
 import 'package:food_app/utils/validators.dart';
 import 'package:hive/hive.dart';
 
@@ -18,6 +20,9 @@ class _CreateDriverState extends State<CreateDriver> {
   final TextEditingController passwordController=TextEditingController();
   bool _obscureText = true;
   bool isPasswordVisible = false;
+
+  bool isLoading=false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -92,4 +97,51 @@ class _CreateDriverState extends State<CreateDriver> {
       ),
     );
   }
+
+  Future<void> gpwscDetailsRegistration(String district, String block, String name, String code,
+      String bankName, String bankAccountNo, String bankifscCode, String upiId, String email,
+      String mobileNo, String receiptTitle, String slogan, int waterResidentialcharges,
+      int waterCommercialcharges, int waterPenalty, String waterStatus,
+      int sanitationResidentialcharges,
+      int sanitationCommercialcharges, int sanitationPenalty, String sanitationStatus
+      ) async {
+    setState(() {
+      isLoading = true;
+    });
+    var map = {
+        "username": emailController.text,
+        "password": passwordController.text,
+        "address": {
+          "type": "",
+          "line1": "",
+          "city": "",
+          "zip": "",
+          "country": "",
+          "phone":phoneNumberController.text,
+          "customer_name": "",
+          "user_id": ''
+        },
+        "url": "string"
+    };
+
+    print("Driver Register Map Value Is  $map");
+
+    DriverRegisterModel model = await CallService().registerDriver(map);
+
+    setState(() {
+      isLoading = false;
+    });
+
+    if (model.message != null) {
+      String message = model.message ?? 'Registration successful';
+      print('register msg is $message');
+      setState(() {
+        isLoading = false;
+      });
+    } else {
+
+    }
+  }
+
+
 }
