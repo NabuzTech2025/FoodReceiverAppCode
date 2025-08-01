@@ -38,6 +38,7 @@ int badgeCount = 0;
 
 // -----------------------------------------------------------------------------
 //  MAIN ENTRY
+
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -154,6 +155,12 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print("✅ Background - Final Auto Accept: $autoAccept");
   print("✅ Background - Final Auto Print: $autoPrint");
 
+  // ✅ ADDED: Early exit if both features are disabled
+  if (!autoAccept && !autoPrint) {
+    print("ℹ️ Background - Both auto features disabled, showing notification only");
+    return; // Exit early, don't process order
+  }
+
   String savedLocale = prefs!.getString('selected_language') ?? 'de';
 
   // Initialize GetX in isolation
@@ -179,10 +186,13 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         print("🔍 Final Check - Auto Accept: $autoAccept");
         print("🔍 Final Check - Auto Print: $autoPrint");
 
+        // ✅ FIXED: Only process if at least one feature is enabled
         if (autoAccept || autoPrint) {
+          print("✅ Background - At least one auto feature enabled, processing order");
           await handleBackgroundOrderComplete(orderNumber, prefs, bearerKey, storeID);
         } else {
           print("ℹ️ Background - Auto features disabled - Accept: $autoAccept, Print: $autoPrint");
+          print("ℹ️ Background - Order notification shown but not processed");
         }
       } catch (e) {
         print('❌ Error parsing order number: $e');
@@ -193,15 +203,15 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 }
 
-// ✅ Updated background order handler with better error handling
+// ✅ Updated background order handler with proper condition checks
 Future<void> handleBackgroundOrderComplete(int orderNumber, SharedPreferences prefs, String bearerKey, String? storeID) async {
   try {
     print("🚀 Background order processing started for: $orderNumber");
     print("🔑 Using token: ${bearerKey.substring(0, 20)}...");
     print("🏪 Using store: ${storeID ?? 'NULL'}");
 
-    bool autoAccept = prefs.getBool('auto_order_accept') ?? true;
-    bool autoPrint = prefs.getBool('auto_order_print') ?? true;
+    bool autoAccept = prefs.getBool('auto_order_accept') ?? false; // ✅ Default false instead of true
+    bool autoPrint = prefs.getBool('auto_order_print') ?? false;   // ✅ Default false instead of true
 
     print("🔍 Auto Accept: $autoAccept");
     print("🔍 Auto Print: $autoPrint");
@@ -225,18 +235,22 @@ Future<void> handleBackgroundOrderComplete(int orderNumber, SharedPreferences pr
       print("✅ Background - Order data retrieved: ID ${orderData.id}");
       print("🔍 Order status: ${orderData.orderStatus}");
 
-      // ✅ Process based on order status
+      // ✅ FIXED LOGIC: Process based on order status
       if (orderData.orderStatus == 2) {
         print("✅ Background - Order already accepted");
 
+        // ✅ Only print if auto print is enabled
         if (autoPrint) {
           print("🖨️ Background - Auto printing already accepted order");
           await backgroundPrintOrder(orderData, prefs);
           print("✅ Background - Auto print attempt completed");
+        } else {
+          print("ℹ️ Background - Auto print disabled for accepted order");
         }
-      } else {
-        print("⏳ Background - Order is pending");
+      } else if (orderData.orderStatus == 1) {
+        print("⏳ Background - Order is pending (status: 1)");
 
+        // ✅ FIXED: Only proceed if auto accept is enabled
         if (autoAccept) {
           print("🤖 Background - Auto accepting pending order: $orderNumber");
 
@@ -251,9 +265,10 @@ Future<void> handleBackgroundOrderComplete(int orderNumber, SharedPreferences pr
           if (acceptResult != null) {
             print("✅ Background - Order auto-accepted successfully");
 
+            // ✅ Only print after accept if auto print is also enabled
             if (autoPrint) {
               print("🖨️ Background - Auto printing after accept");
-              await Future.delayed(Duration(seconds: 3)); // Increased delay
+              await Future.delayed(Duration(seconds: 3));
 
               final updatedOrder = await ApiRepo().getNewOrderData(bearerKey, orderNumber);
 
@@ -264,14 +279,22 @@ Future<void> handleBackgroundOrderComplete(int orderNumber, SharedPreferences pr
               } else {
                 print("❌ Background - Could not get updated order for printing");
               }
+            } else {
+              print("ℹ️ Background - Auto print disabled, only accepted order");
             }
           } else {
             print("❌ Background - Failed to auto-accept order");
           }
-        } else if (autoPrint) {
-          print("🖨️ Background - Auto print only (no accept)");
-          await backgroundPrintOrder(orderData, prefs);
+        } else {
+          // ✅ FIXED: This was the main issue - removed auto print for pending orders
+          print("ℹ️ Background - Auto accept disabled, ignoring pending order");
+          print("ℹ️ Background - Pending orders should NOT be printed without acceptance");
+          // ✅ Removed the auto print call for pending orders
+          return; // Exit without processing
         }
+      } else {
+        print("⚠️ Background - Unknown order status: ${orderData.orderStatus}");
+        return;
       }
 
       // Step 4: Refresh orders if store ID available
@@ -293,9 +316,6 @@ Future<void> handleBackgroundOrderComplete(int orderNumber, SharedPreferences pr
     print("❌ Error stack: ${e.toString()}");
   }
 }
-
-/// Replace your backgroundPrintOrder function with this enhanced version:
-
 Future<void> backgroundPrintOrder(Order order, SharedPreferences prefs) async {
   try {
     print("🖨️ ========== BACKGROUND PRINT STARTED ==========");
@@ -371,6 +391,76 @@ Future<void> backgroundPrintOrder(Order order, SharedPreferences prefs) async {
       return;
     }
 
+    // ✅ Enhanced Store Name Detection
+    String storeName = '';
+
+    // Method 1: Try common store name keys (OrderScreen से आने वाले)
+    List<String> storeNameKeys = [
+      'store_name',                    // OrderScreen से save होता है
+      valueShared_STORE_NAME,         // Backup key
+      'cached_store_name',            // _preloadStoreData से
+      'restaurant_name',
+      'shop_name',
+      'business_name',
+      'outlet_name'
+    ];
+
+    for (String key in storeNameKeys) {
+      String? name = prefs.getString(key);
+      print("🏪 Checking store key '$key': '${name ?? 'NULL'}'");
+
+      if (name != null && name.trim().isNotEmpty) {
+        storeName = name.trim();
+        print("✅ Found store name in '$key': '$storeName'");
+        break;
+      }
+    }
+
+    // Method 2: Search all keys containing 'store' or 'restaurant' or 'shop'
+    if (storeName.isEmpty) {
+      print("🔍 Searching all keys for store name...");
+      Set<String> allKeys = prefs.getKeys();
+
+      for (String key in allKeys) {
+        String lowerKey = key.toLowerCase();
+        if (lowerKey.contains('store') || lowerKey.contains('restaurant') ||
+            lowerKey.contains('shop') || lowerKey.contains('business')) {
+          var value = prefs.get(key);
+          print("🔍 Found potential store key '$key': $value");
+
+          if (value is String && value.trim().isNotEmpty && !value.contains('@') && !value.contains('.')) {
+            storeName = value.trim();
+            print("✅ Using store name from '$key': '$storeName'");
+            break;
+          }
+        }
+      }
+    }
+
+    // Method 3: Fallback - check if any string value looks like a store name
+    if (storeName.isEmpty) {
+      print("🔍 Final fallback - checking all string values...");
+      Set<String> allKeys = prefs.getKeys();
+
+      for (String key in allKeys) {
+        var value = prefs.get(key);
+        if (value is String && value.trim().isNotEmpty &&
+            value.length > 2 && value.length < 50 &&
+            !value.contains('@') && !value.contains('http') &&
+            !value.contains('.com') && !value.contains('Bearer') &&
+            !RegExp(r'^\d+$').hasMatch(value)) {
+
+          print("🔍 Potential store name in '$key': '$value'");
+          // You can add more filtering logic here if needed
+        }
+      }
+    }
+
+    if (storeName.isEmpty) {
+      storeName = 'Restaurant'; // Fallback name
+      print("⚠️ No store name found, using fallback: '$storeName'");
+    }
+
     // ✅ Check invoice data
     if (order.invoice == null || (order.invoice?.invoiceNumber ?? '').isEmpty) {
       print("⚠️ Background - Invoice data missing, attempting print anyway");
@@ -379,6 +469,7 @@ Future<void> backgroundPrintOrder(Order order, SharedPreferences prefs) async {
     String savedLocale = prefs.getString('selected_language') ?? 'de';
     print("🌐 Background - Using locale: $savedLocale");
     print("🖨️ Background - Final printer IP: '$selectedIp'");
+    print("🏪 Background - Final store name: '$storeName'");
 
     // ✅ Call print function with detailed logging
     print("🖨️ Background - Calling PrinterHelperEnglish.printInBackground...");
@@ -386,7 +477,7 @@ Future<void> backgroundPrintOrder(Order order, SharedPreferences prefs) async {
     await PrinterHelperEnglish.printInBackground(
       order: order,
       ipAddress: selectedIp,
-      store: '',
+      store: storeName,  // ✅ Now passing actual store name
       locale: savedLocale,
     );
 
@@ -398,6 +489,7 @@ Future<void> backgroundPrintOrder(Order order, SharedPreferences prefs) async {
     print("❌ Print error stack: ${e.toString()}");
   }
 }
+
 // ✅ Enhanced background orders refresh
 Future<void> refreshOrdersInBackground(String bearerKey, String storeID) async {
   try {
@@ -617,33 +709,7 @@ Future<void> _initializeLocalNotifications() async {
   }
 }
 
-// Helper that both foreground and background code can call
-// Future<void> _showOrderNotification(String title, String body) async {
-//   const androidDetails = AndroidNotificationDetails(
-//     'order_channel',
-//     'Order Notifications',
-//     channelDescription: 'This channel is used for order alerts',
-//     importance: Importance.max,
-//     priority: Priority.high,
-//     playSound: true,
-//     sound: RawResourceAndroidNotificationSound('alarm'),
-//   );
-//
-//   const iosDetails = DarwinNotificationDetails(
-//     presentAlert: true,
-//     presentBadge: true,
-//     presentSound: true,
-//     sound: 'alarm', // alarm.caf in ios/Runner
-//   );
-//
-//   const platformDetails = NotificationDetails(
-//     android: androidDetails,
-//     iOS: iosDetails,
-//     macOS: iosDetails,
-//   );
-//
-//   await flutterLocalNotificationsPlugin.show(0, title, body, platformDetails);
-// }
+
 
 Future<void> _showOrderNotification(String title, String body) async {
   final androidDetails = AndroidNotificationDetails(
@@ -675,35 +741,7 @@ Future<void> _showOrderNotification(String title, String body) async {
   );
 }
 
-// -----------------------------------------------------------------------------
-//  BACKGROUND FCM HANDLER
-// -----------------------------------------------------------------------------
 
-// Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-//   await Firebase.initializeApp();
-//
-//   final title = message.notification?.title ?? '';
-//   final body = message.notification?.body ?? '';
-//   debugPrint('📥 Background title: $title');
-//   debugPrint('📥 Background body: $body');
-//
-//   if (title.contains('New Order')) {
-//     await _showOrderNotification(title, body);
-//   }
-//   badgeCount++;
-//
-//   try {
-//     await AppBadgePlus.updateBadge(badgeCount);
-//   } catch (e) {
-//     debugPrint('Badge update failed: $e');
-//   }
-// }
-
-
-
-// -----------------------------------------------------------------------------
-//  NOTIFICATION TAP HANDLER
-// -----------------------------------------------------------------------------
 
 Future<void> callOrderApiFromNotification() async {
   debugPrint('📞 API called from notification tap!');

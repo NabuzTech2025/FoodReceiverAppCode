@@ -134,16 +134,18 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
     if (storeID != null && storeID.isNotEmpty) {
       print("✅ Using existing store ID: $storeID");
+
+      // ✅ Store data fetch करें पहले
+      await getStoredta(bearerKey!);
+
       getOrders(bearerKey, false, false, storeID);
 
-      // ✅ Store ID available होने के बाद socket initialize करें
       if (bearerKey != null && bearerKey!.isNotEmpty) {
         print("🔌 Initializing socket with store ID: $storeID");
         _initializeSocket();
       }
     } else {
       print("❌ No store ID found, getting user data first");
-      // पहले user data get करें, फिर socket connect करें
       await getStoreUserMeData(bearerKey);
     }
 
@@ -162,14 +164,14 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
           userMe = result;
         });
 
-        // ✅ Store ID को save करें
         await sharedPreferences.setString(valueShared_STORE_KEY, userMe.store_id.toString());
         print("✅ Store ID saved from API: ${userMe.store_id}");
 
-        // ✅ Orders get करें
+        // ✅ Store data भी fetch करें
+        await getStoredta(bearerKey!);
+
         getOrders(bearerKey, true, false, userMe.store_id.toString());
 
-        // ✅ अब socket connect करें proper store ID के साथ
         if (bearerKey != null && bearerKey!.isNotEmpty) {
           print("🔌 Initializing socket after getting user data");
           _initializeSocket();
@@ -182,6 +184,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       showSnackbar("Api Error", "An error occurred: $e");
     }
   }
+
   Future<String?> getStoredta(String bearerKey) async {
     try {
       String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
@@ -196,17 +199,20 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       if (result != null) {
         Store store = result;
         String fetchedStoreName = store.name?.toString() ?? "Unknown Store";
-        String fetchedStoreId = store.code?.toString() ?? storeID; // Get store ID from API
+        String fetchedStoreId = store.code?.toString() ?? storeID;
 
         setState(() {
           storeName = fetchedStoreName;
-          dynamicStoreId = fetchedStoreId; // Store API fetched ID
+          dynamicStoreId = fetchedStoreId;
         });
 
-        // Save the API store ID to SharedPreferences for next use
+        // ✅ Store name को SharedPreferences में save करें
+        await sharedPreferences.setString('store_name', fetchedStoreName);
+        await sharedPreferences.setString(valueShared_STORE_NAME, fetchedStoreName); // Backup key
         await sharedPreferences.setString(valueShared_STORE_KEY, fetchedStoreId);
 
-        print("✅ DEBUG - Final storeName: '$storeName', apiStoreId: '$dynamicStoreId'");
+        print("✅ DEBUG - Store name saved: '$fetchedStoreName'");
+        print("✅ DEBUG - Store ID saved: '$fetchedStoreId'");
         return storeName;
       }
     } catch (e) {
@@ -214,7 +220,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       return null;
     }
   }
-// Alternative approach - get store name from SharedPreferences if available:
+
   Future<String?> getStoreNameFallback() async {
     try {
       // Try to get from previous session
@@ -750,12 +756,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                 'No orders yet',
                                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
                               )
-                                  : Lottie.asset(
-                                'assets/animations/burger.json',
-                                width: 150,
-                                height: 150,
-                                repeat: true,
-                              )
+                                  : SizedBox.shrink()
                           ),
                         ],
                       );

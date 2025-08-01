@@ -6,10 +6,26 @@ import 'package:get/get.dart';
 
 import '../utils/my_application.dart';
 
-class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
-   CustomAppBar({super.key});
+class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
+  CustomAppBar({super.key});
 
+  @override
+  State<CustomAppBar> createState() => _CustomAppBarState();
+
+  @override
+  Size get preferredSize => const Size.fromHeight(70);
+}
+
+class _CustomAppBarState extends State<CustomAppBar> {
   TextEditingController searchControllerTodo = TextEditingController();
+  FocusNode searchFocusNode = FocusNode();
+
+  @override
+  void dispose() {
+    searchControllerTodo.dispose();
+    searchFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,10 +36,11 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         child: Row(
           children: [
             GestureDetector(
-              onTap: (){
-                Scaffold.of(context).openDrawer();
-              },
-              child: SvgPicture.asset('assets/images/drawer.svg'),
+                onTap: (){
+                  Scaffold.of(context).openDrawer();
+                },
+                child:  Icon(Icons.menu,color: Colors.black,)
+              //SvgPicture.asset('assets/images/drawer.svg'),
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -41,33 +58,38 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     Expanded(
                       child: TextField(
                         controller: searchControllerTodo,
+                        focusNode: searchFocusNode, // Add focusNode
+                        autofocus: false, // Explicitly disable autofocus
+                        enableInteractiveSelection: false, // Prevent text selection
                         decoration: InputDecoration(
                           hintText: 'search_item'.tr,
                           border: InputBorder.none,
                           isDense: true,
                         ),
+                        onTap: () {
+                          // Only focus when user explicitly taps
+                          searchFocusNode.requestFocus();
+                        },
                         onSubmitted: (value) {
                           if (value.isNotEmpty) {
                             app.appController.filterSearchResultsTodo(value);
                           }
+                          // Unfocus after search
+                          searchFocusNode.unfocus();
+                        },
+                        onEditingComplete: () {
+                          // Unfocus when editing is complete
+                          searchFocusNode.unfocus();
                         },
                       ),
                     ),
-                   /* GestureDetector(
-                      onTap: (){
-                        app.appController
-                            .filterSearchResultsTodo("");
-                        searchControllerTodo.text = "";
-                        searchControllerTodo.clear();
-                      },
-                      child: Icon(Icons.clear, color: Colors.green),
-                    )*/
+
                   ],
                 ),
               ),
             ),
             const SizedBox(width: 12),
-          /*  GestureDetector(
+            /*  GestureDetector(
               onTap: () {
                 // Open language selection
               },

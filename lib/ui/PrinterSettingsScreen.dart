@@ -3,10 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:esc_pos_printer/esc_pos_printer.dart';
-import 'package:esc_pos_utils/esc_pos_utils.dart';
-
-import '../api/api.dart';
 import '../api/repository/api_repository.dart';
 import '../constants/constant.dart';
 import '../models/StoreSetting.dart';
@@ -31,6 +27,9 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
   List.generate(1, (_) => TextEditingController());
   final List<TextEditingController> _ipRemoteControllers =
   List.generate(1, (_) => TextEditingController());
+  final List<FocusNode> _ipFocusNodes = List.generate(1, (_) => FocusNode());
+  final List<FocusNode> _ipRemoteFocusNodes = List.generate(1, (_) => FocusNode());
+
   int _selectedIpIndex = 0;
   int _selectedRemoteIpIndex = 0;
 
@@ -39,7 +38,6 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
   bool _autoOrderPrint = false;
   bool _autoRemoteOrderrAccept = false;
   bool _autoRemoteOrderPrint = false;
-  bool _testEnvironment = false;
   String? bearerKey;
   late SharedPreferences sharedPreferences;
 
@@ -74,13 +72,14 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       print("🔄 Printer Settings tab became active, refreshing...");
       _isCurrentTab = true;
       _lastTabIndex = tabIndex;
-
-      // Add a small delay to ensure UI is ready
-      Future.delayed(Duration(milliseconds: 300), () {
-        _refreshSettings();
-      });
+      _unfocusAllTextFields();
+      // ✅ FIX: Remove delay and call immediately
+      _refreshSettings();
     } else {
       _isCurrentTab = isNowCurrentTab;
+      if (!isNowCurrentTab) {
+        _unfocusAllTextFields();
+      }
     }
   }
 
@@ -90,7 +89,28 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
     for (var controller in _ipControllers) {
       controller.dispose();
     }
+    for (var controller in _ipRemoteControllers) {
+      controller.dispose();
+    }
+    // ✅ Dispose focus nodes
+    for (var focusNode in _ipFocusNodes) {
+      focusNode.dispose();
+    }
+    for (var focusNode in _ipRemoteFocusNodes) {
+      focusNode.dispose();
+    }
     super.dispose();
+  }
+
+  void _unfocusAllTextFields() {
+    for (var focusNode in _ipFocusNodes) {
+      focusNode.unfocus();
+    }
+    for (var focusNode in _ipRemoteFocusNodes) {
+      focusNode.unfocus();
+    }
+    // Also unfocus any currently focused element
+    FocusScope.of(context).unfocus();
   }
 
   // ✅ App lifecycle detection (for app foreground/background)
@@ -99,9 +119,9 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed && _isCurrentTab) {
       print("📱 App resumed and on printer settings tab, refreshing...");
-      Future.delayed(Duration(milliseconds: 500), () {
-        _refreshSettings();
-      });
+      _unfocusAllTextFields();
+      // ✅ FIX: Remove delay and call immediately
+      _refreshSettings();
     }
   }
 
@@ -109,7 +129,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
   Future<void> _refreshSettings() async {
     if (bearerKey != null && bearerKey!.isNotEmpty) {
       print("🔄 Refreshing settings from server...");
-      await getStoreSetting(bearerKey!);
+      getStoreSetting(bearerKey!);
     } else {
       print("⚠️ No bearer key available for refresh");
     }
@@ -154,22 +174,90 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
 
   Future<void> _saveIps() async {
     try {
-      await poststoreSetting(bearerKey!);
+      // ✅ IMPORTANT: Unfocus all text fields BEFORE API call
+      _unfocusAllTextFields();
+
+      // ✅ Show loading dialog
+      Get.dialog(
+        Center(
+            child: Lottie.asset(
+              'assets/animations/burger.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            )
+        ),
+        barrierDismissible: false,
+      );
+
+      // ✅ Call poststoreSetting without showing its dialog (we're handling it here)
+      await poststoreSetting(bearerKey!, showDialog: false);
       await Future.delayed(Duration(seconds: 1));
       await SettingsSync.syncSettingsAfterLogin();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Settings synced')),
+      // ✅ Close loading dialog first
+      if (Get.isDialogOpen == true) {
+        Get.back();
+      }
+
+      // ✅ Show success animation
+      Get.dialog(
+        Center(
+            child: Lottie.asset(
+              'assets/animations/Success.json',
+              width: 150,
+              height: 150,
+              repeat: false,
+            )
+        ),
+        barrierDismissible: false,
       );
+
+      // ✅ Wait for success animation, then show snackbar
+      await Future.delayed(Duration(seconds: 2));
+
+      if (Get.isDialogOpen == true) {
+        Get.back();
+      }
+
+      // ✅ IMPORTANT: Unfocus again after all dialogs are closed
+      Future.delayed(Duration(milliseconds: 100), () {
+        _unfocusAllTextFields();
+      });
+
+      Get.snackbar(
+        'Success',
+        'Settings synced successfully',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        duration: Duration(seconds: 3),
+      );
+
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to save settings')),
+      // ✅ Close any open dialog
+      if (Get.isDialogOpen == true) {
+        Get.back();
+      }
+
+      // ✅ IMPORTANT: Unfocus on error as well
+      _unfocusAllTextFields();
+
+      Get.snackbar(
+        'Error',
+        'Failed to save settings',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
       );
     }
   }
 
   Future<void> _saveLocalIps() async {
     try {
+      // ✅ IMPORTANT: Unfocus before validation and saving
+      _unfocusAllTextFields();
+
       final prefs = sharedPreferences;
       String ip = _ipControllers[0].text.trim();
 
@@ -188,9 +276,8 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       await prefs.setString('printer_ip_0', ip);
       await prefs.setInt('selected_ip_index', _selectedIpIndex);
 
-      if (bearerKey != null && bearerKey!.isNotEmpty) {
-        await poststorePrinting(bearerKey!, false, ip);
-      }
+      // ✅ Make sure focus is removed
+      _ipFocusNodes[0].unfocus();
 
       // Using Get.snackbar for success message
       Get.snackbar(
@@ -203,6 +290,9 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
     } catch (e) {
       print("❌ Save Local IP error: $e");
 
+      // ✅ Unfocus on error
+      _unfocusAllTextFields();
+
       // Show error snackbar
       Get.snackbar(
         'Error',
@@ -214,25 +304,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
     }
   }
 
-
-  Future<void> _saveRemoteIps() async {
-    final prefs = await SharedPreferences.getInstance();
-    var idAddress;
-    for (int i = 0; i < 1; i++) {
-      await prefs.setString(
-          'printer_ip_remote_$i', _ipRemoteControllers[i].text);
-      idAddress = _ipRemoteControllers[i].text;
-    }
-    await prefs.setInt('selected_ip_remote_index', _selectedRemoteIpIndex);
-
-    poststorePrinting(bearerKey!, true, idAddress);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Printer Remote IPs saved')),
-    );
-  }
-
-  Future<void> poststoreSetting(String bearerKey) async {
+  Future<void> poststoreSetting(String bearerKey, {bool showDialog = true}) async {
     String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
     Map<String, dynamic> jsonData = {
       "auto_accept_orders_remote": _autoRemoteOrderrAccept,
@@ -243,55 +315,126 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
     };
 
     try {
+      // ✅ Show loading dialog only if requested
+      if (showDialog) {
+        Get.dialog(
+          Center(
+              child: Lottie.asset(
+                'assets/animations/burger.json', // Changed to loading animation
+                width: 150,
+                height: 150,
+                repeat: true,
+              )
+          ),
+          barrierDismissible: false,
+        );
+      }
+
       final result = await ApiRepo().storeSettingPost(bearerKey, jsonData);
 
       if (result != null) {
+        // ✅ Close loading dialog first (only if we showed it)
+        if (showDialog && Get.isDialogOpen == true) {
+          Get.back();
+        }
+
         setState(() {
           print("StoreSettigData " + result.toString());
         });
+
+        // ✅ Show success animation dialog only if requested
+        if (showDialog) {
+          Get.dialog(
+            Center(
+                child: Lottie.asset(
+                  'assets/animations/Success.json',
+                  width: 150,
+                  height: 150,
+                  repeat: false, // Don't repeat success animation
+                )
+            ),
+            barrierDismissible: false,
+          );
+
+          // ✅ Wait for success animation to complete, then close and show snackbar
+          await Future.delayed(Duration(seconds: 2));
+
+          if (Get.isDialogOpen == true) {
+            Get.back();
+          }
+
+          // ✅ IMPORTANT: Ensure focus is removed after success dialog
+          Future.delayed(Duration(milliseconds: 100), () {
+            _unfocusAllTextFields();
+          });
+
+          // ✅ Show success snackbar
+          Get.snackbar(
+            'Success',
+            'Settings updated successfully',
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+            duration: Duration(seconds: 3),
+          );
+        }
+
+        return; // ✅ Return on success
+
       } else {
-        showSnackbar("Error", "Failed to update order status");
+        // ✅ Close loading dialog (only if we showed it)
+        if (showDialog && Get.isDialogOpen == true) {
+          Get.back();
+        }
+
+        // ✅ Unfocus on error
+        _unfocusAllTextFields();
+
+        if (showDialog) {
+          Get.snackbar(
+            'Error',
+            'Failed to update settings',
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+          );
+        }
+
+        throw Exception('Failed to update settings'); // ✅ Throw to handle in _saveIps
       }
     } catch (e) {
+      // ✅ Close loading dialog (only if we showed it)
+      if (showDialog && Get.isDialogOpen == true) {
+        Get.back();
+      }
+
+      // ✅ IMPORTANT: Unfocus on any exception
+      _unfocusAllTextFields();
+
       Log.loga(title, "Login Api:: e >>>>> $e");
-      showSnackbar("Api Error", "An error occurred: $e");
+
+      if (showDialog) {
+        Get.snackbar(
+          'Error',
+          'An error occurred: $e',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
+
+      rethrow; // ✅ Rethrow to handle in _saveIps
     }
   }
 
-  Future<void> poststorePrinting(String bearerKey, bool remote, String ipAddress) async {
-    String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
-    Map<String, dynamic> jsonData = {
-      "name": "",
-      "ip_address": ipAddress,
-      "store_id": storeID,
-      "isActive": true,
-      "type": 0,
-      "category_id": 0,
-      "isRemote": remote,
-    };
-
-    try {
-      final result = await ApiRepo().printerSettingPost(bearerKey, jsonData);
-
-      if (result != null) {
-        setState(() {
-          print("StoreSettigData " + result.toString());
-        });
-      } else {
-        showSnackbar("Error", "Failed to update order status");
-      }
-    } catch (e) {
-      Log.loga(title, "Login Api:: e >>>>> $e");
-      showSnackbar("Api Error", "An error occurred: $e");
-    }
-  }
-
-  // ✅ Enhanced getStoreSetting with better logging
   Future<void> getStoreSetting(String bearerKey) async {
     try {
       print("🌐 Calling getStoreSetting API... (Tab active: $_isCurrentTab)");
 
-      // Only show loading if this is the current active tab
+      // ✅ IMPORTANT: Unfocus before API call
+      _unfocusAllTextFields();
+
+      // ✅ FIX: Show loading dialog IMMEDIATELY if this is the current active tab
       if (_isCurrentTab) {
         Get.dialog(
           Center(
@@ -346,13 +489,23 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
         bool savedPrint = prefs.getBool('auto_order_print') ?? false;
         print("🔍 Verified - Auto Accept: $savedAccept, Auto Print: $savedPrint");
 
+        // ✅ IMPORTANT: Ensure focus remains removed after API success
+        Future.delayed(Duration(milliseconds: 100), () {
+          _unfocusAllTextFields();
+        });
+
       } else {
+        _unfocusAllTextFields();
         showSnackbar("Error", "Failed to get store data");
       }
     } catch (e) {
       if (_isCurrentTab && Get.isDialogOpen == true) {
         Get.back();
       }
+
+      // ✅ IMPORTANT: Unfocus on error
+      _unfocusAllTextFields();
+
       Log.loga(title, "getStoreSetting Api:: e >>>>> $e");
       showSnackbar("Api Error", "An error occurred: $e");
     }
@@ -385,6 +538,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
             Expanded(
               child: TextFormField(
                 controller: _ipControllers[index],
+                focusNode: _ipFocusNodes[index], // ✅ Assign focus node
                 enabled: index == _selectedIpIndex,
                 decoration: InputDecoration(
                   labelText: 'Local IP Address',
@@ -395,6 +549,14 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 onChanged: (value) {
                   setState(() {}); // Trigger rebuild to show validation
+                },
+                // ✅ IMPORTANT: Handle form submission
+                onFieldSubmitted: (value) {
+                  _ipFocusNodes[index].unfocus();
+                },
+                // ✅ IMPORTANT: Handle tap outside
+                onTapOutside: (event) {
+                  _ipFocusNodes[index].unfocus();
                 },
               ),
             ),
@@ -458,7 +620,10 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
     super.build(context); // Required for AutomaticKeepAliveClientMixin
 
     return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(), // dismiss keyboard
+      onTap: () {
+        // ✅ IMPORTANT: Unfocus when tapping outside
+        _unfocusAllTextFields();
+      },
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
@@ -471,29 +636,10 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Printer Settings',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                        ),
-                        Text(
-                          'Tab Active: ${_isCurrentTab ? "Yes" : "No"}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: _isCurrentTab ? Colors.green : Colors.red,
-                          ),
-                        ),
-                      ],
-                    ),
                     IconButton(
                       onPressed: () {
                         print("🔄 Manual refresh triggered");
+                        _unfocusAllTextFields(); // ✅ Unfocus before refresh
                         _refreshSettings();
                       },
                       icon: Icon(Icons.refresh, color: Colors.blue),
@@ -532,6 +678,9 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                   activeColor: Colors.blue,
                   value: _autoOrderPrint,
                   onChanged: (val) async {
+                    // ✅ Unfocus before changing toggle
+                    _unfocusAllTextFields();
+
                     setState(() => _autoOrderPrint = val);
 
                     // ✅ Immediately save to SharedPreferences
@@ -547,6 +696,9 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                   activeColor: Colors.green,
                   value: _autoRemoteOrderrAccept,
                   onChanged: (val) async {
+                    // ✅ Unfocus before changing toggle
+                    _unfocusAllTextFields();
+
                     setState(() => _autoRemoteOrderrAccept = val);
 
                     // ✅ Immediately save to SharedPreferences

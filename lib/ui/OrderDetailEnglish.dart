@@ -224,8 +224,10 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
       return sum + itemTotal;
     }) ?? 0;
 
+
     final discountData = updatedOrder.invoice?.discount_amount ?? 0.0;
     final deliveryFee = updatedOrder.invoice?.delivery_fee ?? 0.0;
+    final grandTotal = subtotal - discountData + deliveryFee;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -264,15 +266,20 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
             ),
           ],
         ),
+        // Replace the actions section in AppBar (around line 200):
+
         actions: [
-          Visibility(
-            visible: true /*isPrint*/,
-            child: IconButton(
-              icon: const Icon(Icons.print, color: Colors.blue),
-              onPressed: () {
-                printData(updatedOrder);
-              },
+          IconButton(
+            // ✅ Print icon only enabled if order is accepted (approval_status = 2)
+            icon: Icon(
+              Icons.print,
+              color: (updatedOrder.approvalStatus == 2) ? Colors.blue : Colors.grey,
             ),
+            onPressed: (updatedOrder.approvalStatus == 2)
+                ? () {
+              printData(updatedOrder);
+            }
+                : null, // ✅ Disable onPressed when pending
           ),
         ],
       ),
@@ -452,13 +459,13 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                             children: [
                               Text(
                                 'grand_total'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                     fontWeight: FontWeight.w500, fontSize: 13),
                               ),
 
                               Text(
-                                "${'currency'.tr} ${formatAmount(double.parse(amount))}",
-                                style: TextStyle(
+                                "${'currency'.tr} ${formatAmount((grandTotal))}",
+                                style: const TextStyle(
                                     fontWeight: FontWeight.w500, fontSize: 13),
                               ),
                               // Text("${'currency'.tr} ${formatAmount(updatedOrder.invoice?.totalAmount ?? 0.0)}",
@@ -853,10 +860,20 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     );
   }
 
+  // Replace the printData method (around line 670):
+
   void printData(Order order) {
-    if (storeName == null) return;
-    /* PrinterHelper.printTestFromSavedIp(
-        context: context, order: order, store: storeName!); */
+    // ✅ Check if order is accepted before printing
+    if (order.approvalStatus != 2) {
+      showSnackbar("Error", "Cannot print pending order. Please accept the order first.");
+      return;
+    }
+
+    if (storeName == null) {
+      showSnackbar("Error", "Store name not available");
+      return;
+    }
+
     PrinterHelperEnglish.printTestFromSavedIp(
         context: context,
         order: order,

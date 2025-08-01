@@ -86,7 +86,9 @@ class _CreateDriverState extends State<CreateDriver> {
               ),
               CustomButton(
                   myText: 'Submit',
-                  onPressed: (){},
+                  onPressed: (){
+                    driverRegistration();
+                  },
                   fontSize: 20,
                   color: Colors.black,
                   textColor: Colors.white,
@@ -98,50 +100,80 @@ class _CreateDriverState extends State<CreateDriver> {
     );
   }
 
-  Future<void> gpwscDetailsRegistration(String district, String block, String name, String code,
-      String bankName, String bankAccountNo, String bankifscCode, String upiId, String email,
-      String mobileNo, String receiptTitle, String slogan, int waterResidentialcharges,
-      int waterCommercialcharges, int waterPenalty, String waterStatus,
-      int sanitationResidentialcharges,
-      int sanitationCommercialcharges, int sanitationPenalty, String sanitationStatus
-      ) async {
+  Future<void> driverRegistration() async {
     setState(() {
       isLoading = true;
     });
+
     var map = {
-        "username": emailController.text,
-        "password": passwordController.text,
-        "address": {
-          "type": "",
-          "line1": "",
-          "city": "",
-          "zip": "",
-          "country": "",
-          "phone":phoneNumberController.text,
-          "customer_name": "",
-          "user_id": ''
-        },
-        "url": "string"
+      "username": emailController.text,
+      "password": passwordController.text,
+      "address": {
+        "type": "",
+        "line1": "",
+        "city": "",
+        "zip": "",
+        "country": "",
+        "phone": phoneNumberController.text,
+        "customer_name": "",
+        "user_id": 0
+      },
+      "url": ""
     };
 
     print("Driver Register Map Value Is  $map");
 
-    DriverRegisterModel model = await CallService().registerDriver(map);
+    try {
 
-    setState(() {
-      isLoading = false;
-    });
+      DriverRegisterModel model = await CallService().registerDriver(map);
 
-    if (model.message != null) {
-      String message = model.message ?? 'Registration successful';
-      print('register msg is $message');
       setState(() {
         isLoading = false;
       });
-    } else {
 
+      // Check if registration was successful (assuming success when message is not null)
+      if (model.message != null) {
+        String message = model.message ?? 'Registration successful';
+        print('register msg is $message');
+
+        // Show success SnackBar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Driver Registration Successful!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+
+      } else {
+        // Handle failure case
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Registration failed. Please try again.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+
+      // Handle error case
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An error occurred during registration.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      print('Registration error: $e');
     }
   }
-
 
 }

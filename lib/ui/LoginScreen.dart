@@ -263,6 +263,7 @@ class _LoginScreenState extends State<LoginScreen>
     }
     //if (validateData()) {}
   }
+
   Future<void> postloginData(String email, String password, String deviceToken) async {
     try {
       // Show loader
@@ -344,43 +345,63 @@ class _LoginScreenState extends State<LoginScreen>
           showSnackbar("Error", "Failed to save login credentials");
         }
       } else {
-        // ✅ Handle login failure cases - Keep original specific error messages
+        // ✅ Handle login failure cases with specific error messages
         Get.back(); // Close loader on login failure
-
-        if (result != null) {
-          // Check if it's an authentication error
-          if (result.code == "401" || result.message?.toLowerCase().contains("unauthorized") == true ||
-              result.message?.toLowerCase().contains("invalid") == true ||
-              result.message?.toLowerCase().contains("password") == true ||
-              result.message?.toLowerCase().contains("credentials") == true) {
-            showSnackbar("Login Failed", "Your password is wrong. Please try again.");
-          } else if (result.message != null && result.message!.isNotEmpty) {
-            // Show server error message
-            showSnackbar("Login Failed", result.message!);
-          } else {
-            showSnackbar("Login Failed", "Invalid credentials. Please check your username and password.");
-          }
-        } else {
-          showSnackbar("Login Failed", "Your password is wrong. Please try again.");
-        }
+        showSnackbar("Login Failed", "Invalid email or password");
       }
     } catch (e) {
       Log.loga(title, "Login Api:: e >>>>> $e");
-      Get.back(); // Close loader on error
+      Get.back();
 
-      // ✅ Better error message handling - Keep original specific messages
-      String errorMessage = "invalid Email password. Please try again.";
+      String errorMessage = "";
 
-      if (e.toString().contains("DioException") || e.toString().contains("DioError")) {
-        if (e.toString().contains("401") || e.toString().contains("Unauthorized")) {
-          errorMessage = "invalid Email password. Please try again.";
-        } else if (e.toString().contains("404")) {
-          errorMessage = "Service not found. Please try again later.";
-        } else if (e.toString().contains("500")) {
-          errorMessage = "Server error. Please try again later.";
+      // Check for specific network/connection errors
+      String errorString = e.toString().toLowerCase();
+
+      // First check if it's a DioException with 401 status
+      if (errorString.contains("dioexception") && errorString.contains("401")) {
+        // Extract the actual error message from the response
+        if (errorString.contains("invalid username or password") ||
+            errorString.contains("invalid credentials")) {
+          // Since we can't distinguish between email and password from this generic message,
+          // we'll show "Invalid email or password" for 401 errors
+          errorMessage = "Invalid email or password";
+        } else if (errorString.contains("email")) {
+          errorMessage = "Invalid email";
+        } else if (errorString.contains("password")) {
+          errorMessage = "Invalid password";
         } else {
-          errorMessage = "Network error. Please check your connection.";
+          errorMessage = "Invalid email or password";
         }
+      }
+      // Check for network/connection errors
+      else if (errorString.contains("socketexception") ||
+          errorString.contains("network is unreachable") ||
+          errorString.contains("failed host lookup") ||
+          errorString.contains("no internet") ||
+          errorString.contains("connection timed out") ||
+          errorString.contains("connection refused") ||
+          errorString.contains("no route to host") ||
+          errorString.contains("network error")) {
+        errorMessage = "No internet connection";
+      }
+      // Check for other DioException errors
+      else if (errorString.contains("dioexception") || errorString.contains("dioerror")) {
+        if (errorString.contains("400")) {
+          // Bad request - usually email format issues
+          errorMessage = "Invalid email";
+        } else if (errorString.contains("404")) {
+          errorMessage = "Invalid email";
+        } else if (errorString.contains("500")) {
+          errorMessage = "Server error. Please try again later";
+        } else if (errorString.contains("timeout")) {
+          errorMessage = "No internet connection";
+        } else {
+          errorMessage = "No internet connection";
+        }
+      } else {
+        // For any other unknown errors
+        errorMessage = "No internet connection";
       }
 
       showSnackbar("Login Error", errorMessage);
@@ -484,44 +505,6 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-
-
-  // Future<void> postloginData(String email, String password, String deviceToken) async {
-  //   try {
-  //     Get.dialog(
-  //       Center(
-  //           child:  Lottie.asset(
-  //             'assets/animations/burger.json',
-  //             width: 150,
-  //             height: 150,
-  //             repeat: true, )
-  //       //     CupertinoActivityIndicator(
-  //       //   radius: 20,
-  //       //   color: Colors.orange,
-  //       // )
-  //       ),
-  //       barrierDismissible: false,
-  //     );
-  //     final result = await ApiRepo().loginApi(email, password, deviceToken);
-  //     Log.loga(title, "LoginData :: result >>>>> ${result?.toJson()}");
-  //     Get.back();
-  //     if (result != null) {
-  //       // Handle navigation or success here
-  //       sharedPreferences.setString(valueShared_BEARER_KEY, result.access_token!);
-  //       sharedPreferences.setString(valueShared_USERNAME_KEY, _EmailController.text.toString());
-  //       sharedPreferences.setString(valueShared_PASSWORD_KEY, _PasswordController.text.toString());
-  //       print("LoginData  " + result.role_id.toString());
-  //       print("LoginDataaccess_token  " + result.access_token.toString());
-  //       Get.to(() => HomeScreen());
-  //     } else {
-  //       showSnackbar("Error", "Error on login");
-  //     }
-  //   } catch (e) {
-  //     Log.loga(title, "Login Api:: e >>>>> $e");
-  //     showSnackbar("Api Error", "An error occurred: $e");
-  //     Get.back();
-  //   }
-  // }
 
   Future<void> changeLanguage(String langCode) async {
     Locale locale = Locale(langCode);

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:food_app/ui/PrinterSettingsScreen.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -41,6 +42,14 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     _pageController = PageController(initialPage: 0);
     _setupFCMListeners();
+
+    final arguments = Get.arguments;
+    if (arguments != null && arguments['initialTab'] != null) {
+      final int initialTab = arguments['initialTab'];
+      Future.delayed(Duration(milliseconds: 100), () {
+        _openTab(initialTab);
+      });
+    }
     super.initState();
   }
 
@@ -93,17 +102,26 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<bool> _onWillPop() async {
+    // Direct exit from app without any dialog
+    SystemNavigator.pop();
+    return false;
+  }
+
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      drawer: CustomDrawer(onSelectTab: _openTab),
-      appBar: CustomAppBar(),
-      resizeToAvoidBottomInset: false,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-   /*   floatingActionButton: floatingButton(context),*/
-      bottomNavigationBar: _buildBottomBar(),
-      body: _buildBody(),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        drawer: CustomDrawer(onSelectTab: _openTab),
+        appBar: CustomAppBar(),
+        resizeToAvoidBottomInset: false,
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+         /*   floatingActionButton: floatingButton(context),*/
+        bottomNavigationBar: _buildBottomBar(),
+        body: _buildBody(),
+      ),
     );
   }
 
