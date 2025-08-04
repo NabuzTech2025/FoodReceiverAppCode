@@ -91,28 +91,73 @@ class AppController extends GetxController {
   }
 
   Future<void> addNewOrder(Order result) async {
-    _ordersList.insert(0, result);
-    _ordersList.value = [..._ordersList];
-    // Insert at index 0 in searchResultOrder and trigger rebuild
-    searchResultOrder.value = [result, ...searchResultOrder];
+    try {
+      print("🆕 Adding new order: ID ${result.id}");
+
+      // ✅ Step 1: Check if order already exists in _ordersList
+      bool existsInMainList = _ordersList.any((order) => order.id == result.id);
+      if (existsInMainList) {
+        print("⚠️ Order ${result.id} already exists in main list, skipping add");
+        return;
+      }
+
+      // ✅ Step 2: Check if order already exists in searchResultOrder
+      bool existsInSearchList = searchResultOrder.any((order) => order.id == result.id);
+      if (existsInSearchList) {
+        print("⚠️ Order ${result.id} already exists in search list, skipping add");
+        return;
+      }
+
+      // ✅ Step 3: Add to both lists only if it doesn't exist
+      print("✅ Order ${result.id} is new, adding to lists");
+
+      _ordersList.insert(0, result);
+      _ordersList.value = [..._ordersList]; // Trigger reactivity
+
+      searchResultOrder.insert(0, result);
+      searchResultOrder.value = [...searchResultOrder]; // Trigger reactivity
+
+      // ✅ Step 4: Update pending count
+      onSetPendingOrder(searchResultOrder.where((o) => o.approvalStatus == 1).length);
+
+      print("✅ Order ${result.id} added successfully");
+      print("📊 Total orders now: ${_ordersList.length}");
+
+    } catch (e) {
+      print("❌ Error adding new order: $e");
+    }
   }
 
   Future<void> updateOrder(Order result) async {
-    // Find index in _ordersList
-    int index = _ordersList.indexWhere((order) => order.id == result.id);
-    if (index != -1) {
-      _ordersList[index] = result;
-      _ordersList.value = [..._ordersList];
-    }
+    try {
+      print("🔄 Updating order: ID ${result.id}");
 
-    // Find index in searchResultOrder and update
-    int searchIndex =
-    searchResultOrder.indexWhere((order) => order.id == result.id);
-    if (searchIndex != -1) {
-      searchResultOrder[searchIndex] = result;
-      searchResultOrder.value = [...searchResultOrder];
+      // Find and update in _ordersList
+      int index = _ordersList.indexWhere((order) => order.id == result.id);
+      if (index != -1) {
+        _ordersList[index] = result;
+        _ordersList.value = [..._ordersList]; // Trigger reactivity
+        print("✅ Order ${result.id} updated in main list at index $index");
+      } else {
+        print("⚠️ Order ${result.id} not found in main list for update");
+      }
+
+      // Find and update in searchResultOrder
+      int searchIndex = searchResultOrder.indexWhere((order) => order.id == result.id);
+      if (searchIndex != -1) {
+        searchResultOrder[searchIndex] = result;
+        searchResultOrder.value = [...searchResultOrder]; // Trigger reactivity
+        print("✅ Order ${result.id} updated in search list at index $searchIndex");
+      } else {
+        print("⚠️ Order ${result.id} not found in search list for update");
+      }
+
+      // Update pending count
+      onSetPendingOrder(searchResultOrder.where((o) => o.approvalStatus == 1).length);
+
+    } catch (e) {
+      print("❌ Error updating order: $e");
     }
-    onSetPendingOrder(searchResultOrder.where((o) => o.approvalStatus == 1).length);
   }
 
   var _pendingOrders = 0.obs;
@@ -138,4 +183,52 @@ class AppController extends GetxController {
     _reportRefreshTrigger.value++;
     print("Manual report refresh triggered: ${_reportRefreshTrigger.value}");
   }
+
+  void removeDuplicateOrders() {
+    try {
+      print("🧹 Removing duplicate orders...");
+
+      // Remove duplicates from main list
+      Map<int, Order> uniqueOrders = {};
+      for (var order in _ordersList) {
+        if (order.id != null) {
+          uniqueOrders[order.id!] = order;
+        }
+      }
+
+      _ordersList.value = uniqueOrders.values.toList();
+
+      // Remove duplicates from search list
+      Map<int, Order> uniqueSearchOrders = {};
+      for (var order in searchResultOrder) {
+        if (order.id != null) {
+          uniqueSearchOrders[order.id!] = order;
+        }
+      }
+
+      searchResultOrder.value = uniqueSearchOrders.values.toList();
+
+      print("✅ Duplicates removed. Orders count: ${_ordersList.length}");
+
+    } catch (e) {
+      print("❌ Error removing duplicates: $e");
+    }
+  }
+
+  // ✅ NEW: Debug method to print current orders
+  void debugPrintOrders() {
+    print("📋 === CURRENT ORDERS DEBUG ===");
+    print("Main list count: ${_ordersList.length}");
+    print("Search list count: ${searchResultOrder.length}");
+
+    for (int i = 0; i < _ordersList.length; i++) {
+      print("Main[$i]: ID ${_ordersList[i].id}");
+    }
+
+    for (int i = 0; i < searchResultOrder.length; i++) {
+      print("Search[$i]: ID ${searchResultOrder[i].id}");
+    }
+    print("📋 === END DEBUG ===");
+  }
 }
+

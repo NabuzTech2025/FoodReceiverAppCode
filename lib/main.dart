@@ -38,6 +38,20 @@ int badgeCount = 0;
 
 // -----------------------------------------------------------------------------
 //  MAIN ENTRY
+// ✅ ADD THESE GLOBAL VARIABLES AT TOP OF main.dart
+final Set<int> _backgroundProcessedOrders = <int>{};
+final Map<int, DateTime> _backgroundProcessingTime = <int, DateTime>{};
+
+// ✅ Clean old processed orders (older than 30 minutes for background)
+void _cleanOldBackgroundProcessedOrders() {
+  final now = DateTime.now();
+  final thirtyMinutesAgo = now.subtract(Duration(minutes: 30));
+
+  _backgroundProcessingTime.removeWhere((orderId, time) => time.isBefore(thirtyMinutesAgo));
+  _backgroundProcessedOrders.removeWhere((orderId) => !_backgroundProcessingTime.containsKey(orderId));
+
+  print("🧹 Background: Cleaned old processed orders. Current tracked: ${_backgroundProcessedOrders.length}");
+}
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -45,35 +59,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
   print("🔥 Background handler triggered");
 
-  // ✅ Multiple attempts to get fresh SharedPreferences
-  SharedPreferences? prefs;
-  String? bearerKey;
-  String? storeID;
-
-  for (int attempt = 0; attempt < 5; attempt++) { // Increased attempts
-    try {
-      print("🔄 Attempt ${attempt + 1}/5 to get fresh preferences");
-
-      prefs = await SharedPreferences.getInstance();
-      await prefs.reload();
-      await Future.delayed(Duration(milliseconds: 500)); // Increased delay
-
-      bearerKey = prefs.getString(valueShared_BEARER_KEY);
-      storeID = prefs.getString(valueShared_STORE_KEY);
-
-      print("🔍 Attempt ${attempt + 1} - Token: ${bearerKey?.substring(0, 20) ?? 'NULL'}...");
-      print("🔍 Attempt ${attempt + 1} - Store: $storeID");
-
-      if (bearerKey != null && bearerKey.isNotEmpty) {
-        print("✅ Token found on attempt ${attempt + 1}");
-        break;
-      }
-
-      await Future.delayed(Duration(milliseconds: 500));
-    } catch (e) {
-      print("❌ Attempt ${attempt + 1} failed: $e");
-    }
-  }
+  // ✅ Clean old processed orders first
+  _cleanOldBackgroundProcessedOrders();
 
   final title = message.notification?.title ?? '';
   final body = message.notification?.body ?? '';
@@ -81,7 +68,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print('📥 Background title: $title');
   print('📥 Background body: $body');
 
-  // ✅ Show notification regardless of token status
+  // ✅ Show notification regardless of processing status
   if (title.contains('New Order')) {
     await _showOrderNotification(title, body);
   }
@@ -93,86 +80,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     print('❌ Badge update failed: $e');
   }
 
-  // ✅ Token validation - More lenient check
-  if (bearerKey == null || bearerKey.isEmpty) {
-    print("❌ Background - No bearer token found after all attempts, skipping processing");
-    return;
-  }
-
-  // ✅ Get and log current settings with multiple attempts
-  bool autoAccept = false;
-  bool autoPrint = false;
-
-  for (int i = 0; i < 5; i++) { // Increased attempts
-    try {
-      print("🔄 Settings read attempt ${i + 1}/5");
-
-      // Force reload SharedPreferences
-      await prefs!.reload();
-      await Future.delayed(Duration(milliseconds: 300));
-
-      autoAccept = prefs.getBool('auto_order_accept') ?? false;
-      autoPrint = prefs.getBool('auto_order_print') ?? false;
-
-      print("🔍 Settings attempt ${i + 1}:");
-      print("🔍 Auto Accept: $autoAccept");
-      print("🔍 Auto Print: $autoPrint");
-
-      // If we got any true value, settings are probably correct
-      if (autoAccept || autoPrint) {
-        print("✅ Found enabled settings on attempt ${i + 1}");
-        break;
-      }
-
-      // Try to get fresh instance
-      if (i < 4) {
-        prefs = await SharedPreferences.getInstance();
-        await Future.delayed(Duration(milliseconds: 500));
-      }
-    } catch (e) {
-      print("❌ Settings read attempt ${i + 1} failed: $e");
-      await Future.delayed(Duration(milliseconds: 300));
-    }
-  }
-
-// ✅ Additional debugging - check all keys
-  try {
-    Set<String> keys = prefs!.getKeys();
-    print("🔍 All SharedPreferences keys: $keys");
-
-    for (String key in keys) {
-      if (key.contains('auto_')) {
-        var value = prefs.get(key);
-        print("🔍 Key: $key, Value: $value, Type: ${value.runtimeType}");
-      }
-    }
-  } catch (e) {
-    print("❌ Error checking keys: $e");
-  }
-
-  print("✅ Background - Valid token found: ${bearerKey.substring(0, 20)}...");
-  print("✅ Background - Store ID: ${storeID ?? 'MISSING'}");
-  print("✅ Background - Final Auto Accept: $autoAccept");
-  print("✅ Background - Final Auto Print: $autoPrint");
-
-  // ✅ ADDED: Early exit if both features are disabled
-  if (!autoAccept && !autoPrint) {
-    print("ℹ️ Background - Both auto features disabled, showing notification only");
-    return; // Exit early, don't process order
-  }
-
-  String savedLocale = prefs!.getString('selected_language') ?? 'de';
-
-  // Initialize GetX in isolation
-  try {
-    Get.put(AppTranslations());
-    Get.updateLocale(Locale(savedLocale));
-  } catch (e) {
-    print("⚠️ GetX initialization error: $e");
-  }
-
-  print('🌐 Background locale set to: $savedLocale');
-
+  // ✅ Extract order ID early to check for duplicates
   if (title.contains('New Order')) {
     RegExp regex = RegExp(r'#(\d+)');
     Match? match = regex.firstMatch(body);
@@ -181,27 +89,137 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       String orderNumberStr = match.group(1)!;
       try {
         int orderNumber = int.parse(orderNumberStr);
-        print("🆔 Background - Processing Order ID: $orderNumber");
+        print("🆔 Background - Extracted Order ID: $orderNumber");
 
+        // ✅ CHECK FOR DUPLICATE PROCESSING
+        if (_backgroundProcessedOrders.contains(orderNumber)) {
+          print("⚠️ Background - Order $orderNumber already processed recently, skipping");
+          return; // Exit early for duplicates
+        }
+
+        // ✅ Mark as being processed
+        _backgroundProcessedOrders.add(orderNumber);
+        _backgroundProcessingTime[orderNumber] = DateTime.now();
+        print("✅ Background - Marked order $orderNumber as processing");
+
+        // Continue with normal processing...
+        SharedPreferences? prefs;
+        String? bearerKey;
+        String? storeID;
+
+        // Get SharedPreferences with retries
+        for (int attempt = 0; attempt < 5; attempt++) {
+          try {
+            print("🔄 Attempt ${attempt + 1}/5 to get fresh preferences");
+
+            prefs = await SharedPreferences.getInstance();
+            await prefs.reload();
+            await Future.delayed(Duration(milliseconds: 500));
+
+            bearerKey = prefs.getString(valueShared_BEARER_KEY);
+            storeID = prefs.getString(valueShared_STORE_KEY);
+
+            print("🔍 Attempt ${attempt + 1} - Token: ${bearerKey?.substring(0, 20) ?? 'NULL'}...");
+            print("🔍 Attempt ${attempt + 1} - Store: $storeID");
+
+            if (bearerKey != null && bearerKey.isNotEmpty) {
+              print("✅ Token found on attempt ${attempt + 1}");
+              break;
+            }
+
+            await Future.delayed(Duration(milliseconds: 500));
+          } catch (e) {
+            print("❌ Attempt ${attempt + 1} failed: $e");
+          }
+        }
+
+        // ✅ Token validation
+        if (bearerKey == null || bearerKey.isEmpty) {
+          print("❌ Background - No bearer token found, removing from processed and skipping");
+          _backgroundProcessedOrders.remove(orderNumber); // Remove if failed
+          return;
+        }
+
+        // ✅ Get settings with retries
+        bool autoAccept = false;
+        bool autoPrint = false;
+
+        for (int i = 0; i < 5; i++) {
+          try {
+            print("🔄 Settings read attempt ${i + 1}/5");
+
+            await prefs!.reload();
+            await Future.delayed(Duration(milliseconds: 300));
+
+            autoAccept = prefs.getBool('auto_order_accept') ?? false;
+            autoPrint = prefs.getBool('auto_order_print') ?? false;
+
+            print("🔍 Settings attempt ${i + 1}:");
+            print("🔍 Auto Accept: $autoAccept");
+            print("🔍 Auto Print: $autoPrint");
+
+            if (autoAccept || autoPrint) {
+              print("✅ Found enabled settings on attempt ${i + 1}");
+              break;
+            }
+
+            if (i < 4) {
+              prefs = await SharedPreferences.getInstance();
+              await Future.delayed(Duration(milliseconds: 500));
+            }
+          } catch (e) {
+            print("❌ Settings read attempt ${i + 1} failed: $e");
+            await Future.delayed(Duration(milliseconds: 300));
+          }
+        }
+
+        print("✅ Background - Valid token found: ${bearerKey.substring(0, 20)}...");
+        print("✅ Background - Store ID: ${storeID ?? 'MISSING'}");
+        print("✅ Background - Final Auto Accept: $autoAccept");
+        print("✅ Background - Final Auto Print: $autoPrint");
+
+        // ✅ Early exit if both features are disabled
+        if (!autoAccept && !autoPrint) {
+          print("ℹ️ Background - Both auto features disabled, notification shown only");
+          _backgroundProcessedOrders.remove(orderNumber); // Remove from tracking
+          return;
+        }
+
+        String savedLocale = prefs!.getString('selected_language') ?? 'de';
+
+        try {
+          Get.put(AppTranslations());
+          Get.updateLocale(Locale(savedLocale));
+        } catch (e) {
+          print("⚠️ GetX initialization error: $e");
+        }
+
+        print('🌐 Background locale set to: $savedLocale');
         print("🔍 Final Check - Auto Accept: $autoAccept");
         print("🔍 Final Check - Auto Print: $autoPrint");
 
-        // ✅ FIXED: Only process if at least one feature is enabled
+        // ✅ Process the order
         if (autoAccept || autoPrint) {
           print("✅ Background - At least one auto feature enabled, processing order");
           await handleBackgroundOrderComplete(orderNumber, prefs, bearerKey, storeID);
-        } else {
-          print("ℹ️ Background - Auto features disabled - Accept: $autoAccept, Print: $autoPrint");
-          print("ℹ️ Background - Order notification shown but not processed");
         }
+
       } catch (e) {
         print('❌ Error parsing order number: $e');
+        // Remove from processed if parsing failed
+        if (orderNumberStr.isNotEmpty) {
+          try {
+            int failedOrderNumber = int.parse(orderNumberStr);
+            _backgroundProcessedOrders.remove(failedOrderNumber);
+          } catch (_) {}
+        }
       }
     } else {
       print("❌ Could not extract order number from: $body");
     }
   }
 }
+
 
 // ✅ Updated background order handler with proper condition checks
 Future<void> handleBackgroundOrderComplete(int orderNumber, SharedPreferences prefs, String bearerKey, String? storeID) async {
@@ -316,6 +334,7 @@ Future<void> handleBackgroundOrderComplete(int orderNumber, SharedPreferences pr
     print("❌ Error stack: ${e.toString()}");
   }
 }
+
 Future<void> backgroundPrintOrder(Order order, SharedPreferences prefs) async {
   try {
     print("🖨️ ========== BACKGROUND PRINT STARTED ==========");

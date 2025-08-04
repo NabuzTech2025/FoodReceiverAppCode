@@ -485,13 +485,13 @@ class _CustomDrawerState extends State<CustomDrawer> {
           _drawerItem('reports'.tr, onTap: () {
             _navigateToHomeScreenTab(1);
           }),
-          // _drawerItem('Driver', onTap: () {
-          //   Navigator.of(context).pop(); // First close drawer
-          //   // Then navigate to DriverScreen
-          //   Future.delayed(Duration(milliseconds: 100), () {
-          //     Get.to(() => DriverScreen());
-          //   });
-          // }),
+          _drawerItem('Driver', onTap: () {
+            Navigator.of(context).pop();
+
+            Future.delayed(Duration(milliseconds: 100), () {
+              Get.to(() => DriverScreen());
+            });
+          }),
           _drawerItem('setting'.tr, onTap: () {
             _navigateToHomeScreenTab(2);
           }),

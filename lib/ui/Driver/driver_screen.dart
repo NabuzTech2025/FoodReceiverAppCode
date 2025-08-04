@@ -6,6 +6,8 @@ import 'package:food_app/ui/Driver/create_driver.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 
+import 'delivery_order.dart';
+
 class DriverScreen extends StatefulWidget {
   const DriverScreen({super.key});
 
@@ -44,16 +46,21 @@ class _DriverScreenState extends State<DriverScreen> {
                 ),
                 Row(
                   children: [
-                    Container(
-                      padding: EdgeInsets.all(10),
-                      decoration:BoxDecoration(
-                        borderRadius: BorderRadius.circular(3),
-                        color: Color(0xFFFCAE03),
-                      ) ,
-                      child: const Center(
-                        child: Text('Delivery Order',style: TextStyle(color: Colors.white,
-                          fontWeight: FontWeight.w700,fontSize: 12,fontFamily: 'Mulish',
-                        ),),
+                    GestureDetector(
+                      onTap: (){
+                        Get.to(()=>DeliveryOrder());
+                      },
+                      child: Container(
+                        padding: EdgeInsets.all(10),
+                        decoration:BoxDecoration(
+                          borderRadius: BorderRadius.circular(3),
+                          color: Color(0xFFFCAE03),
+                        ) ,
+                        child: const Center(
+                          child: Text('Delivery Order',style: TextStyle(color: Colors.white,
+                            fontWeight: FontWeight.w700,fontSize: 12,fontFamily: 'Mulish',
+                          ),),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8,),
@@ -257,6 +264,7 @@ class _DriverScreenState extends State<DriverScreen> {
               itemBuilder: (context,index){
               return Container(
                 padding: EdgeInsets.all(10),
+                margin: EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(5),
@@ -327,7 +335,41 @@ class _DriverScreenState extends State<DriverScreen> {
                         )
                       ],
                     ),
-                    
+                    const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Total Delivery  : 20',style: TextStyle(
+                            fontFamily: "Mulish",fontWeight: FontWeight.w800,fontSize: 12,color: Colors.black
+                        ),),
+                        Text('Delivered  : 15',style: TextStyle(
+                            fontFamily: "Mulish",fontWeight: FontWeight.w800,fontSize: 12,color: Colors.black
+                        ),),
+                        Text('Assigned  : 15',style: TextStyle(
+                            fontFamily: "Mulish",fontWeight: FontWeight.w800,fontSize: 12,color: Colors.black
+                        ),),
+                      ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 25.0),
+                      child: Center(
+                        child: Text('Cancelled  : 20',style: TextStyle(
+                            fontFamily: "Mulish",fontWeight: FontWeight.w800,fontSize: 12,color: Colors.black
+                        ),),
+                      ),
+                    ),
+                    Divider(color: Colors.black,thickness: 2,),
+                    const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Total Amount  : 200',style: TextStyle(
+                            fontFamily: "Mulish",fontWeight: FontWeight.w800,fontSize: 12,color: Colors.black
+                        ),),
+                        Text('Cash  : 100',style: TextStyle(
+                            fontFamily: "Mulish",fontWeight: FontWeight.w800,fontSize: 12,color: Colors.black
+                        ),),
+                        Text('Online  : 100',style: TextStyle(
+                            fontFamily: "Mulish",fontWeight: FontWeight.w800,fontSize: 12,color: Colors.black
+                        ),),
+                      ],
+                    ),
                   ],
                 ),
               );

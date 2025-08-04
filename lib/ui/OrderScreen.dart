@@ -500,24 +500,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     await getOrders(bearerKey, true, false, storeID);
   }
 
-  // ─────────────────── API calls – unchanged except for params ───────────────────
-  // Future<void> getStoreUserMeData(String? bearerKey) async {
-  //   try {
-  //     final result = await ApiRepo().getUserMe(bearerKey);
-  //     if (result != null) {
-  //       setState(() {
-  //         userMe = result;
-  //         sharedPreferences.setString(valueShared_STORE_KEY, userMe.store_id.toString());
-  //         getOrders(bearerKey, true, false, userMe.store_id.toString());
-  //       });
-  //     } else {
-  //       showSnackbar("Error", "Failed to update order status");
-  //     }
-  //   } catch (e) {
-  //     Log.loga(title, "Login Api:: e >>>>> $e");
-  //     showSnackbar("Api Error", "An error occurred: $e");
-  //   }
-  // }
 
   Future<void> getOrders(String? bearerKey, bool orderType, bool isBellRunning, String? id) async {
     try {
@@ -567,10 +549,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
           _startNoOrderTimer();
         }
       } else {
-       /* String errorMessage = result.isNotEmpty
-            ? result.first.mess ?? "Unknown error"
-            : "No data returned";
-        showSnackbar("Error", errorMessage);*/
+
       }
     } catch (e) {
       if (orderType) Get.back();
@@ -609,7 +588,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     }
   }
 
-// Order Type count get करने के लिए
   int _getOrderTypeCount(String type) {
     if (_currentDateReport?.data?.orderTypes == null) return 0;
 
@@ -630,6 +608,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         return 0;
     }
   }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -644,7 +623,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // First row - Date + Title + Total Orders + Refresh
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -691,7 +670,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
                 const SizedBox(height: 10),
 
-                // Second row - Status containers
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -830,7 +808,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                     children: [
                                                       Text(
                                                   order.orderType == 2 ?'pickup'.tr:order.shipping_address!.zip.toString(),
-                                                        style: TextStyle(
+                                                        style: const TextStyle(
                                                             fontWeight: FontWeight.w700,
                                                             fontSize: 13,
                                                             fontFamily: "Mulish-Regular"
@@ -873,12 +851,15 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
                                           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                             children: [
-                                              Text(
-                                                '${order.shipping_address?.customer_name ?? "User"} / ${order.shipping_address?.phone ?? "0000000000"}',
-                                                style: const TextStyle(
-                                                    fontWeight: FontWeight.w700,
-                                                    fontFamily: "Mulish",
-                                                    fontSize: 13
+                                              Container(
+                                                width: MediaQuery.of(context).size.width*0.5,
+                                                child: Text(
+                                                  '${order.shipping_address?.customer_name ?? "User"} / ${order.shipping_address?.phone ?? "0000000000"}',
+                                                  style: const TextStyle(
+                                                      fontWeight: FontWeight.w700,
+                                                      fontFamily: "Mulish",
+                                                      fontSize: 13
+                                                  ),
                                                 ),
                                               ),
                                               Row(
@@ -1042,7 +1023,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         app.appController.addNewOrder(result);
       } else {
         String errorMessage = result.mess ?? "Unknown error";
-      //  showSnackbar("Error", errorMessage);
       }
     } catch (e) {
       Log.loga(title, "Login Api:: e >>>>> $e");
@@ -1050,6 +1030,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     }
   }
 }
+
 class SalesCacheHelper {
   static const _salesDataKey = 'cached_sales_data';
   static const _lastDateKey = 'cached_sales_date';

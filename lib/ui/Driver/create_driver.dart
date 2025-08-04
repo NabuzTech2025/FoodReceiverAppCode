@@ -5,7 +5,9 @@ import 'package:food_app/customView/custom_button.dart';
 import 'package:food_app/customView/custom_text_form_prefiex.dart';
 import 'package:food_app/models/driver/driver_register_model.dart';
 import 'package:food_app/utils/validators.dart';
+import 'package:get/get.dart';
 import 'package:hive/hive.dart';
+import 'package:lottie/lottie.dart';
 
 class CreateDriver extends StatefulWidget {
   const CreateDriver({super.key});
@@ -124,13 +126,23 @@ class _CreateDriverState extends State<CreateDriver> {
     print("Driver Register Map Value Is  $map");
 
     try {
-
+      Get.dialog(
+        Center(
+            child: Lottie.asset(
+              'assets/animations/Delivery.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            )
+        ),
+        barrierDismissible: false,
+      );
       DriverRegisterModel model = await CallService().registerDriver(map);
 
       setState(() {
         isLoading = false;
       });
-
+      Get.back();
       // Check if registration was successful (assuming success when message is not null)
       if (model.message != null) {
         String message = model.message ?? 'Registration successful';

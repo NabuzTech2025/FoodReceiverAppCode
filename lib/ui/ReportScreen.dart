@@ -397,7 +397,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                       Row(
                         children: [
                           Container(
-                            width: 80,
+                            width: 100,
                             color: Colors.transparent,
                             child: Stack(
                               clipBehavior: Clip.none,
