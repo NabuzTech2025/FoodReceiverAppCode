@@ -8,7 +8,6 @@ class AppController extends GetxController {
 
   void setLoading(bool show) {
     _isLoading.value = show;
-    // _isLoading(true);
   }
 
   bool get isLoading => _isLoading.value;
@@ -16,20 +15,17 @@ class AppController extends GetxController {
 
   int get selectedTabIndex => _selectedTabIndex.value;
 
-  // ✅ ADD THIS: Getter for reactive access
   RxInt get selectedTabIndexRx => _selectedTabIndex;
 
-  // ✅ ADD THIS: Report refresh trigger
   var _reportRefreshTrigger = 0.obs;
 
   RxInt get reportRefreshTrigger => _reportRefreshTrigger;
 
   void onTabChanged(int index) {
     _selectedTabIndex.value = index;
-    print("AppController: Tab changed to $index"); // Add this for debugging
+    print("AppController: Tab changed to $index");
 
-    // ✅ ADD THIS: Trigger report refresh when Report tab is selected
-    if (index == 1) { // Report tab index
+    if (index == 1) {
       _reportRefreshTrigger.value++;
       print("Report refresh triggered: ${_reportRefreshTrigger.value}");
     }
@@ -41,7 +37,7 @@ class AppController extends GetxController {
 
   Future<void> setOrders(List<Order>? listOrders) async {
     if (listOrders == null || listOrders.isEmpty) {
-      return; // or handle it appropriately
+      return;
     }
 
     _ordersList.value.clear();
@@ -58,66 +54,119 @@ class AppController extends GetxController {
 
   var searchResultOrder = <Order>[].obs;
 
+  // ✅ Enhanced search function with multiple criteria
   void filterSearchResultsTodo(String query) {
+    print("🔍 Filtering with query: '$query'");
+
     if (query.isEmpty) {
+      // ✅ Empty query - show all orders sorted by ID
       searchResultOrder.assignAll(
-        _ordersList..sort((a, b) => a.id!.compareTo(b.id!)),
+        _ordersList..sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0)), // Latest first
       );
+      print("✅ Showing all ${searchResultOrder.length} orders");
     } else {
       final lowerQuery = query.toLowerCase();
+      print("🔍 Searching for: '$lowerQuery'");
 
-      searchResultOrder.assignAll(
-        _ordersList.where((order) {
-          // Search in order ID
-          final inOrderId =
-          order.id.toString().toLowerCase().contains(lowerQuery);
+      final filteredOrders = _ordersList.where((order) {
+        // ✅ 1. Search in Order ID
+        final orderId = order.id?.toString().toLowerCase() ?? '';
+        final matchesOrderId = orderId.contains(lowerQuery);
 
-          // Search in order items
-          final inItems = order.items?.any((item) =>
-          item.productName
-              ?.toLowerCase()
-              .contains(lowerQuery) ==
-              true ||
-              item.variantName?.toLowerCase().contains(lowerQuery) ==
-                  true ||
-              item.note?.toLowerCase().contains(lowerQuery) == true) ??
-              false;
+        // ✅ 2. Search in Customer Name
+        final customerName = order.shipping_address?.customer_name?.toLowerCase() ?? '';
+        final matchesCustomerName = customerName.contains(lowerQuery);
 
-          return inOrderId || inItems;
-        }).toList()
-          ..sort((a, b) => a.id!.compareTo(b.id!)),
-      );
+        // ✅ 3. Search in Customer Phone/Mobile
+        final customerPhone = order.shipping_address?.phone?.toLowerCase() ?? '';
+        final matchesPhone = customerPhone.contains(lowerQuery);
+
+        // ✅ 4. Search in ZIP code
+        final zipCode = order.shipping_address?.zip?.toString().toLowerCase() ?? '';
+        final matchesZip = zipCode.contains(lowerQuery);
+
+        // ✅ 5. Search in Address (line1, city)
+        final addressLine1 = order.shipping_address?.line1?.toLowerCase() ?? '';
+        final city = order.shipping_address?.city?.toLowerCase() ?? '';
+        final matchesAddress = addressLine1.contains(lowerQuery) || city.contains(lowerQuery);
+
+        // ✅ 6. Search in order items (product name, variant name, note)
+        final matchesItems = order.items?.any((item) =>
+        (item.productName?.toLowerCase().contains(lowerQuery) ?? false) ||
+            (item.variantName?.toLowerCase().contains(lowerQuery) ?? false) ||
+            (item.note?.toLowerCase().contains(lowerQuery) ?? false)
+        ) ?? false;
+
+        final isMatch = matchesOrderId ||
+            matchesCustomerName ||
+            matchesPhone ||
+            matchesZip ||
+            matchesAddress ||
+            matchesItems;
+
+        // ✅ Debug logging for each order
+        if (isMatch) {
+          print("✅ Match found - Order ID: ${order.id}, Customer: $customerName, Phone: $customerPhone, ZIP: $zipCode");
+        }
+
+        return isMatch;
+      }).toList();
+
+      // ✅ Sort filtered results (latest first)
+      filteredOrders.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+
+      searchResultOrder.assignAll(filteredOrders);
+
+      print("✅ Search completed. Found ${searchResultOrder.length} matching orders out of ${_ordersList.length} total orders");
     }
+
+    // Force UI update
+    searchResultOrder.refresh();
+  }
+
+  // ✅ Method to clear search and show all orders
+  void clearSearch() {
+    searchResultOrder.assignAll(
+      _ordersList..sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0)),
+    );
+    searchResultOrder.refresh();
+    print("🧹 Search cleared, showing all ${searchResultOrder.length} orders");
+  }
+
+  void clearOrders() {
+    print("🧹 Clearing all orders for new date");
+    _ordersList.clear();
+    searchResultOrder.clear();
+    _pendingOrders.value = 0;
+    _ordersList.refresh();
+    searchResultOrder.refresh();
+    print("✅ All orders cleared successfully");
   }
 
   Future<void> addNewOrder(Order result) async {
     try {
       print("🆕 Adding new order: ID ${result.id}");
 
-      // ✅ Step 1: Check if order already exists in _ordersList
       bool existsInMainList = _ordersList.any((order) => order.id == result.id);
       if (existsInMainList) {
         print("⚠️ Order ${result.id} already exists in main list, skipping add");
         return;
       }
 
-      // ✅ Step 2: Check if order already exists in searchResultOrder
       bool existsInSearchList = searchResultOrder.any((order) => order.id == result.id);
       if (existsInSearchList) {
         print("⚠️ Order ${result.id} already exists in search list, skipping add");
         return;
       }
 
-      // ✅ Step 3: Add to both lists only if it doesn't exist
       print("✅ Order ${result.id} is new, adding to lists");
 
       _ordersList.insert(0, result);
-      _ordersList.value = [..._ordersList]; // Trigger reactivity
+      _ordersList.value = [..._ordersList];
 
       searchResultOrder.insert(0, result);
-      searchResultOrder.value = [...searchResultOrder]; // Trigger reactivity
+      searchResultOrder.value = [...searchResultOrder];
 
-      // ✅ Step 4: Update pending count
       onSetPendingOrder(searchResultOrder.where((o) => o.approvalStatus == 1).length);
 
       print("✅ Order ${result.id} added successfully");
@@ -132,27 +181,24 @@ class AppController extends GetxController {
     try {
       print("🔄 Updating order: ID ${result.id}");
 
-      // Find and update in _ordersList
       int index = _ordersList.indexWhere((order) => order.id == result.id);
       if (index != -1) {
         _ordersList[index] = result;
-        _ordersList.value = [..._ordersList]; // Trigger reactivity
+        _ordersList.value = [..._ordersList];
         print("✅ Order ${result.id} updated in main list at index $index");
       } else {
         print("⚠️ Order ${result.id} not found in main list for update");
       }
 
-      // Find and update in searchResultOrder
       int searchIndex = searchResultOrder.indexWhere((order) => order.id == result.id);
       if (searchIndex != -1) {
         searchResultOrder[searchIndex] = result;
-        searchResultOrder.value = [...searchResultOrder]; // Trigger reactivity
+        searchResultOrder.value = [...searchResultOrder];
         print("✅ Order ${result.id} updated in search list at index $searchIndex");
       } else {
         print("⚠️ Order ${result.id} not found in search list for update");
       }
 
-      // Update pending count
       onSetPendingOrder(searchResultOrder.where((o) => o.approvalStatus == 1).length);
 
     } catch (e) {
@@ -173,12 +219,10 @@ class AppController extends GetxController {
     searchResultOrder.clear();
     _pendingOrders.value = 0;
     _selectedTabIndex.value = 0;
-    _reportRefreshTrigger.value = 0; // ✅ ADD THIS: Reset refresh trigger
-    // If needed, reset loading state as well
+    _reportRefreshTrigger.value = 0;
     _isLoading.value = false;
   }
 
-  // ✅ ADD THIS: Manual method to trigger report refresh
   void triggerReportRefresh() {
     _reportRefreshTrigger.value++;
     print("Manual report refresh triggered: ${_reportRefreshTrigger.value}");
@@ -188,7 +232,6 @@ class AppController extends GetxController {
     try {
       print("🧹 Removing duplicate orders...");
 
-      // Remove duplicates from main list
       Map<int, Order> uniqueOrders = {};
       for (var order in _ordersList) {
         if (order.id != null) {
@@ -198,7 +241,6 @@ class AppController extends GetxController {
 
       _ordersList.value = uniqueOrders.values.toList();
 
-      // Remove duplicates from search list
       Map<int, Order> uniqueSearchOrders = {};
       for (var order in searchResultOrder) {
         if (order.id != null) {
@@ -215,7 +257,6 @@ class AppController extends GetxController {
     }
   }
 
-  // ✅ NEW: Debug method to print current orders
   void debugPrintOrders() {
     print("📋 === CURRENT ORDERS DEBUG ===");
     print("Main list count: ${_ordersList.length}");
@@ -231,4 +272,3 @@ class AppController extends GetxController {
     print("📋 === END DEBUG ===");
   }
 }
-

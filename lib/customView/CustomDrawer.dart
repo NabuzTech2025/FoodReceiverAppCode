@@ -653,6 +653,70 @@ class _CustomDrawerState extends State<CustomDrawer> {
     }
   }
 
+  // ✅ NEW: Restore IP data for the current user after login
+  Future<void> _restoreUserIPData(String currentStoreId) async {
+    try {
+      print("🔄 Restoring IP data for current user: $currentStoreId");
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String userPrefix = "user_${currentStoreId}_";
+
+      // Restore local printer IPs
+      for (int i = 0; i < 5; i++) {
+        String? savedIP = prefs.getString('${userPrefix}printer_ip_$i');
+        if (savedIP != null && savedIP.isNotEmpty) {
+          await prefs.setString('printer_ip_$i', savedIP);
+          print("🔄 Restored printer_ip_$i: $savedIP");
+        }
+      }
+
+      // Restore remote printer IPs
+      for (int i = 0; i < 5; i++) {
+        String? savedRemoteIP = prefs.getString('${userPrefix}printer_ip_remote_$i');
+        if (savedRemoteIP != null && savedRemoteIP.isNotEmpty) {
+          await prefs.setString('printer_ip_remote_$i', savedRemoteIP);
+          print("🔄 Restored printer_ip_remote_$i: $savedRemoteIP");
+        }
+      }
+
+      // Restore selected indices
+      int? selectedIndex = prefs.getInt('${userPrefix}selected_ip_index');
+      if (selectedIndex != null) {
+        await prefs.setInt('selected_ip_index', selectedIndex);
+      }
+
+      int? selectedRemoteIndex = prefs.getInt('${userPrefix}selected_ip_remote_index');
+      if (selectedRemoteIndex != null) {
+        await prefs.setInt('selected_ip_remote_index', selectedRemoteIndex);
+      }
+
+      // Restore toggle settings
+      bool? autoOrderAccept = prefs.getBool('${userPrefix}auto_order_accept');
+      if (autoOrderAccept != null) {
+        await prefs.setBool('auto_order_accept', autoOrderAccept);
+      }
+
+      bool? autoOrderPrint = prefs.getBool('${userPrefix}auto_order_print');
+      if (autoOrderPrint != null) {
+        await prefs.setBool('auto_order_print', autoOrderPrint);
+      }
+
+      bool? autoRemoteAccept = prefs.getBool('${userPrefix}auto_order_remote_accept');
+      if (autoRemoteAccept != null) {
+        await prefs.setBool('auto_order_remote_accept', autoRemoteAccept);
+      }
+
+      bool? autoRemotePrint = prefs.getBool('${userPrefix}auto_order_remote_print');
+      if (autoRemotePrint != null) {
+        await prefs.setBool('auto_order_remote_print', autoRemotePrint);
+      }
+
+      print("✅ IP data restored for store: $currentStoreId");
+    } catch (e) {
+      print("❌ Error restoring IP data: $e");
+    }
+  }
+
 // ✅ Complete logout cleanup WITHOUT clearing IP data
   Future<void> _forceCompleteLogoutCleanup() async {
     try {

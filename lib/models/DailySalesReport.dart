@@ -245,28 +245,22 @@ class TopItem {
     };
   }
 }
+
 class TaxBreakdown {
-  // Change from int? to double? - this is the main fix
-  double? i0;  // Changed from int? to double?
-  double? d1;
   double? d7;
+  double? d19;
 
-  TaxBreakdown({this.i0, this.d1, this.d7});
+  TaxBreakdown({this.d7, this.d19});
 
-  // Fix the constructor - add factory keyword and proper null handling
-  factory TaxBreakdown.fromJson(Map<String, dynamic> json) {
-    return TaxBreakdown(
-      i0: json['0'] != null ? (json['0'] as num).toDouble() : null,
-      d1: json['1'] != null ? (json['1'] as num).toDouble() : null,
-      d7: json['7'] != null ? (json['7'] as num).toDouble() : null,
-    );
+  TaxBreakdown.fromJson(Map<String, dynamic> json) {
+    d7 = json['7'];
+    d19 = json['19'];
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['0'] = this.i0;
-    data['1'] = this.d1;
     data['7'] = this.d7;
+    data['19'] = this.d19;
     return data;
   }
 }

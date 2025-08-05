@@ -20,11 +20,37 @@ class _CustomAppBarState extends State<CustomAppBar> {
   TextEditingController searchControllerTodo = TextEditingController();
   FocusNode searchFocusNode = FocusNode();
 
+  // ✅ Simple boolean for clear button visibility
+  bool _showClearButton = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // ✅ Real-time search listener add करें
+    searchControllerTodo.addListener(_onSearchTextChanged);
+  }
+
   @override
   void dispose() {
+    // ✅ Listener remove करना जरूरी है memory leak से बचने के लिए
+    searchControllerTodo.removeListener(_onSearchTextChanged);
     searchControllerTodo.dispose();
     searchFocusNode.dispose();
     super.dispose();
+  }
+
+  // ✅ Real-time search function
+  void _onSearchTextChanged() {
+    final searchText = searchControllerTodo.text;
+    print("🔍 Search text changed: '$searchText'");
+
+    // ✅ Update clear button visibility
+    setState(() {
+      _showClearButton = searchText.isNotEmpty;
+    });
+
+    // Real-time filtering
+    app.appController.filterSearchResultsTodo(searchText);
   }
 
   @override
@@ -43,66 +69,77 @@ class _CustomAppBarState extends State<CustomAppBar> {
               //SvgPicture.asset('assets/images/drawer.svg'),
             ),
             const SizedBox(width: 8),
-            Expanded(
-              child: Container(
-                height: 40,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.search, color: Colors.green),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: searchControllerTodo,
-                        focusNode: searchFocusNode, // Add focusNode
-                        autofocus: false, // Explicitly disable autofocus
-                        enableInteractiveSelection: false, // Prevent text selection
-                        decoration: InputDecoration(
-                          hintText: 'search_item'.tr,
-                          border: InputBorder.none,
-                          isDense: true,
-                        ),
-                        onTap: () {
-                          // Only focus when user explicitly taps
-                          searchFocusNode.requestFocus();
-                        },
-                        onSubmitted: (value) {
-                          if (value.isNotEmpty) {
-                            app.appController.filterSearchResultsTodo(value);
-                          }
-                          // Unfocus after search
-                          searchFocusNode.unfocus();
-                        },
-                        onEditingComplete: () {
-                          // Unfocus when editing is complete
-                          searchFocusNode.unfocus();
-                        },
-                      ),
-                    ),
 
-                  ],
-                ),
-              ),
-            ),
+            // Search box ko conditionally show karne ke liye Obx use karenge
+            Obx(() {
+              // Sirf Order screen (index 0) par search box show karenge
+              if (app.appController.selectedTabIndex == 0) {
+                return Expanded(
+                  child: Container(
+                    height: 40,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.search, color: Colors.green, size: 20),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: searchControllerTodo,
+                            focusNode: searchFocusNode,
+                            autofocus: false,
+                            enableInteractiveSelection: true,
+                            style: TextStyle(fontSize: 14),
+                            decoration: InputDecoration(
+                              hintText: 'search_item'.tr,
+                              hintStyle: TextStyle(fontSize: 14),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            onTap: () {
+                              searchFocusNode.requestFocus();
+                            },
+                            onSubmitted: (value) {
+                              app.appController.filterSearchResultsTodo(value);
+                              searchFocusNode.unfocus();
+                            },
+                            onEditingComplete: () {
+                              searchFocusNode.unfocus();
+                            },
+                          ),
+                        ),
+                        // ✅ Clear search button (simple approach)
+                        if (_showClearButton)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 4.0),
+                            child: GestureDetector(
+                              onTap: () {
+                                searchControllerTodo.clear();
+                                searchFocusNode.unfocus();
+                                // Clear will automatically trigger the listener
+                              },
+                              child: Icon(
+                                Icons.clear,
+                                color: Colors.grey,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              } else {
+                // Report screen aur Settings screen par search box hide kar denge
+                return Expanded(child: SizedBox.shrink());
+              }
+            }),
+
             const SizedBox(width: 12),
-            /*  GestureDetector(
-              onTap: () {
-                // Open language selection
-              },
-              child: Row(
-                children: [
-                  //Image.asset('assets/flags/germany.png', width: 24, height: 24), // Add your flag image
-                  const SizedBox(width: 4),
-                  const Text("GER",
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  const Icon(Icons.keyboard_arrow_down, size: 16),
-                ],
-              ),
-            ),*/
           ],
         ),
       ),

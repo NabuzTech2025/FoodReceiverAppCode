@@ -21,6 +21,7 @@ import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/Store.dart';
+import '../models/today_report.dart' hide TaxBreakdown;
 
 class OrderScreenNew extends StatefulWidget {
   @override
@@ -74,6 +75,21 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   DateTime? _lastUpdateTime;
   bool _showNoOrderText = false;
   Timer? _noOrderTimer;
+  String  salesDelivery = '0', totalSales = '0', totalOrder = '0',
+      totalTax = '0', cashTotal = '0', online = '0', net = '0', discount = '0',
+      deliveryFee = '0', cashMethod = '0', delivery = '0', pickUp = '0',
+      dineIn = '0', pending = '0', accepted = '0', declined = '0',
+      tax19 = '0', tax7 = '0';
+  bool _hasSocketData = false;
+  Map<String, int> _liveApiData = {
+    'accepted': 0,
+    'declined': 0,
+    'pending': 0,
+    'pickup': 0,
+    'delivery': 0,
+    'totalOrders': 0,
+  };
+
   @override
   void initState() {
     super.initState();
@@ -90,14 +106,42 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     );
     initVar();
   }
+
+
   Future<void> _checkAndClearOldData() async {
     final prefs = await SharedPreferences.getInstance();
     final cachedDate = prefs.getString('cached_sales_date');
+    final cachedOrderDate = prefs.getString('cached_order_date');
+    final cachedStoreId = prefs.getString('cached_store_id'); // ✅ NEW: Track store ID
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final currentStoreId = prefs.getString(valueShared_STORE_KEY);
 
-    if (cachedDate != today) {
-      print("📆 Date changed. Clearing old data.");
+    // ✅ Clear sales data if date changed OR store ID changed
+    if (cachedDate != today || cachedStoreId != currentStoreId) {
+      print("📆 Date or Store ID changed. Clearing old sales data.");
       await SalesCacheHelper.clearSalesData();
+
+      // ✅ Clear current report data to prevent cross-user contamination
+      setState(() {
+        _currentDateReport = null;
+        reportsss = DailySalesReport();
+        reportList.clear();
+      });
+
+      // ✅ Save new store ID for tracking
+      if (currentStoreId != null) {
+        await prefs.setString('cached_store_id', currentStoreId);
+      }
+    }
+
+    // ✅ Clear order list if date changed OR store ID changed
+    if (cachedOrderDate != today || cachedStoreId != currentStoreId) {
+      print("📆 Date or Store ID changed. Clearing old order list.");
+      setState(() {
+        app.appController.clearOrders(); // This will reset order list to empty
+      });
+      await prefs.setString('cached_order_date', today);
+      print("✅ Order list reset for new day/user: $today / $currentStoreId");
     }
   }
 
@@ -121,13 +165,24 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
   // ─────────────────── Initialisation ───────────────────
   // initVar method को इससे replace करें:
-
   Future<void> initVar() async {
     print("Callingapp When refresh resumed 3333");
     sharedPreferences = await SharedPreferences.getInstance();
     bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
 
+    // ✅ NEW: Clear previous user's data first
+    _socketService.disconnect();
+    setState(() {
+      _isLiveDataActive = false;
+      _lastUpdateTime = null;
+      _currentDateReport = null;
+      reportsss = DailySalesReport();
+    });
+
     await _preloadStoreData();
+
+    // ✅ Check and clear old data FIRST before loading new data
+    await _checkAndClearOldData();
 
     final storeID = sharedPreferences.getString(valueShared_STORE_KEY);
     print("🆔 DEBUG - initVar storeID: '$storeID'");
@@ -137,6 +192,9 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
       // ✅ Store data fetch करें पहले
       await getStoredta(bearerKey!);
+
+      // ✅ NEW: Restore user-specific IP data
+      await _restoreUserSpecificData(storeID);
 
       getOrders(bearerKey, false, false, storeID);
 
@@ -150,12 +208,108 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     }
 
     getCurrentDateReport();
-    _checkAndClearOldData();
     _loadCachedSalesData();
     _startNoOrderTimer();
+    getLiveSaleReport();
   }
 
-// ✅ getStoreUserMeData में socket initialization add करें:
+// ✅ NEW: Restore user-specific data method
+  Future<void> _restoreUserSpecificData(String currentStoreId) async {
+    try {
+      print("🔄 Checking for user-specific data: $currentStoreId");
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String userPrefix = "user_${currentStoreId}_";
+
+      // Check if user-specific data exists
+      String? testKey = prefs.getString('${userPrefix}printer_ip_0');
+      if (testKey != null) {
+        print("✅ Found user-specific data, restoring...");
+
+        // Restore local printer IPs
+        for (int i = 0; i < 5; i++) {
+          String? savedIP = prefs.getString('${userPrefix}printer_ip_$i');
+          if (savedIP != null && savedIP.isNotEmpty) {
+            await prefs.setString('printer_ip_$i', savedIP);
+            print("🔄 Restored printer_ip_$i: $savedIP");
+          }
+        }
+
+        // Restore remote printer IPs
+        for (int i = 0; i < 5; i++) {
+          String? savedRemoteIP = prefs.getString('${userPrefix}printer_ip_remote_$i');
+          if (savedRemoteIP != null && savedRemoteIP.isNotEmpty) {
+            await prefs.setString('printer_ip_remote_$i', savedRemoteIP);
+            print("🔄 Restored printer_ip_remote_$i: $savedRemoteIP");
+          }
+        }
+
+        // Restore other settings...
+        int? selectedIndex = prefs.getInt('${userPrefix}selected_ip_index');
+        if (selectedIndex != null) {
+          await prefs.setInt('selected_ip_index', selectedIndex);
+        }
+
+        int? selectedRemoteIndex = prefs.getInt('${userPrefix}selected_ip_remote_index');
+        if (selectedRemoteIndex != null) {
+          await prefs.setInt('selected_ip_remote_index', selectedRemoteIndex);
+        }
+
+        // Restore toggle settings
+        bool? autoOrderAccept = prefs.getBool('${userPrefix}auto_order_accept');
+        if (autoOrderAccept != null) {
+          await prefs.setBool('auto_order_accept', autoOrderAccept);
+        }
+
+        bool? autoOrderPrint = prefs.getBool('${userPrefix}auto_order_print');
+        if (autoOrderPrint != null) {
+          await prefs.setBool('auto_order_print', autoOrderPrint);
+        }
+
+        bool? autoRemoteAccept = prefs.getBool('${userPrefix}auto_order_remote_accept');
+        if (autoRemoteAccept != null) {
+          await prefs.setBool('auto_order_remote_accept', autoRemoteAccept);
+        }
+
+        bool? autoRemotePrint = prefs.getBool('${userPrefix}auto_order_remote_print');
+        if (autoRemotePrint != null) {
+          await prefs.setBool('auto_order_remote_print', autoRemotePrint);
+        }
+
+        print("✅ User-specific data restored for: $currentStoreId");
+      } else {
+        print("ℹ️ No user-specific data found for: $currentStoreId");
+        // Clear any existing general data to prevent cross-user contamination
+        await _clearGeneralIPData();
+      }
+    } catch (e) {
+      print("❌ Error restoring user-specific data: $e");
+    }
+  }
+
+  Future<void> _clearGeneralIPData() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+
+      // Clear general printer settings
+      for (int i = 0; i < 5; i++) {
+        await prefs.remove('printer_ip_$i');
+        await prefs.remove('printer_ip_remote_$i');
+      }
+
+      await prefs.remove('selected_ip_index');
+      await prefs.remove('selected_ip_remote_index');
+      await prefs.remove('auto_order_accept');
+      await prefs.remove('auto_order_print');
+      await prefs.remove('auto_order_remote_accept');
+      await prefs.remove('auto_order_remote_print');
+
+      print("🧹 Cleared general IP data to prevent cross-user contamination");
+    } catch (e) {
+      print("❌ Error clearing general IP data: $e");
+    }
+  }
+
   Future<void> getStoreUserMeData(String? bearerKey) async {
     try {
       final result = await ApiRepo().getUserMe(bearerKey);
@@ -169,6 +323,9 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
         // ✅ Store data भी fetch करें
         await getStoredta(bearerKey!);
+
+        // ✅ NEW: Restore user-specific data after getting store ID
+        await _restoreUserSpecificData(userMe.store_id.toString());
 
         getOrders(bearerKey, true, false, userMe.store_id.toString());
 
@@ -257,16 +414,24 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     }
   }
 
-  // OrderScreen.dart में _initializeSocket method को ये replace करें:
-// OrderScreen.dart में _initializeSocket method को इससे replace करें:
+
 
   void _initializeSocket() {
     print("🔥 Starting socket initialization");
 
+    // ✅ First disconnect any existing socket to prevent cross-contamination
+    _socketService.disconnect();
+
+    // ✅ Clear any existing socket data
+    setState(() {
+      _isLiveDataActive = false;
+      _lastUpdateTime = null;
+      _hasSocketData = false; // Reset socket data flag
+    });
+
     // Get dynamic store ID from SharedPreferences
     String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
 
-    // ✅ DEBUG: Print करें कि क्या मिल रहा है
     print("🆔 Raw storeID from SharedPreferences: '$storeID'");
     print("🆔 storeID type: ${storeID.runtimeType}");
     print("🆔 storeID isEmpty: ${storeID?.isEmpty}");
@@ -275,7 +440,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     int dynamicStoreId;
 
     if (storeID != null && storeID.isNotEmpty) {
-      // ✅ Parse attempt के साथ detailed logging
       int? parsedId = int.tryParse(storeID);
       print("🆔 Parse attempt result: $parsedId");
 
@@ -284,17 +448,14 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         print("✅ Successfully parsed storeID: $dynamicStoreId");
       } else {
         print("❌ Parse failed for storeID: '$storeID'");
-        // ❌ यहाँ default 13 की बजाय error handle करें
         print("❌ CRITICAL: Cannot parse store ID, socket connection may fail!");
-        return; // Socket connect न करें अगर proper ID नहीं मिला
+        return;
       }
     } else {
       print("❌ Store ID not found or empty in SharedPreferences");
-      // ✅ Try to get from API call data या user input
       if (userMe != null && userMe.store_id != null) {
         dynamicStoreId = userMe.store_id!;
         print("✅ Using userMe.store_id: $dynamicStoreId");
-        // Save it for next time
         sharedPreferences.setString(valueShared_STORE_KEY, dynamicStoreId.toString());
       } else {
         print("❌ No store ID available anywhere, cannot connect socket");
@@ -304,24 +465,41 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
     print("🆔 Final store ID for socket: $dynamicStoreId");
 
-    // Rest of socket initialization...
+    // ✅ Store-specific socket callbacks
     _socketService.onSalesUpdate = (data) {
-      print('📊 Sales update received in OrderScreen: $data');
+      print('📊 Sales update received for store $dynamicStoreId: $data');
+
+      // ✅ Verify this data is for current store
+      if (data['store_id'] != null && data['store_id'].toString() != dynamicStoreId.toString()) {
+        print('⚠️ Ignoring sales data for different store: ${data['store_id']}');
+        return;
+      }
+
       _handleSalesUpdate(data, isFromSocket: true);
     };
 
     _socketService.onConnected = () {
-      print('🔥 Socket connected - Live data active');
+      print('🔥 Socket connected for store $dynamicStoreId - Live data active');
       setState(() => _isLiveDataActive = true);
     };
 
     _socketService.onDisconnected = () {
-      print('❄️ Socket disconnected - Live data inactive');
-      setState(() => _isLiveDataActive = false);
+      print('❄️ Socket disconnected for store $dynamicStoreId - Live data inactive');
+      setState(() {
+        _isLiveDataActive = false;
+        _hasSocketData = false; // Reset socket data flag when disconnected
+      });
     };
 
     _socketService.onNewOrder = (data) {
-      print('🆕 New order received: $data');
+      print('🆕 New order received for store $dynamicStoreId: $data');
+
+      // ✅ Verify this order is for current store
+      if (data['store_id'] != null && data['store_id'].toString() != dynamicStoreId.toString()) {
+        print('⚠️ Ignoring order for different store: ${data['store_id']}');
+        return;
+      }
+
       _refreshCurrentDayData();
     };
 
@@ -336,7 +514,87 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     }
   }
 
-// ✅ Additional method to ensure store ID is properly saved
+  Future<void> getLiveSaleReport() async {
+    try {
+      print("🔄 Starting getLiveSaleReport...");
+
+      if (bearerKey == null || bearerKey!.isEmpty) {
+        print("❌ Bearer token is null or empty");
+        _setEmptyValues();
+        return;
+      }
+
+      print("✅ Bearer token available: ${bearerKey!.substring(0, 20)}...");
+
+      // Call the API
+      GetTodayReport model = await CallService().getLiveSaleData();
+
+      print("✅ API call completed successfully");
+
+      // Check if model has error code
+      if (model.code != null && model.code != 200) {
+        print("⚠️ API returned code: ${model.code}, message: ${model.mess}");
+        _setEmptyValues();
+        return;
+      }
+
+      // ✅ Update state with received data from API
+      setState(() {
+        delivery = '${model.orderTypes?.delivery ?? 0}';
+        pickUp = '${model.orderTypes?.pickup ?? 0}';
+        pending = '${model.approvalStatuses?.pending ?? 0}';
+        accepted = '${model.approvalStatuses?.accepted ?? 0}';
+        declined = '${model.approvalStatuses?.declined ?? 0}';
+
+        // Store API data for fallback
+        _liveApiData = {
+          'accepted': model.approvalStatuses?.accepted ?? 0,
+          'declined': model.approvalStatuses?.declined ?? 0,
+          'pending': model.approvalStatuses?.pending ?? 0,
+          'pickup': model.orderTypes?.pickup ?? 0,
+          'delivery': model.orderTypes?.delivery ?? 0,
+          'totalOrders': model.totalOrders ?? 0, // ✅ NEW: Store total orders from API
+        };
+
+        _isLiveDataActive = true;
+        _lastUpdateTime = DateTime.now();
+      });
+
+      print('✅ State updated successfully');
+      print('✅ Accepted Value Is $accepted');
+      print('✅ declined Value Is $declined');
+      print('✅ pending Value is $pending');
+
+    } catch (e, stackTrace) {
+      print('❌ Error in getLiveSaleReport: $e');
+      print('📋 Stack trace: $stackTrace');
+
+      // ✅ Set empty values instead of crashing
+      _setEmptyValues();
+
+      // ✅ Don't show error to user for 204 responses
+      if (!e.toString().contains('204')) {
+        // Only show actual errors, not "no data" scenarios
+        showSnackbar("Info", "Unable to load live sales data");
+      }
+    }
+  }
+
+  void _setEmptyValues() {
+    setState(() {
+      _isLiveDataActive = false;
+      delivery = '0';
+      pickUp = '0';
+      pending = '0';
+      accepted = '0';
+      declined = '0';
+
+    });
+
+    print("📊 Set empty/default values for UI");
+  }
+
+
   Future<void> _ensureStoreIdIsSaved() async {
     String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
 
@@ -351,6 +609,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       }
     }
   }
+
   void _startNoOrderTimer() {
     _noOrderTimer?.cancel();
     _noOrderTimer = Timer(Duration(seconds: 4), () {
@@ -371,6 +630,9 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     // यदि socket से आ रहा है तो SharedPreferences में store करो
     if (isFromSocket) {
       SalesCacheHelper.saveSalesData(salesData);
+
+      // Mark that we have socket data
+      _hasSocketData = true;
     }
 
     setState(() => _lastUpdateTime = DateTime.now());
@@ -432,7 +694,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       print('❌ Current date report is null, cannot update');
     }
   }
-
   Future<void> _loadCachedSalesData() async {
     final cachedData = await SalesCacheHelper.loadSalesData();
     if (cachedData != null) {
@@ -487,8 +748,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       print("🆕 Created default report for today");
     }
   }
-  // ─────────────────── Refresh logic ───────────────────
-  /// Used by the RefreshIndicator (pull‑to‑refresh) – **silent** refresh
+
   Future<void> _handleRefresh() async {                               // ✨ NEW
     final storeID = sharedPreferences.getString(valueShared_STORE_KEY);
     await getOrders(bearerKey, false, false, storeID);
@@ -565,48 +825,64 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   }
 
   int _getApprovalStatusCount(String status) {
-    if (_currentDateReport?.data?.approvalStatuses == null) return 0;
+    // If socket data is available, use socket data
+    if (_hasSocketData && _currentDateReport?.data?.approvalStatuses != null) {
+      final approvalStatuses = _currentDateReport!.data!.approvalStatuses!;
 
-    // Different possible keys for approval statuses
-    final approvalStatuses = _currentDateReport!.data!.approvalStatuses!;
-
-    switch (status.toLowerCase()) {
-      case "accepted":
-        return approvalStatuses["accepted"] ??
-            approvalStatuses["approve"] ??
-            approvalStatuses["2"] ?? 0;
-      case "declined":
-        return approvalStatuses["declined"] ??
-            approvalStatuses["decline"] ??
-            approvalStatuses["rejected"] ??
-            approvalStatuses["3"] ?? 0;
-      case "pending":
-        return approvalStatuses["pending"] ??
-            approvalStatuses["1"] ?? 0;
-      default:
-        return 0;
+      switch (status.toLowerCase()) {
+        case "accepted":
+          return approvalStatuses["accepted"] ??
+              approvalStatuses["approve"] ??
+              approvalStatuses["2"] ?? 0;
+        case "declined":
+          return approvalStatuses["declined"] ??
+              approvalStatuses["decline"] ??
+              approvalStatuses["rejected"] ??
+              approvalStatuses["3"] ?? 0;
+        case "pending":
+          return approvalStatuses["pending"] ??
+              approvalStatuses["1"] ?? 0;
+        default:
+          return 0;
+      }
     }
+
+    // Otherwise, use API data
+    return _liveApiData[status] ?? 0;
+  }
+  int _getOrderTypeCount(String type) {
+    // If socket data is available, use socket data
+    if (_hasSocketData && _currentDateReport?.data?.orderTypes != null) {
+      final orderTypes = _currentDateReport!.data!.orderTypes!;
+
+      switch (type.toLowerCase()) {
+        case "pickup":
+          return orderTypes["pickup"] ??
+              orderTypes["pick_up"] ??
+              orderTypes["takeaway"] ?? 0;
+        case "delivery":
+          return orderTypes["delivery"] ??
+              orderTypes["home_delivery"] ?? 0;
+        case "dine_in":
+          return orderTypes["dine_in"] ??
+              orderTypes["dinein"] ?? 0;
+        default:
+          return 0;
+      }
+    }
+
+    // Otherwise, use API data
+    return _liveApiData[type] ?? 0;
   }
 
-  int _getOrderTypeCount(String type) {
-    if (_currentDateReport?.data?.orderTypes == null) return 0;
-
-    final orderTypes = _currentDateReport!.data!.orderTypes!;
-
-    switch (type.toLowerCase()) {
-      case "pickup":
-        return orderTypes["pickup"] ??
-            orderTypes["pick_up"] ??
-            orderTypes["takeaway"] ?? 0;
-      case "delivery":
-        return orderTypes["delivery"] ??
-            orderTypes["home_delivery"] ?? 0;
-      case "dine_in":
-        return orderTypes["dine_in"] ??
-            orderTypes["dinein"] ?? 0;
-      default:
-        return 0;
+  int _getTotalOrders() {
+    // If socket data is available, use socket data
+    if (_hasSocketData && _currentDateReport?.totalOrders != null) {
+      return _currentDateReport!.totalOrders!;
     }
+
+    // Otherwise, use API data
+    return _liveApiData['totalOrders'] ?? 0;
   }
 
   @override
@@ -650,7 +926,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                     Row(
                       children: [
                         Text(
-                          'Total Orders: ${_currentDateReport?.totalOrders ?? 0}',
+                          'Total Orders: ${_getTotalOrders()}',
                           style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
@@ -691,7 +967,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                       // Pending Orders
                       _buildStatusContainer(
                         'Pending: ${_getApprovalStatusCount("pending")}',
-                        Colors.orange.withOpacity(0.1),
+                        Colors.yellow.withOpacity(0.2),
                       ),
                       SizedBox(width: 8),
 
@@ -755,14 +1031,33 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                             animation: _opacityAnimation,
                             builder: (context, child) {
                               final bool isPending = (order.approvalStatus ?? 0) == 1;
-
+                              Color getContainerColor() {
+                                switch (order.approvalStatus) {
+                                  case 2: // Accepted
+                                    return Color(0xffEBFFF4);
+                                  case 3: // Declined
+                                    return Color(0xffFFEFEF);
+                                  case 1: // Pending
+                                    return Colors.white;
+                                  default:
+                                    return Colors.white;
+                                }
+                              }
                               return Opacity(
                                 opacity: isPending ? _opacityAnimation.value : 1.0,
                                 child: Container(
                                   margin: EdgeInsets.only(bottom: 12),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: getContainerColor(),
                                     borderRadius: BorderRadius.circular(7),
+                                    border: Border.all(
+                                      color: (order.approvalStatus == 2)
+                                          ? Color(0xffC3F2D9)
+                                          : (order.approvalStatus == 3)
+                                          ? Color(0xffFFD0D0)
+                                          : Colors.grey.withOpacity(0.2),
+                                      width: 1,
+                                    ),
                                     boxShadow: [
                                       BoxShadow(
                                         color: Colors.black.withOpacity(0.1),
@@ -942,7 +1237,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       ),
     );
   }
-  // Helper method for status containers
+
   Widget _buildStatusContainer(String text, Color backgroundColor) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -1030,34 +1325,91 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     }
   }
 }
-
 class SalesCacheHelper {
   static const _salesDataKey = 'cached_sales_data';
   static const _lastDateKey = 'cached_sales_date';
+  static const _orderDateKey = 'cached_order_date';
+  static const _storeIdKey = 'cached_store_id'; // ✅ NEW: Store ID tracking
+
+  // ✅ NEW: Get user-specific cache keys
+  static String _getUserSpecificKey(String baseKey, String? storeId) {
+    if (storeId != null && storeId.isNotEmpty) {
+      return "${baseKey}_store_${storeId}";
+    }
+    return baseKey;
+  }
 
   static Future<void> saveSalesData(Map<String, dynamic> salesData) async {
     final prefs = await SharedPreferences.getInstance();
     final todayString = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    await prefs.setString(_salesDataKey, jsonEncode(salesData));
-    await prefs.setString(_lastDateKey, todayString);
-    print("💾 Cached sales data for $todayString");
+    final currentStoreId = prefs.getString(valueShared_STORE_KEY);
+
+    // ✅ Use store-specific keys
+    final storeSpecificSalesKey = _getUserSpecificKey(_salesDataKey, currentStoreId);
+    final storeSpecificDateKey = _getUserSpecificKey(_lastDateKey, currentStoreId);
+
+    await prefs.setString(storeSpecificSalesKey, jsonEncode(salesData));
+    await prefs.setString(storeSpecificDateKey, todayString);
+    await prefs.setString(_storeIdKey, currentStoreId ?? '');
+
+    print("💾 Cached sales data for store $currentStoreId on $todayString");
   }
 
   static Future<Map<String, dynamic>?> loadSalesData() async {
     final prefs = await SharedPreferences.getInstance();
     final todayString = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final cachedDate = prefs.getString(_lastDateKey);
-    final cachedData = prefs.getString(_salesDataKey);
+    final currentStoreId = prefs.getString(valueShared_STORE_KEY);
+    final cachedStoreId = prefs.getString(_storeIdKey);
 
-    if (cachedDate == todayString && cachedData != null) {
+    // ✅ Use store-specific keys
+    final storeSpecificSalesKey = _getUserSpecificKey(_salesDataKey, currentStoreId);
+    final storeSpecificDateKey = _getUserSpecificKey(_lastDateKey, currentStoreId);
+
+    final cachedDate = prefs.getString(storeSpecificDateKey);
+    final cachedData = prefs.getString(storeSpecificSalesKey);
+
+    // ✅ Load only if same date AND same store
+    if (cachedDate == todayString &&
+        cachedStoreId == currentStoreId &&
+        cachedData != null &&
+        currentStoreId != null &&
+        currentStoreId.isNotEmpty) {
+      print("📥 Loading cached sales data for store $currentStoreId");
       return jsonDecode(cachedData);
     }
+
+    print("ℹ️ No valid cached data found for store $currentStoreId on $todayString");
     return null;
   }
 
   static Future<void> clearSalesData() async {
     final prefs = await SharedPreferences.getInstance();
+    final currentStoreId = prefs.getString(valueShared_STORE_KEY);
+
+    // ✅ Clear current store's data
+    if (currentStoreId != null) {
+      final storeSpecificSalesKey = _getUserSpecificKey(_salesDataKey, currentStoreId);
+      final storeSpecificDateKey = _getUserSpecificKey(_lastDateKey, currentStoreId);
+
+      await prefs.remove(storeSpecificSalesKey);
+      await prefs.remove(storeSpecificDateKey);
+      print("🧹 Cleared sales data for store $currentStoreId");
+    }
+
+    // ✅ Also clear general keys for safety
     await prefs.remove(_salesDataKey);
     await prefs.remove(_lastDateKey);
+    await prefs.remove(_storeIdKey);
+  }
+
+  static Future<void> clearOrderDate() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_orderDateKey);
+  }
+
+  static Future<void> saveOrderDate() async {
+    final prefs = await SharedPreferences.getInstance();
+    final todayString = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    await prefs.setString(_orderDateKey, todayString);
   }
 }

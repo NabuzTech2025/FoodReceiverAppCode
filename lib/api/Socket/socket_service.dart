@@ -2,6 +2,8 @@
 
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
+import '../api.dart';
+
 class SocketService {
   static final SocketService _instance = SocketService._internal();
   factory SocketService() => _instance;
@@ -19,7 +21,6 @@ class SocketService {
 
   bool get isConnected => _isConnected;
 
-  // ✅ FIX: Remove default value और proper storeId pass करें
   void connect(String accessToken, {required int storeId}) {
     if (_socket != null && _isConnected) {
       print('Socket already connected');
@@ -30,7 +31,7 @@ class SocketService {
       // ✅ Debug print to verify storeId
       print('🔌 Connecting to socket with storeId: $storeId');
 
-      _socket = IO.io('https://magskr.com', <String, dynamic>{
+      _socket = IO.io(Api.baseUrl, <String, dynamic>{
         'path': '/ws-sio/socket.io',
         'transports': ['websocket'],
         'auth': {

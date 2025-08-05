@@ -397,7 +397,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                       Row(
                         children: [
                           Container(
-                            width: 100,
+                            // width: 100,
                             color: Colors.transparent,
                             child: Stack(
                               clipBehavior: Clip.none,
@@ -421,7 +421,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                                       child: Container(
                                         width: 9,
                                         height: 9,
-                                        decoration: BoxDecoration(
+                                        decoration: const BoxDecoration(
                                           color: Color(0xff0C831F),
                                           shape: BoxShape.circle,
                                         ),
@@ -696,6 +696,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
       ),
     );
   }
+
   TableRow _buildWeekdayRow() {
     const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     return TableRow(
@@ -745,7 +746,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     final salesDelivery = report.data?.totalSalesDelivery ?? 0.0;
     final payment = report.data?.paymentMethods ?? {};
     final orderType = report.data?.orderTypes ?? {};
-    final taxBreakdown = report.data?.taxBreakdown ?? {};
+    final taxBreakdown7 = report.data?.taxBreakdown!.d7;
+    final taxBreakdown19 = report.data?.taxBreakdown!.d19;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1087,7 +1089,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text:"${taxBreakdown ?? 0}",
+                text: "${taxBreakdown19}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1103,7 +1105,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text:"${taxBreakdown ?? 0}",
+                text:"${taxBreakdown7}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1114,6 +1116,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
       ],
     );
   }
+
   Widget _todayStatus() {
     print("=== _todayStatus Debug ===");
     print("totalSales: '$totalSales'");

@@ -45,6 +45,9 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
   int? _lastTabIndex;
   bool _isCurrentTab = false;
 
+  // ✅ Add worker reference for proper disposal
+  Worker? _tabWorker;
+
   @override
   void initState() {
     super.initState();
@@ -55,9 +58,12 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
 
   // ✅ Setup tab change listener using GetX controller
   void _setupTabListener() {
-    // Use the reactive getter from AppController
-    ever(app.appController.selectedTabIndexRx, (int tabIndex) {
-      _handleTabChange(tabIndex);
+    // Use the reactive getter from AppController and store the worker reference
+    _tabWorker = ever(app.appController.selectedTabIndexRx, (int tabIndex) {
+      // ✅ Check if widget is still mounted before handling tab change
+      if (mounted) {
+        _handleTabChange(tabIndex);
+      }
     });
   }
 
@@ -85,6 +91,9 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
 
   @override
   void dispose() {
+    // ✅ Dispose the worker first to prevent further callbacks
+    _tabWorker?.dispose();
+
     WidgetsBinding.instance.removeObserver(this);
     for (var controller in _ipControllers) {
       controller.dispose();
@@ -103,21 +112,36 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
   }
 
   void _unfocusAllTextFields() {
-    for (var focusNode in _ipFocusNodes) {
-      focusNode.unfocus();
+    // ✅ Check if widget is still mounted before accessing context
+    if (!mounted) {
+      print("⚠️ Widget not mounted, skipping unfocus");
+      return;
     }
-    for (var focusNode in _ipRemoteFocusNodes) {
-      focusNode.unfocus();
+
+    try {
+      for (var focusNode in _ipFocusNodes) {
+        if (focusNode.hasFocus) {
+          focusNode.unfocus();
+        }
+      }
+      for (var focusNode in _ipRemoteFocusNodes) {
+        if (focusNode.hasFocus) {
+          focusNode.unfocus();
+        }
+      }
+      // Also unfocus any currently focused element
+      FocusScope.of(context).unfocus();
+    } catch (e) {
+      print("⚠️ Error unfocusing text fields: $e");
+      // Continue execution even if unfocus fails
     }
-    // Also unfocus any currently focused element
-    FocusScope.of(context).unfocus();
   }
 
   // ✅ App lifecycle detection (for app foreground/background)
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed && _isCurrentTab) {
+    if (state == AppLifecycleState.resumed && _isCurrentTab && mounted) {
       print("📱 App resumed and on printer settings tab, refreshing...");
       _unfocusAllTextFields();
       // ✅ FIX: Remove delay and call immediately
@@ -127,6 +151,8 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
 
   // ✅ Refresh settings method
   Future<void> _refreshSettings() async {
+    if (!mounted) return; // ✅ Check mounted state
+
     if (bearerKey != null && bearerKey!.isNotEmpty) {
       print("🔄 Refreshing settings from server...");
       getStoreSetting(bearerKey!);
@@ -136,19 +162,23 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
   }
 
   Future<void> _initSharedPrefsAndLoadSettings() async {
+    if (!mounted) return; // ✅ Check mounted state
+
     sharedPreferences = await SharedPreferences.getInstance();
     bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
     print("🔑 Bearer Key found: ${bearerKey != null}");
 
     await _loadSavedSettings();
 
-    if (bearerKey != null) {
+    if (bearerKey != null && mounted) {
       await getStoreSetting(bearerKey!);
     }
   }
 
   // ──────────────────────────────────────────────────  PREFERENCES
   Future<void> _loadSavedSettings() async {
+    if (!mounted) return; // ✅ Check mounted state
+
     try {
       final prefs = sharedPreferences;
 
@@ -164,7 +194,9 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       _ipRemoteControllers[0].text =
           prefs.getString('printer_ip_remote_0') ?? '';
 
-      setState(() {}); // trigger rebuild with loaded values
+      if (mounted) {
+        setState(() {}); // trigger rebuild with loaded values
+      }
 
       print("✅ Local settings loaded from SharedPreferences");
     } catch (e) {
@@ -173,6 +205,8 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
   }
 
   Future<void> _saveIps() async {
+    if (!mounted) return; // ✅ Check mounted state
+
     try {
       // ✅ IMPORTANT: Unfocus all text fields BEFORE API call
       _unfocusAllTextFields();
@@ -190,15 +224,17 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
         barrierDismissible: false,
       );
 
-      // ✅ Call poststoreSetting without showing its dialog (we're handling it here)
+      // ✅ FIXED: Call poststoreSetting with showDialog: true to let it handle dialogs
       await poststoreSetting(bearerKey!, showDialog: false);
-      await Future.delayed(Duration(seconds: 1));
-      await SettingsSync.syncSettingsAfterLogin();
 
       // ✅ Close loading dialog first
       if (Get.isDialogOpen == true) {
         Get.back();
+        await Future.delayed(Duration(milliseconds: 300)); // Wait for dialog to close
       }
+
+      // ✅ Sync settings after successful API call
+      await SettingsSync.syncSettingsAfterLogin();
 
       // ✅ Show success animation
       Get.dialog(
@@ -213,18 +249,18 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
         barrierDismissible: false,
       );
 
-      // ✅ Wait for success animation, then show snackbar
+      // ✅ Wait for success animation, then close
       await Future.delayed(Duration(seconds: 2));
 
       if (Get.isDialogOpen == true) {
         Get.back();
+        await Future.delayed(Duration(milliseconds: 200)); // Wait for dialog to close
       }
 
       // ✅ IMPORTANT: Unfocus again after all dialogs are closed
-      Future.delayed(Duration(milliseconds: 100), () {
-        _unfocusAllTextFields();
-      });
+      _unfocusAllTextFields();
 
+      // ✅ Show success snackbar
       Get.snackbar(
         'Success',
         'Settings synced successfully',
@@ -235,9 +271,12 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       );
 
     } catch (e) {
+      print("❌ Error in _saveIps: $e");
+
       // ✅ Close any open dialog
       if (Get.isDialogOpen == true) {
         Get.back();
+        await Future.delayed(Duration(milliseconds: 200));
       }
 
       // ✅ IMPORTANT: Unfocus on error as well
@@ -245,15 +284,17 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
 
       Get.snackbar(
         'Error',
-        'Failed to save settings',
+        'Failed to save settings: $e',
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
+        duration: Duration(seconds: 3),
       );
     }
   }
-
   Future<void> _saveLocalIps() async {
+    if (!mounted) return; // ✅ Check mounted state
+
     try {
       // ✅ IMPORTANT: Unfocus before validation and saving
       _unfocusAllTextFields();
@@ -277,7 +318,9 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       await prefs.setInt('selected_ip_index', _selectedIpIndex);
 
       // ✅ Make sure focus is removed
-      _ipFocusNodes[0].unfocus();
+      if (_ipFocusNodes[0].hasFocus) {
+        _ipFocusNodes[0].unfocus();
+      }
 
       // Using Get.snackbar for success message
       Get.snackbar(
@@ -305,6 +348,8 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
   }
 
   Future<void> poststoreSetting(String bearerKey, {bool showDialog = true}) async {
+    if (!mounted) return; // ✅ Check mounted state
+
     String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
     Map<String, dynamic> jsonData = {
       "auto_accept_orders_remote": _autoRemoteOrderrAccept,
@@ -320,7 +365,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
         Get.dialog(
           Center(
               child: Lottie.asset(
-                'assets/animations/burger.json', // Changed to loading animation
+                'assets/animations/burger.json',
                 width: 150,
                 height: 150,
                 repeat: true,
@@ -333,14 +378,18 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       final result = await ApiRepo().storeSettingPost(bearerKey, jsonData);
 
       if (result != null) {
-        // ✅ Close loading dialog first (only if we showed it)
+        // ✅ IMPORTANT: Close loading dialog FIRST and wait for it to close completely
         if (showDialog && Get.isDialogOpen == true) {
           Get.back();
+          // ✅ Wait for dialog to close completely before showing next one
+          await Future.delayed(Duration(milliseconds: 300));
         }
 
-        setState(() {
-          print("StoreSettigData " + result.toString());
-        });
+        if (mounted) {
+          setState(() {
+            print("StoreSettigData " + result.toString());
+          });
+        }
 
         // ✅ Show success animation dialog only if requested
         if (showDialog) {
@@ -363,10 +412,11 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
             Get.back();
           }
 
+          // ✅ Wait for success dialog to close before proceeding
+          await Future.delayed(Duration(milliseconds: 200));
+
           // ✅ IMPORTANT: Ensure focus is removed after success dialog
-          Future.delayed(Duration(milliseconds: 100), () {
-            _unfocusAllTextFields();
-          });
+          _unfocusAllTextFields();
 
           // ✅ Show success snackbar
           Get.snackbar(
@@ -385,6 +435,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
         // ✅ Close loading dialog (only if we showed it)
         if (showDialog && Get.isDialogOpen == true) {
           Get.back();
+          await Future.delayed(Duration(milliseconds: 200)); // ✅ Wait for dialog to close
         }
 
         // ✅ Unfocus on error
@@ -403,9 +454,10 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
         throw Exception('Failed to update settings'); // ✅ Throw to handle in _saveIps
       }
     } catch (e) {
-      // ✅ Close loading dialog (only if we showed it)
+      // ✅ Close loading dialog (only if we showed it) with proper delay
       if (showDialog && Get.isDialogOpen == true) {
         Get.back();
+        await Future.delayed(Duration(milliseconds: 200)); // ✅ Wait for dialog to close
       }
 
       // ✅ IMPORTANT: Unfocus on any exception
@@ -428,6 +480,8 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
   }
 
   Future<void> getStoreSetting(String bearerKey) async {
+    if (!mounted) return; // ✅ Check mounted state
+
     try {
       print("🌐 Calling getStoreSetting API... (Tab active: $_isCurrentTab)");
 
@@ -456,7 +510,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
         Get.back();
       }
 
-      if (result != null) {
+      if (result != null && mounted) {
         StoreSetting store = result;
 
         // ✅ Get SharedPreferences instance
@@ -546,9 +600,11 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                   border: OutlineInputBorder(),
                   errorText: _validateIP(_ipControllers[index].text),
                 ),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                keyboardType: TextInputType.text,
                 onChanged: (value) {
-                  setState(() {}); // Trigger rebuild to show validation
+                  if (mounted) {
+                    setState(() {}); // Trigger rebuild to show validation
+                  }
                 },
                 // ✅ IMPORTANT: Handle form submission
                 onFieldSubmitted: (value) {
@@ -632,21 +688,6 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ✅ Header with refresh button and tab indicator
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      onPressed: () {
-                        print("🔄 Manual refresh triggered");
-                        _unfocusAllTextFields(); // ✅ Unfocus before refresh
-                        _refreshSettings();
-                      },
-                      icon: Icon(Icons.refresh, color: Colors.blue),
-                      tooltip: 'Refresh Settings',
-                    ),
-                  ],
-                ),
                 SizedBox(height: 16),
                 Text(
                   'Local IP',
@@ -681,7 +722,9 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                     // ✅ Unfocus before changing toggle
                     _unfocusAllTextFields();
 
-                    setState(() => _autoOrderPrint = val);
+                    if (mounted) {
+                      setState(() => _autoOrderPrint = val);
+                    }
 
                     // ✅ Immediately save to SharedPreferences
                     final prefs = await SharedPreferences.getInstance();
@@ -699,7 +742,9 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                     // ✅ Unfocus before changing toggle
                     _unfocusAllTextFields();
 
-                    setState(() => _autoRemoteOrderrAccept = val);
+                    if (mounted) {
+                      setState(() => _autoRemoteOrderrAccept = val);
+                    }
 
                     // ✅ Immediately save to SharedPreferences
                     final prefs = await SharedPreferences.getInstance();
@@ -750,6 +795,7 @@ class _ToggleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
+
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [

@@ -16,6 +16,7 @@ import '../../models/PrinterSetting.dart';
 import '../../models/StoreDetail.dart';
 import '../../models/StoreSetting.dart';
 import '../../models/UserMe.dart';
+import '../../models/driver/get_deliver_driver_response_model.dart';
 import '../../models/order_model.dart';
 import '../api.dart';
 import '../api_end_points.dart';
@@ -689,6 +690,7 @@ class CallService extends GetConnect {
       rethrow;
     }
   }
+
   GetTodayReport _createEmptyReport() {
     print("📊 Creating empty report with zero values");
 
@@ -734,6 +736,39 @@ class CallService extends GetConnect {
     }
   }
 
+  Future<GetDeliverDriverResponseModel> getDriver(String storeId) async {
+    httpClient.baseUrl = Api.baseUrl;
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $accessToken");
+
+    var res = await get(
+      'delivery/drivers/$storeId',
+      headers: {
+        'accept': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+    );
+
+    print("Getting Delivery Driver response is ${res.statusCode}");
+
+    if (res.statusCode == 200) {
+      print("Get Delivery Driver Response is : ${res.statusCode.toString()}");
+      print("Get Delivery Driver Response Body is : ${res.body}");
+
+      // Parse the JSON response as a List
+      List<dynamic> jsonList = jsonDecode(res.body);
+
+      if (jsonList.isNotEmpty) {
+        // Return the first driver from the list
+        return GetDeliverDriverResponseModel.fromJson(jsonList.first);
+      } else {
+        throw Exception('No drivers found');
+      }
+    } else {
+      throw Exception('Failed to load drivers: ${res.statusCode}');
+    }
+  }
 
 
 

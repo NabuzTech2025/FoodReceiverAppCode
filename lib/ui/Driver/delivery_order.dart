@@ -94,7 +94,7 @@ class _DeliveryOrderState extends State<DeliveryOrder> {
                                     ),
                                   ),
                                   SizedBox(width: 6),
-                                  Column(
+                                  const Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
@@ -106,7 +106,7 @@ class _DeliveryOrderState extends State<DeliveryOrder> {
                                       ),
                                       Text(
                                         'REWE Markt GmbH , Aegidienbe...',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             fontWeight: FontWeight.w500,
                                             fontSize: 11,
                                             letterSpacing: 0,
@@ -117,7 +117,7 @@ class _DeliveryOrderState extends State<DeliveryOrder> {
                                   )
                                 ],
                               ),
-                              Row(
+                              const Row(
                                 children: [
                                   Icon(
                                     Icons.access_time,
@@ -125,7 +125,7 @@ class _DeliveryOrderState extends State<DeliveryOrder> {
                                   ),
                                   Text(
                                     '10:30',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.w500,
                                       fontFamily: "Mulish",
                                       fontSize: 10,
@@ -135,13 +135,13 @@ class _DeliveryOrderState extends State<DeliveryOrder> {
                               )
                             ],
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
+                              const Text(
                                 'Rakesh Sharma / 49 98787678',
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontWeight: FontWeight.w700,
                                     fontFamily: "Mulish",
                                     fontSize: 13),
@@ -155,9 +155,9 @@ class _DeliveryOrderState extends State<DeliveryOrder> {
                                         fontSize: 11,
                                         fontFamily: "Mulish"),
                                   ),
-                                  Text(
+                                  const Text(
                                     '${2347687}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontWeight: FontWeight.w500,
                                         fontSize: 11,
                                         fontFamily: "Mulish"),
@@ -177,7 +177,7 @@ class _DeliveryOrderState extends State<DeliveryOrder> {
                                     height: 15,
                                     width: 15,
                                   ),
-                                  Text(
+                                  const Text(
                                     'Mandeep',
                                     style: TextStyle(
                                         fontFamily: 'Mulish',
@@ -189,7 +189,7 @@ class _DeliveryOrderState extends State<DeliveryOrder> {
                               Row(
                                 children: [
                                   SvgPicture.asset('assets/images/accepted.svg'),
-                                  Text(
+                                  const Text(
                                     'Delivered',
                                     style: TextStyle(
                                         fontFamily: 'Mulish',

@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:food_app/api/repository/api_repository.dart';
 import 'package:food_app/customView/CustomAppBar.dart';
 import 'package:food_app/customView/CustomDrawer.dart';
+import 'package:food_app/models/driver/get_deliver_driver_response_model.dart';
 import 'package:food_app/ui/Driver/create_driver.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../constants/constant.dart';
 import 'delivery_order.dart';
 
 class DriverScreen extends StatefulWidget {
@@ -17,13 +21,30 @@ class DriverScreen extends StatefulWidget {
 
 class _DriverScreenState extends State<DriverScreen> {
   late PageController _pageController;
-
+  late SharedPreferences sharedPreferences; // ✅ Added SharedPreferences instance
+  String? storeId;
   @override
   void initState() {
     _pageController = PageController(initialPage: 0);
     super.initState();
+    _initializeData(); // ✅ Initialize data on screen load
   }
 
+  bool isLoading = false;
+
+  // ✅ NEW: Initialize SharedPreferences and get store ID
+  Future<void> _initializeData() async {
+    sharedPreferences = await SharedPreferences.getInstance();
+    storeId = sharedPreferences.getString(valueShared_STORE_KEY);
+    print("✅ Driver Screen - Store ID loaded: $storeId");
+
+    // Automatically load driver data when screen initializes
+    if (storeId != null && storeId!.isNotEmpty) {
+      getSpecificStoreDriver();
+    } else {
+      print("❌ Driver Screen - No store ID found");
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -387,4 +408,52 @@ class _DriverScreenState extends State<DriverScreen> {
       return;
     }
   }
+  Future<void> getSpecificStoreDriver() async {
+    // Check if store ID is available
+    if (storeId == null || storeId!.isEmpty) {
+      print("❌ Driver Screen - Cannot call API: Store ID is missing");
+
+      // Show error message to user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Store ID not available. Please restart the app."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      print("📡 Driver Screen - Calling API with Store ID: $storeId");
+
+      // ✅ Pass store ID to the API call
+      GetDeliverDriverResponseModel model = await CallService().getDriver(storeId!);
+
+      setState(() {
+        isLoading = false;
+        print('✅ Driver List received successfully for store: $storeId');
+        // Process your driver data here
+      });
+    } catch (e) {
+      print("❌ Driver Screen - API Error: $e");
+
+      setState(() {
+        isLoading = false;
+      });
+
+      // Show error message to user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to load drivers: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+
 }
