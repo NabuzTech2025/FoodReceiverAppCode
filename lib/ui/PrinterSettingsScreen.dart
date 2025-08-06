@@ -40,7 +40,8 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
   bool _autoRemoteOrderPrint = false;
   String? bearerKey;
   late SharedPreferences sharedPreferences;
-
+  bool _hasUnsavedChanges = false;
+  bool _isSaving = false;
   // ✅ Tab tracking variables
   int? _lastTabIndex;
   bool _isCurrentTab = false;
@@ -208,6 +209,9 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
     if (!mounted) return; // ✅ Check mounted state
 
     try {
+      setState(() {
+        _isSaving = true; // ✅ NEW: Set saving state
+      });
       // ✅ IMPORTANT: Unfocus all text fields BEFORE API call
       _unfocusAllTextFields();
 
@@ -226,6 +230,10 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
 
       // ✅ FIXED: Call poststoreSetting with showDialog: true to let it handle dialogs
       await poststoreSetting(bearerKey!, showDialog: false);
+      setState(() {
+        _hasUnsavedChanges = false;
+        _isSaving = false;
+      });
 
       // ✅ Close loading dialog first
       if (Get.isDialogOpen == true) {
@@ -257,10 +265,8 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
         await Future.delayed(Duration(milliseconds: 200)); // Wait for dialog to close
       }
 
-      // ✅ IMPORTANT: Unfocus again after all dialogs are closed
       _unfocusAllTextFields();
 
-      // ✅ Show success snackbar
       Get.snackbar(
         'Success',
         'Settings synced successfully',
@@ -269,10 +275,11 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
         snackPosition: SnackPosition.BOTTOM,
         duration: Duration(seconds: 3),
       );
-
     } catch (e) {
       print("❌ Error in _saveIps: $e");
-
+      setState(() {
+        _isSaving = false;
+      });
       // ✅ Close any open dialog
       if (Get.isDialogOpen == true) {
         Get.back();
@@ -292,6 +299,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       );
     }
   }
+
   Future<void> _saveLocalIps() async {
     if (!mounted) return; // ✅ Check mounted state
 
@@ -375,84 +383,88 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
         );
       }
 
-      final result = await ApiRepo().storeSettingPost(bearerKey, jsonData);
+      // ✅ NEW: Add timeout wrapper around API call
+      final result = await Future.any([
+        ApiRepo().storeSettingPost(bearerKey, jsonData),
+        Future.delayed(Duration(seconds: 10)).then((_) => null) // 10 second timeout
+      ]);
 
-      if (result != null) {
-        // ✅ IMPORTANT: Close loading dialog FIRST and wait for it to close completely
+      // ✅ NEW: Check if result is null due to timeout
+      if (result == null) {
+        // ✅ Close loading dialog if timeout occurred
         if (showDialog && Get.isDialogOpen == true) {
           Get.back();
-          // ✅ Wait for dialog to close completely before showing next one
           await Future.delayed(Duration(milliseconds: 300));
         }
 
-        if (mounted) {
-          setState(() {
-            print("StoreSettigData " + result.toString());
-          });
-        }
+        // ✅ IMPORTANT: Unfocus on timeout
+        _unfocusAllTextFields();
 
-        // ✅ Show success animation dialog only if requested
         if (showDialog) {
-          Get.dialog(
-            Center(
-                child: Lottie.asset(
-                  'assets/animations/Success.json',
-                  width: 150,
-                  height: 150,
-                  repeat: false, // Don't repeat success animation
-                )
-            ),
-            barrierDismissible: false,
-          );
-
-          // ✅ Wait for success animation to complete, then close and show snackbar
-          await Future.delayed(Duration(seconds: 2));
-
-          if (Get.isDialogOpen == true) {
-            Get.back();
-          }
-
-          // ✅ Wait for success dialog to close before proceeding
-          await Future.delayed(Duration(milliseconds: 200));
-
-          // ✅ IMPORTANT: Ensure focus is removed after success dialog
-          _unfocusAllTextFields();
-
-          // ✅ Show success snackbar
           Get.snackbar(
-            'Success',
-            'Settings updated successfully',
-            backgroundColor: Colors.green,
+            'Timeout',
+            'Request timed out. Please try again.',
+            backgroundColor: Colors.orange,
             colorText: Colors.white,
             snackPosition: SnackPosition.BOTTOM,
             duration: Duration(seconds: 3),
           );
         }
 
-        return; // ✅ Return on success
+        throw Exception('Request timeout after 10 seconds');
+      }
+      if (showDialog && Get.isDialogOpen == true) {
+        Get.back();
+        // ✅ Wait for dialog to close completely before showing next one
+        await Future.delayed(Duration(milliseconds: 300));
+      }
 
-      } else {
-        // ✅ Close loading dialog (only if we showed it)
-        if (showDialog && Get.isDialogOpen == true) {
+      if (mounted) {
+        setState(() {
+          print("StoreSettigData " + result.toString());
+        });
+      }
+
+      // ✅ Show success animation dialog only if requested
+      if (showDialog) {
+        Get.dialog(
+          Center(
+              child: Lottie.asset(
+                'assets/animations/Success.json',
+                width: 150,
+                height: 150,
+                repeat: false, // Don't repeat success animation
+              )
+          ),
+          barrierDismissible: false,
+        );
+
+        // ✅ Wait for success animation to complete, then close and show snackbar
+        await Future.delayed(Duration(seconds: 2));
+
+        if (Get.isDialogOpen == true) {
           Get.back();
-          await Future.delayed(Duration(milliseconds: 200)); // ✅ Wait for dialog to close
         }
 
-        // ✅ Unfocus on error
+        // ✅ Wait for success dialog to close before proceeding
+        await Future.delayed(Duration(milliseconds: 200));
+
+        // ✅ IMPORTANT: Ensure focus is removed after success dialog
         _unfocusAllTextFields();
 
-        if (showDialog) {
-          Get.snackbar(
-            'Error',
-            'Failed to update settings',
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-            snackPosition: SnackPosition.BOTTOM,
-          );
-        }
-
-        throw Exception('Failed to update settings'); // ✅ Throw to handle in _saveIps
+        // ✅ Show success snackbar
+        Get.snackbar(
+          'Success',
+          'Settings updated successfully',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: Duration(seconds: 3),
+        );
       }
+
+      return; // ✅ Return on success
+
     } catch (e) {
       // ✅ Close loading dialog (only if we showed it) with proper delay
       if (showDialog && Get.isDialogOpen == true) {
@@ -466,12 +478,18 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       Log.loga(title, "Login Api:: e >>>>> $e");
 
       if (showDialog) {
+        // ✅ NEW: Different error message for timeout vs other errors
+        String errorMessage = e.toString().contains('timeout')
+            ? 'Request timed out. Please check your connection and try again.'
+            : 'An error occurred: $e';
+
         Get.snackbar(
           'Error',
-          'An error occurred: $e',
+          errorMessage,
           backgroundColor: Colors.red,
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
+          duration: Duration(seconds: 3),
         );
       }
 
@@ -522,7 +540,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
           _autoRemoteOrderrAccept = store.auto_accept_orders_remote ?? false;
           _autoOrderAccept = store.auto_accept_orders_local ?? false;
           _autoRemoteOrderPrint = store.auto_print_orders_remote ?? false;
-
+          _hasUnsavedChanges = false;
           print("✅ Settings loaded from API (Tab: $_isCurrentTab):");
           print("🔍 Auto Accept Local: $_autoOrderAccept");
           print("🔍 Auto Print Local: $_autoOrderPrint");
@@ -719,14 +737,15 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                   activeColor: Colors.blue,
                   value: _autoOrderPrint,
                   onChanged: (val) async {
-                    // ✅ Unfocus before changing toggle
                     _unfocusAllTextFields();
 
                     if (mounted) {
-                      setState(() => _autoOrderPrint = val);
+                      setState(() {
+                        _autoOrderPrint = val;
+                        _hasUnsavedChanges = true; // ✅ NEW: Mark as changed
+                      });
                     }
 
-                    // ✅ Immediately save to SharedPreferences
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setBool('auto_order_print', val);
 
@@ -739,14 +758,15 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                   activeColor: Colors.green,
                   value: _autoRemoteOrderrAccept,
                   onChanged: (val) async {
-                    // ✅ Unfocus before changing toggle
                     _unfocusAllTextFields();
 
                     if (mounted) {
-                      setState(() => _autoRemoteOrderrAccept = val);
+                      setState(() {
+                        _autoRemoteOrderrAccept = val;
+                        _hasUnsavedChanges = true; // ✅ NEW: Mark as changed
+                      });
                     }
 
-                    // ✅ Immediately save to SharedPreferences
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setBool('auto_order_remote_accept', val);
 
@@ -756,17 +776,20 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                 const SizedBox(height: 40),
                 Center(
                   child: ElevatedButton(
-                    onPressed: _saveIps,
+                    onPressed: (_hasUnsavedChanges && !_isSaving) ? _saveIps : null, // ✅ NEW: Conditional
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green[300],
-                      foregroundColor: Colors.black,
+                      backgroundColor: (_hasUnsavedChanges && !_isSaving)
+                          ? Colors.green[300]
+                          : Colors.grey[300], // ✅ NEW: Visual feedback
+                      foregroundColor: (_hasUnsavedChanges && !_isSaving)
+                          ? Colors.black
+                          : Colors.grey[600], // ✅ NEW: Visual feedback
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(50),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 30, vertical: 14),
+                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
                     ),
-                    child: const Text('Save IPs'),
+                    child: Text(_isSaving ? 'Saving...' : 'Save IPs'), // ✅ NEW: Dynamic text
                   ),
                 ),
               ],

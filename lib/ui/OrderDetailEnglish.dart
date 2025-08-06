@@ -75,8 +75,26 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
       bool _autoOrderPrint = prefs.getBool('auto_order_print') ?? false;
       bool _isAutoAccept = prefs.getBool('is_auto_accept') ?? false;
 
-      final result = await ApiRepo().orderAcceptDecline(bearerKey, jsonData, updatedOrder.id ?? 0);
+      // ✅ NEW: Add timeout wrapper around API call
+      final result = await Future.any([
+        ApiRepo().orderAcceptDecline(bearerKey, jsonData, updatedOrder.id ?? 0),
+        Future.delayed(Duration(seconds: 10)).then((_) => null) // 10 second timeout
+      ]);
+
       Get.back();
+
+      // ✅ NEW: Check if result is null due to timeout
+      if (result == null) {
+        Get.snackbar(
+          'Timeout',
+          'Request timed out. Please try again.',
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: Duration(seconds: 3),
+        );
+        return; // Exit early on timeout
+      }
 
       if (result != null) {
         setState(() {
@@ -118,7 +136,24 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
 
     } catch (e) {
       Get.back();
-      Log.loga(title, "Order Accept API Exception: $e");
+
+      // ✅ NEW: Different error message for timeout vs other errors
+      String errorMessage = e.toString().contains('timeout')
+          ? 'Request timed out. Please check your connection and try again.'
+          : 'Order Accept API Exception: $e';
+
+      if (e.toString().contains('timeout')) {
+        Get.snackbar(
+          'Timeout Error',
+          errorMessage,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: Duration(seconds: 3),
+        );
+      }
+
+      Log.loga(title, errorMessage);
     } finally {
       setState(() {
         isLoading = false;
@@ -127,6 +162,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
   }
 
 // Update the getStoredta() method to be more reliable:
+
   Future<String?> getStoredta(String bearerKey) async {
     try {
       String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
@@ -789,20 +825,6 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
 
   Widget _actionButton(BuildContext context, IconData icon, String label, Color color) {
     return GestureDetector(
-      // onTap: () {
-      //   if (bearerKey == null) return;
-      //
-      //   if (label == 'accept'.tr) {
-      //     setState(() {
-      //       isAutoAccept = false;
-      //       isLoading=true;// Manual accept
-      //     });
-      //     sharedPreferences.setBool('is_auto_accept', false);
-      //     getOrders(bearerKey!, true);
-      //   } else if (label == 'decline'.tr) {
-      //     getOrders(bearerKey!, false);
-      //   }
-      // },
         onTap: () async {
           if (bearerKey == null) return;
 
@@ -819,11 +841,6 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
 
             getOrders(bearerKey!, true);
 
-            // Jab API complete ho jaye, tab isLoading ko false karo
-            // Example:
-            // setState(() {
-            //   isLoading = false;
-            // });
           } else if (label == 'decline'.tr) {
             setState(() {
               isLoading = true; // Show loader

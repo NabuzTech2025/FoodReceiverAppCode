@@ -40,7 +40,7 @@ class _DriverScreenState extends State<DriverScreen> {
 
     // Automatically load driver data when screen initializes
     if (storeId != null && storeId!.isNotEmpty) {
-      getSpecificStoreDriver();
+      getSpecificStoreDriver(storeId!);
     } else {
       print("❌ Driver Screen - No store ID found");
     }
@@ -408,52 +408,30 @@ class _DriverScreenState extends State<DriverScreen> {
       return;
     }
   }
-  Future<void> getSpecificStoreDriver() async {
-    // Check if store ID is available
-    if (storeId == null || storeId!.isEmpty) {
-      print("❌ Driver Screen - Cannot call API: Store ID is missing");
 
-      // Show error message to user
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Store ID not available. Please restart the app."),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
+  Future<void> getSpecificStoreDriver(String storeId) async {
 
     setState(() {
       isLoading = true;
     });
 
-    try {
-      print("📡 Driver Screen - Calling API with Store ID: $storeId");
+    try{
 
-      // ✅ Pass store ID to the API call
-      GetDeliverDriverResponseModel model = await CallService().getDriver(storeId!);
+      GetSpecificStoreDeliveryDriverResponseModel model = await CallService().getDeliveryDriver(storeId);
 
       setState(() {
         isLoading = false;
-        print('✅ Driver List received successfully for store: $storeId');
-        // Process your driver data here
-      });
-    } catch (e) {
-      print("❌ Driver Screen - API Error: $e");
 
+
+        print('Specific Village Consumer List value is');
+      });
+    }catch(e){
       setState(() {
         isLoading = false;
-      });
 
-      // Show error message to user
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to load drivers: $e"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      });
     }
-  }
 
+  }
 
 }

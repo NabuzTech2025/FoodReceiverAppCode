@@ -1,25 +1,30 @@
-class GetDeliverDriverResponseModel {
-  int? userId;
-  int? storeId;
-  int? id;
-  bool? isActive;
+class GetSpecificStoreDeliveryDriverResponseModel {
+  GetSpecificStoreDeliveryDriverResponseModel({
+    required this.userId,
+    required this.storeId,
+    required this.id,
+    required this.isActive,
+  });
 
-  GetDeliverDriverResponseModel(
-      {this.userId, this.storeId, this.id, this.isActive});
+  final int? userId;
+  final int? storeId;
+  final int? id;
+  final bool? isActive;
 
-  GetDeliverDriverResponseModel.fromJson(Map<String, dynamic> json) {
-    userId = json['user_id'];
-    storeId = json['store_id'];
-    id = json['id'];
-    isActive = json['is_active'];
+  factory GetSpecificStoreDeliveryDriverResponseModel.fromJson(Map<String, dynamic> json){
+    return GetSpecificStoreDeliveryDriverResponseModel(
+      userId: json["user_id"],
+      storeId: json["store_id"],
+      id: json["id"],
+      isActive: json["is_active"],
+    );
   }
 
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['user_id'] = this.userId;
-    data['store_id'] = this.storeId;
-    data['id'] = this.id;
-    data['is_active'] = this.isActive;
-    return data;
-  }
+  Map<String, dynamic> toJson() => {
+    "user_id": userId,
+    "store_id": storeId,
+    "id": id,
+    "is_active": isActive,
+  };
+
 }
