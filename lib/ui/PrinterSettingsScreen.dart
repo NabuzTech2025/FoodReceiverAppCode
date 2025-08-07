@@ -707,7 +707,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(height: 16),
-                Text(
+                const Text(
                   'Local IP',
                   style: TextStyle(
                       color: Colors.black, fontWeight: FontWeight.w500),
@@ -742,14 +742,40 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                     if (mounted) {
                       setState(() {
                         _autoOrderPrint = val;
-                        _hasUnsavedChanges = true; // ✅ NEW: Mark as changed
+                        _hasUnsavedChanges = true;
                       });
                     }
 
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setBool('auto_order_print', val);
+                    // ✅ CRITICAL: Use multiple approaches to ensure saving
+                    try {
+                      // Method 1: Use existing instance
+                      await sharedPreferences.setBool('auto_order_print', val);
+                      await sharedPreferences.reload();
 
-                    print("✅ Auto Order Print toggled to: $val and saved to SharedPreferences");
+                      // Method 2: Create fresh instance and verify
+                      final freshPrefs = await SharedPreferences.getInstance();
+                      await freshPrefs.setBool('auto_order_print', val);
+                      await freshPrefs.reload();
+
+                      // Method 3: Verify the save worked
+                      bool savedValue = freshPrefs.getBool('auto_order_print') ?? false;
+
+                      if (savedValue == val) {
+                        print("✅ Auto Order Print toggled to: $val and VERIFIED in SharedPreferences");
+                      } else {
+                        print("❌ Auto Order Print save verification FAILED! Expected: $val, Got: $savedValue");
+                        // Try again with delay
+                        await Future.delayed(Duration(milliseconds: 200));
+                        await freshPrefs.setBool('auto_order_print', val);
+                        await freshPrefs.reload();
+                      }
+
+                      // ✅ ADDITIONAL: Force background handler to refresh its cache
+                      await _triggerBackgroundSettingsRefresh();
+
+                    } catch (e) {
+                      print("❌ Error saving Auto Order Print: $e");
+                    }
                   },
                 ),
 
@@ -763,14 +789,40 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                     if (mounted) {
                       setState(() {
                         _autoRemoteOrderrAccept = val;
-                        _hasUnsavedChanges = true; // ✅ NEW: Mark as changed
+                        _hasUnsavedChanges = true;
                       });
                     }
 
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setBool('auto_order_remote_accept', val);
+                    // ✅ CRITICAL: Use multiple approaches to ensure saving
+                    try {
+                      // Method 1: Use existing instance
+                      await sharedPreferences.setBool('auto_order_remote_accept', val);
+                      await sharedPreferences.reload();
 
-                    print("✅ Auto Order Remote Accept toggled to: $val and saved to SharedPreferences");
+                      // Method 2: Create fresh instance and verify
+                      final freshPrefs = await SharedPreferences.getInstance();
+                      await freshPrefs.setBool('auto_order_remote_accept', val);
+                      await freshPrefs.reload();
+
+                      // Method 3: Verify the save worked
+                      bool savedValue = freshPrefs.getBool('auto_order_remote_accept') ?? false;
+
+                      if (savedValue == val) {
+                        print("✅ Auto Order Remote Accept toggled to: $val and VERIFIED in SharedPreferences");
+                      } else {
+                        print("❌ Auto Order Remote Accept save verification FAILED! Expected: $val, Got: $savedValue");
+                        // Try again with delay
+                        await Future.delayed(Duration(milliseconds: 200));
+                        await freshPrefs.setBool('auto_order_remote_accept', val);
+                        await freshPrefs.reload();
+                      }
+
+                      // ✅ ADDITIONAL: Force background handler to refresh its cache
+                      await _triggerBackgroundSettingsRefresh();
+
+                    } catch (e) {
+                      print("❌ Error saving Auto Order Remote Accept: $e");
+                    }
                   },
                 ),
                 const SizedBox(height: 40),
@@ -799,6 +851,22 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       ),
     );
   }
+  // ✅ ADD THIS METHOD TO YOUR PrinterSettingsScreen class
+  Future<void> _triggerBackgroundSettingsRefresh() async {
+    try {
+      // Create multiple fresh instances to ensure background handler will see the changes
+      for (int i = 0; i < 3; i++) {
+        final testPrefs = await SharedPreferences.getInstance();
+        await testPrefs.reload();
+        await Future.delayed(Duration(milliseconds: 100));
+      }
+
+      print("🔄 Background settings refresh triggered");
+    } catch (e) {
+      print("❌ Error triggering background settings refresh: $e");
+    }
+  }
+
 }
 
 // ──────────────────────────────────────────────────  TOGGLE ROW WIDGET

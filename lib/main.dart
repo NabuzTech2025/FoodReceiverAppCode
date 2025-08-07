@@ -21,6 +21,7 @@ import 'package:food_app/utils/battery_optimization.dart';
 import 'package:food_app/utils/global.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'api/api.dart';
 import 'api/repository/api_repository.dart';
 import 'constants/constant.dart';
 import 'constants/routes.dart';
@@ -52,14 +53,84 @@ void _cleanOldBackgroundProcessedOrders() {
 
   print("🧹 Background: Cleaned old processed orders. Current tracked: ${_backgroundProcessedOrders.length}");
 }
+// ✅ Add these helper functions to your main.dart
 
+/// Ensures the correct base URL is set for API calls
+Future<String> ensureCorrectBaseUrl() async {
+  try {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+
+    String? savedBaseUrl = prefs.getString(valueShared_BASEURL);
+
+    if (savedBaseUrl != null && savedBaseUrl.isNotEmpty) {
+      print("✅ Found saved base URL: $savedBaseUrl");
+      await Api.init(); // Reinitialize API with saved URL
+      return savedBaseUrl;
+    } else {
+      print("⚠️ No base URL found, using default");
+      String defaultUrl = "https://magskr.com/";
+      await prefs.setString(valueShared_BASEURL, defaultUrl);
+      await Api.init();
+      return defaultUrl;
+    }
+  } catch (e) {
+    print("❌ Error ensuring base URL: $e");
+    String defaultUrl = "https://magskr.com/";
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString(valueShared_BASEURL, defaultUrl);
+      await Api.init();
+    } catch (_) {}
+    return defaultUrl;
+  }
+}
+
+/// Validates if the current environment matches the saved one
+Future<bool> validateEnvironmentConsistency() async {
+  try {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? savedBaseUrl = prefs.getString(valueShared_BASEURL);
+
+    if (savedBaseUrl == null) {
+      print("⚠️ No base URL saved, cannot validate environment");
+      return false;
+    }
+
+    print("🔍 Current saved base URL: $savedBaseUrl");
+
+    // Check if it's Test or Prod environment
+    if (savedBaseUrl.contains("magskr.de")) {
+      print("✅ Environment: TEST (magskr.de)");
+      return true;
+    } else if (savedBaseUrl.contains("magskr.com")) {
+      print("✅ Environment: PROD (magskr.com)");
+      return true;
+    } else {
+      print("⚠️ Unknown environment: $savedBaseUrl");
+      return false;
+    }
+  } catch (e) {
+    print("❌ Error validating environment: $e");
+    return false;
+  }
+}
+
+/// Updated background handler with environment validation
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 
   print("🔥 Background handler triggered");
 
-  // ✅ Clean old processed orders first
+  // ✅ FIRST: Ensure correct base URL is set
+  String baseUrl = await ensureCorrectBaseUrl();
+  bool isValidEnvironment = await validateEnvironmentConsistency();
+
+  print("🌐 Background - Using base URL: $baseUrl");
+  print("✅ Environment validation: ${isValidEnvironment ? 'PASSED' : 'FAILED'}");
+
+  // Clean old processed orders
   _cleanOldBackgroundProcessedOrders();
 
   final title = message.notification?.title ?? '';
@@ -68,7 +139,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print('📥 Background title: $title');
   print('📥 Background body: $body');
 
-  // ✅ Show notification regardless of processing status
+  // Show notification regardless of processing status
   if (title.contains('New Order')) {
     await _showOrderNotification(title, body);
   }
@@ -80,7 +151,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     print('❌ Badge update failed: $e');
   }
 
-  // ✅ Extract order ID early to check for duplicates
+  // Extract order ID and process
   if (title.contains('New Order')) {
     RegExp regex = RegExp(r'#(\d+)');
     Match? match = regex.firstMatch(body);
@@ -91,23 +162,22 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         int orderNumber = int.parse(orderNumberStr);
         print("🆔 Background - Extracted Order ID: $orderNumber");
 
-        // ✅ CHECK FOR DUPLICATE PROCESSING
+        // Check for duplicate processing
         if (_backgroundProcessedOrders.contains(orderNumber)) {
           print("⚠️ Background - Order $orderNumber already processed recently, skipping");
-          return; // Exit early for duplicates
+          return;
         }
 
-        // ✅ Mark as being processed
+        // Mark as being processed
         _backgroundProcessedOrders.add(orderNumber);
         _backgroundProcessingTime[orderNumber] = DateTime.now();
         print("✅ Background - Marked order $orderNumber as processing");
 
-        // Continue with normal processing...
+        // Get SharedPreferences with retries
         SharedPreferences? prefs;
         String? bearerKey;
         String? storeID;
 
-        // Get SharedPreferences with retries
         for (int attempt = 0; attempt < 5; attempt++) {
           try {
             print("🔄 Attempt ${attempt + 1}/5 to get fresh preferences");
@@ -133,14 +203,14 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
           }
         }
 
-        // ✅ Token validation
+        // Token validation
         if (bearerKey == null || bearerKey.isEmpty) {
           print("❌ Background - No bearer token found, removing from processed and skipping");
-          _backgroundProcessedOrders.remove(orderNumber); // Remove if failed
+          _backgroundProcessedOrders.remove(orderNumber);
           return;
         }
 
-        // ✅ Get settings with retries
+        // Get settings with retries
         bool autoAccept = false;
         bool autoPrint = false;
 
@@ -177,11 +247,12 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         print("✅ Background - Store ID: ${storeID ?? 'MISSING'}");
         print("✅ Background - Final Auto Accept: $autoAccept");
         print("✅ Background - Final Auto Print: $autoPrint");
+        print("🌐 Background - Confirmed base URL: $baseUrl");
 
-        // ✅ Early exit if both features are disabled
+        // Early exit if both features are disabled
         if (!autoAccept && !autoPrint) {
           print("ℹ️ Background - Both auto features disabled, notification shown only");
-          _backgroundProcessedOrders.remove(orderNumber); // Remove from tracking
+          _backgroundProcessedOrders.remove(orderNumber);
           return;
         }
 
@@ -198,15 +269,15 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         print("🔍 Final Check - Auto Accept: $autoAccept");
         print("🔍 Final Check - Auto Print: $autoPrint");
 
-        // ✅ Process the order
+        // Process the order
         if (autoAccept || autoPrint) {
           print("✅ Background - At least one auto feature enabled, processing order");
+          print("📤 Background - All API calls will use base URL: $baseUrl");
           await handleBackgroundOrderComplete(orderNumber, prefs, bearerKey, storeID);
         }
 
       } catch (e) {
         print('❌ Error parsing order number: $e');
-        // Remove from processed if parsing failed
         if (orderNumberStr.isNotEmpty) {
           try {
             int failedOrderNumber = int.parse(orderNumberStr);
@@ -219,17 +290,32 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     }
   }
 }
-
-
-// ✅ Updated background order handler with proper condition checks
+// ✅ Updated background order handler with base URL initialization
 Future<void> handleBackgroundOrderComplete(int orderNumber, SharedPreferences prefs, String bearerKey, String? storeID) async {
   try {
     print("🚀 Background order processing started for: $orderNumber");
+
+    // ✅ ENSURE CORRECT BASE URL IS SET BEFORE API CALLS
+    String? savedBaseUrl = prefs.getString(valueShared_BASEURL);
+    await debugSharedPreferencesSettings();
+    if (savedBaseUrl != null && savedBaseUrl.isNotEmpty) {
+      print("🔧 Background - Using saved base URL: $savedBaseUrl");
+      // Ensure API is initialized with correct base URL
+      await Api.init();
+    } else {
+      print("⚠️ Background - No base URL found, setting default");
+      await prefs.setString(valueShared_BASEURL, "https://magskr.com/");
+      await Api.init();
+
+      savedBaseUrl = "https://magskr.com/";
+    }
+
     print("🔑 Using token: ${bearerKey.substring(0, 20)}...");
     print("🏪 Using store: ${storeID ?? 'NULL'}");
+    print("🌐 Using base URL: $savedBaseUrl"); // ✅ CONFIRM BASE URL
 
-    bool autoAccept = prefs.getBool('auto_order_accept') ?? false; // ✅ Default false instead of true
-    bool autoPrint = prefs.getBool('auto_order_print') ?? false;   // ✅ Default false instead of true
+    bool autoAccept = prefs.getBool('auto_order_accept') ?? false;
+    bool autoPrint = prefs.getBool('auto_order_print') ?? false;
 
     print("🔍 Auto Accept: $autoAccept");
     print("🔍 Auto Print: $autoPrint");
@@ -241,6 +327,7 @@ Future<void> handleBackgroundOrderComplete(int orderNumber, SharedPreferences pr
 
     // Step 1: Get order data
     print("📥 Background - Fetching order data for order: $orderNumber");
+    print("📥 Background - API will call: ${savedBaseUrl}orders/$orderNumber"); // ✅ CONFIRM FULL URL
 
     try {
       final orderData = await ApiRepo().getNewOrderData(bearerKey, orderNumber);
@@ -271,6 +358,7 @@ Future<void> handleBackgroundOrderComplete(int orderNumber, SharedPreferences pr
         // ✅ FIXED: Only proceed if auto accept is enabled
         if (autoAccept) {
           print("🤖 Background - Auto accepting pending order: $orderNumber");
+          print("📤 Background - API will call: ${savedBaseUrl}orders/${orderData.id}/status"); // ✅ CONFIRM ACCEPT URL
 
           Map<String, dynamic> jsonData = {
             "order_status": 2,
@@ -288,6 +376,9 @@ Future<void> handleBackgroundOrderComplete(int orderNumber, SharedPreferences pr
               print("🖨️ Background - Auto printing after accept");
               await Future.delayed(Duration(seconds: 3));
 
+              print("📥 Background - Fetching updated order for printing");
+              print("📥 Background - API will call: ${savedBaseUrl}orders/$orderNumber"); // ✅ CONFIRM GET URL
+
               final updatedOrder = await ApiRepo().getNewOrderData(bearerKey, orderNumber);
 
               if (updatedOrder != null) {
@@ -304,11 +395,9 @@ Future<void> handleBackgroundOrderComplete(int orderNumber, SharedPreferences pr
             print("❌ Background - Failed to auto-accept order");
           }
         } else {
-          // ✅ FIXED: This was the main issue - removed auto print for pending orders
           print("ℹ️ Background - Auto accept disabled, ignoring pending order");
           print("ℹ️ Background - Pending orders should NOT be printed without acceptance");
-          // ✅ Removed the auto print call for pending orders
-          return; // Exit without processing
+          return;
         }
       } else {
         print("⚠️ Background - Unknown order status: ${orderData.orderStatus}");
@@ -318,6 +407,7 @@ Future<void> handleBackgroundOrderComplete(int orderNumber, SharedPreferences pr
       // Step 4: Refresh orders if store ID available
       if (storeID != null && storeID.isNotEmpty) {
         print("🔄 Background - Refreshing orders list...");
+        print("📤 Background - Refresh API will call: ${savedBaseUrl}orders/filter"); // ✅ CONFIRM REFRESH URL
         await refreshOrdersInBackground(bearerKey, storeID);
       } else {
         print("⚠️ Background - Skipping orders refresh (no store ID)");
@@ -327,6 +417,12 @@ Future<void> handleBackgroundOrderComplete(int orderNumber, SharedPreferences pr
 
     } catch (apiError) {
       print("❌ Background - API Error: $apiError");
+      // ✅ CHECK IF ERROR IS RELATED TO WRONG BASE URL
+      String errorString = apiError.toString().toLowerCase();
+      if (errorString.contains('404') || errorString.contains('not found')) {
+        print("❌ Background - Possible wrong base URL issue!");
+        print("❌ Background - Current base URL: $savedBaseUrl");
+      }
     }
 
   } catch (e) {
@@ -506,6 +602,46 @@ Future<void> backgroundPrintOrder(Order order, SharedPreferences prefs) async {
   } catch (e) {
     print("❌ Background print error: $e");
     print("❌ Print error stack: ${e.toString()}");
+  }
+}
+Future<void> debugSharedPreferencesSettings() async {
+  try {
+    print("🔍 ========== SHARED PREFERENCES DEBUG ==========");
+
+    // Method 1: Check existing instance
+    SharedPreferences prefs1 = await SharedPreferences.getInstance();
+    await prefs1.reload();
+
+    // Method 2: Create new instance
+    SharedPreferences prefs2 = await SharedPreferences.getInstance();
+    await prefs2.reload();
+
+    print("🔍 Instance 1 Settings:");
+    print("🔍   auto_order_accept: ${prefs1.getBool('auto_order_accept')}");
+    print("🔍   auto_order_print: ${prefs1.getBool('auto_order_print')}");
+    print("🔍   auto_order_remote_accept: ${prefs1.getBool('auto_order_remote_accept')}");
+    print("🔍   auto_order_remote_print: ${prefs1.getBool('auto_order_remote_print')}");
+
+    print("🔍 Instance 2 Settings:");
+    print("🔍   auto_order_accept: ${prefs2.getBool('auto_order_accept')}");
+    print("🔍   auto_order_print: ${prefs2.getBool('auto_order_print')}");
+    print("🔍   auto_order_remote_accept: ${prefs2.getBool('auto_order_remote_accept')}");
+    print("🔍   auto_order_remote_print: ${prefs2.getBool('auto_order_remote_print')}");
+
+    // Show all keys
+    print("🔍 All keys in SharedPreferences:");
+    Set<String> allKeys = prefs2.getKeys();
+    for (String key in allKeys) {
+      if (key.contains('auto') || key.contains('print') || key.contains('accept')) {
+        var value = prefs2.get(key);
+        print("🔍   $key: $value (${value.runtimeType})");
+      }
+    }
+
+    print("🔍 ========== DEBUG END ==========");
+
+  } catch (e) {
+    print("❌ Debug SharedPreferences error: $e");
   }
 }
 

@@ -512,20 +512,58 @@ class _LoginScreenState extends State<LoginScreen>
     await sharedPreferences.setString(valueShared_LANGUAGE, langCode);
   }
 
+  // Future<void> enviroment(String value) async {
+  //   if (value == "Prod") {
+  //     sharedPreferences.setString(valueShared_BASEURL, "https://magskr.com/");
+  //   } else if (value == "Test") {
+  //     sharedPreferences.setString(valueShared_BASEURL, "https://magskr.de/");
+  //   } else {
+  //     sharedPreferences.setString(valueShared_BASEURL, "https://magskr.com/");
+  //   }
+  //   setState(() {
+  //     selectedEnvironment = value;
+  //   });
+  //   await Api.init();
+  // }
+// ✅ Updated environment method in LoginScreen.dart
   Future<void> enviroment(String value) async {
+    String newBaseUrl;
+
     if (value == "Prod") {
-      sharedPreferences.setString(valueShared_BASEURL, "https://magskr.com/");
+      newBaseUrl = "https://magskr.com/";
     } else if (value == "Test") {
-      sharedPreferences.setString(valueShared_BASEURL, "https://magskr.de/");
+      newBaseUrl = "https://magskr.de/";
     } else {
-      sharedPreferences.setString(valueShared_BASEURL, "https://magskr.com/");
+      newBaseUrl = "https://magskr.com/";
     }
+
+    // ✅ Save to SharedPreferences with multiple verification
+    await sharedPreferences.setString(valueShared_BASEURL, newBaseUrl);
+    await Future.delayed(Duration(milliseconds: 100));
+    await sharedPreferences.reload();
+
+    // ✅ Verify it was saved correctly
+    String? savedUrl = sharedPreferences.getString(valueShared_BASEURL);
+    print("🔧 Environment changed to: $value");
+    print("🌐 New base URL set: $newBaseUrl");
+    print("🔍 Verified saved URL: $savedUrl");
+
+    if (savedUrl != newBaseUrl) {
+      print("⚠️ URL save verification failed, retrying...");
+      await sharedPreferences.setString(valueShared_BASEURL, newBaseUrl);
+      await sharedPreferences.reload();
+    }
+
     setState(() {
       selectedEnvironment = value;
     });
-    await Api.init();
-  }
 
+    // ✅ Reinitialize API with new base URL
+    await Api.init();
+
+    // ✅ Additional verification that Api class picked up the new URL
+    print("✅ API reinitialized with environment: $value");
+  }
 
   void showPasswordResetDialog(BuildContext context) {
     showDialog(

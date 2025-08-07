@@ -33,6 +33,7 @@ class AppTranslations extends Translations {
           'update_failed': 'Failed to update order status',
           'api_error': 'API Error',
           'delivery': 'Delivery',
+
           'pickup': 'Pickup',
           'dine_in': 'Dine-In',
           'order_id': 'Order ID',
@@ -40,7 +41,8 @@ class AppTranslations extends Translations {
           'reports': 'Reports',
           'setting': 'Setting',
           'logout': 'Logout',
-          'search_item':'Search Item'
+          'search_item':'Search Item',
+          'note': 'Note'
         },
         'de': {
           'order_details': 'Bestelldetails',
@@ -79,7 +81,8 @@ class AppTranslations extends Translations {
           'reports': 'Berichte',
           'setting': 'Einstellung',
           'logout': 'Ausloggen',
-          'search_item':'Suchbegriff'
+          'search_item':'Suchbegriff',
+          'note': 'Notiz'
         },
         'hi': {
           'order_details': 'Order Details',
@@ -157,7 +160,8 @@ class AppTranslations extends Translations {
           'reports': 'Berichte',
           'setting': 'Einstellung',
           'logout': 'Ausloggen',
-          'search_item':'Suchbegriff'
+          'search_item':'Suchbegriff',
+          'note': 'Notiz'
         }
       };
 }

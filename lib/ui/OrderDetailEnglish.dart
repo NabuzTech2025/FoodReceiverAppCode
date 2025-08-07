@@ -259,11 +259,12 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
 
       return sum + itemTotal;
     }) ?? 0;
-
-
     final discountData = updatedOrder.invoice?.discount_amount ?? 0.0;
     final deliveryFee = updatedOrder.invoice?.delivery_fee ?? 0.0;
     final grandTotal = subtotal - discountData + deliveryFee;
+    var Note=updatedOrder.note.toString();
+
+    print('Note IS $Note');
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -404,6 +405,34 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                         );
                       },
                     ),
+                    SizedBox(height: 2),
+                    Container(height: 0.5, color: Colors.grey),
+                    Note != null && Note.trim().isNotEmpty
+                        ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Note:  ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.green,
+                          ),
+                        ),
+                        Container(
+                          width: MediaQuery.of(context).size.width * 0.8,
+                          child: Text(
+                            Note,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w300,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                        : SizedBox.shrink(),
+
                     SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
                     Visibility(

@@ -90,6 +90,7 @@ class PrinterHelperEnglish {
     final discountData = order.invoice?.discount_amount ?? 0.0;
     final deliveryFee = order.invoice?.delivery_fee ?? 0.0;
     final orderType =   order.orderType == 2 ?'pickup'.tr:'delivery'.tr;
+    final note =   order.note.toString();
 
 
     printer.text(" ${store ?? ''}",
@@ -133,6 +134,11 @@ class PrinterHelperEnglish {
     printer.feed(1);
 
     _printOrderItems(printer, order);
+    printer.hr();
+    printer.text(
+      "${'note'.tr}: ${order.note ?? ""}",
+      styles: PosStyles(align: PosAlign.left, bold: true),
+    );
     printer.hr();
     _printItemWithNote(
         printer: printer,
@@ -402,6 +408,7 @@ class PrinterHelperEnglish {
       'gross': 'Gross',
       'net': 'Net',
       'vat': 'VAT',
+      'note': 'Note',
     },
     'de': {
       'order': 'Bestellung',
@@ -420,6 +427,7 @@ class PrinterHelperEnglish {
       'gross': 'Brutto',
       'net': 'Netto',
       'vat': 'MWSt',
+      'note': 'Notiz'
     },
     'ch': {
       'order': 'Bestellung',
@@ -438,6 +446,7 @@ class PrinterHelperEnglish {
       'gross': 'Brutto',
       'net': 'Netto',
       'vat': 'MWSt',
+      'note': 'Notiz'
     }
   };
 
@@ -558,7 +567,11 @@ class PrinterHelperEnglish {
 
         _printOrderItems(printer, order);
         printer.hr();
-
+        printer.text(
+          "${trBg('note', savedLocale)}: ${order.note?? ""}",
+          styles: PosStyles(align: PosAlign.left, bold: true),
+        );
+        printer.hr();
         _printItemWithNote(
           printer: printer,
           left: "${trBg('subtotal', savedLocale)}:",
