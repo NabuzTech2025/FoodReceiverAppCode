@@ -1,251 +1,82 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:food_app/api/repository/api_repository.dart';
-import 'package:food_app/constants/constant.dart';
-import 'package:food_app/models/OrderItem.dart';
-import 'package:food_app/models/Store.dart';
-import 'package:food_app/models/order_model.dart';
-import 'package:food_app/utils/log_util.dart';
-import 'package:food_app/utils/my_application.dart';
-import 'package:food_app/utils/printer_helper_english.dart';
+import 'package:food_app/models/order_history_response_model.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class OrderDetailEnglish extends StatefulWidget {
-  final Order order;
+import '../api/repository/api_repository.dart';
+import '../utils/printer_helper_english.dart';
 
-  OrderDetailEnglish(this.order);
+class OrderHistoryDetails extends StatefulWidget {
+  final orderHistoryResponseModel historyOrder; // Add this parameter
+
+  const OrderHistoryDetails({super.key, required this.historyOrder}); // Make it required
 
   @override
-  _OrderDetailState createState() => _OrderDetailState();
+  State<OrderHistoryDetails> createState() => _OrderHistoryDetailsState();
 }
 
-class _OrderDetailState extends State<OrderDetailEnglish> {
-  late SharedPreferences sharedPreferences;
-  String? bearerKey;
-  late Order updatedOrder;
+class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
+  // Remove the late declaration and use widget.historyOrder instead
+  // late orderHistoryResponseModel historyOrder;
+
   int? orderType = 0;
-  String? storeName;
-  String? storeid;
   bool isPrint = false;
   bool isAutoAccept = false;
   bool isLoading = false;
+  late SharedPreferences sharedPreferences;
+  String? bearerKey;
+  String? storeName;
 
   @override
   void initState() {
     super.initState();
-    initVar();
+    // Initialize any required data here
+    _initializeData();
   }
 
-// Replace the initVar() method in OrderDetailEnglish.dart:
-  Future<void> initVar() async {
-    updatedOrder = widget.order;
+  void _initializeData() async {
+    // Initialize shared preferences and other data
     sharedPreferences = await SharedPreferences.getInstance();
-    bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
-
-    if (bearerKey != null) {
-      // ✅ CRITICAL: Wait for store name to be loaded before proceeding
-      await getStoredta(bearerKey!);
-      print("✅ Store name loaded in initVar: $storeName");
-    }
+    storeName = sharedPreferences.getString('store_name');
+    bearerKey = sharedPreferences.getString('bearer_key');
+    setState(() {});
   }
 
-// Replace the getOrders() method:
-  Future<void> getOrders(String bearerKey, bool isAccept) async {
-    Map<String, dynamic> jsonData = {
-      "order_status": 2,
-      "approval_status": isAccept ? 2 : 3,
-    };
-
-    try {
-      Get.dialog(
-        Center(
-            child: Lottie.asset(
-              'assets/animations/burger.json',
-              width: 150,
-              height: 150,
-              repeat: true,
-            )),
-        barrierDismissible: false,
-      );
-
-      final prefs = await SharedPreferences.getInstance();
-      bool _autoOrderPrint = prefs.getBool('auto_order_print') ?? false;
-      bool _isAutoAccept = prefs.getBool('is_auto_accept') ?? false;
-
-      // ✅ NEW: Add timeout wrapper around API call
-      final result = await Future.any([
-        ApiRepo().orderAcceptDecline(bearerKey, jsonData, updatedOrder.id ?? 0),
-        Future.delayed(Duration(seconds: 10)).then((_) => null) // 10 second timeout
-      ]);
-
-      Get.back();
-
-      // ✅ NEW: Check if result is null due to timeout
-      if (result == null) {
-        Get.snackbar(
-          'Timeout',
-          'Request timed out. Please try again.',
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-          duration: Duration(seconds: 3),
-        );
-        return; // Exit early on timeout
-      }
-
-      if (result != null) {
-        setState(() {
-          isPrint = true;
-          updatedOrder = result;
-          app.appController.updateOrder(result);
-          orderType = isAccept ? 1 : 2;
-        });
-
-        if (isAccept && _autoOrderPrint && !_isAutoAccept) {
-          final refreshedOrder = await ApiRepo().getNewOrderData(bearerKey, updatedOrder.id!);
-
-          if (refreshedOrder.invoice != null &&
-              (refreshedOrder.invoice?.invoiceNumber ?? '').isNotEmpty) {
-
-            // ✅ Try multiple approaches to get store name
-            String? finalStoreName = storeName;
-
-            if (finalStoreName == null || finalStoreName.isEmpty) {
-              print("⚠️ Store name is null, trying to fetch...");
-              finalStoreName = await getStoredta(bearerKey);
-            }
-
-            if (finalStoreName == null || finalStoreName.isEmpty) {
-              print("⚠️ Still null, trying fallback...");
-              finalStoreName = await getStoreNameFallback();
-            }
-
-            print("🖨️ Final store name for printing: '$finalStoreName'");
-
-            PrinterHelperEnglish.printTestFromSavedIp(
-                context: Get.context!,
-                order: refreshedOrder,
-                store: finalStoreName ?? "Restaurant",
-                auto: true);
-          }
-        }
-      }
-
-    } catch (e) {
-      Get.back();
-
-      // ✅ NEW: Different error message for timeout vs other errors
-      String errorMessage = e.toString().contains('timeout')
-          ? 'Request timed out. Please check your connection and try again.'
-          : 'Order Accept API Exception: $e';
-
-      if (e.toString().contains('timeout')) {
-        Get.snackbar(
-          'Timeout Error',
-          errorMessage,
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-          duration: Duration(seconds: 3),
-        );
-      }
-
-      Log.loga(title, errorMessage);
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
+  void printData(orderHistoryResponseModel history) {
+    // ✅ Check if order is accepted before printing
+    if (history.approvalStatus != 2) {
+      showSnackbar("Error", "Cannot print pending order. Please accept the order first.");
+      return;
     }
+
+    if (storeName == null) {
+      showSnackbar("Error", "Store name not available");
+      return;
+    }
+
+    PrinterHelperEnglish.printHistoryFromSavedIp(
+        context: context,
+        order: history,
+        store: storeName!,
+        auto: false);
   }
 
-// Update the getStoredta() method to be more reliable:
-
-  Future<String?> getStoredta(String bearerKey) async {
-    try {
-      String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
-      print("🔍 DEBUG - bearerKey: ${bearerKey.substring(0, 10)}...");
-      print("🔍 DEBUG - storeID: $storeID");
-
-      if (storeID == null) {
-        print("❌ DEBUG - Store ID is null, cannot fetch store data");
-        return null;
-      }
-
-      print("🌐 DEBUG - Calling ApiRepo().getStoreData...");
-      final result = await ApiRepo().getStoreData(bearerKey, storeID);
-      print("🔍 DEBUG - API result: ${result != null ? 'Success' : 'Null'}");
-
-      if (result != null) {
-        Store store = result;
-        print("🔍 DEBUG - Store object: ${store.toString()}");
-        print("🔍 DEBUG - Store name from API: ${store.name}");
-
-        String fetchedStoreName = store.name?.toString() ?? "Unknown Store";
-        String fetchedStoreid = store.code?.toString() ?? "Unknown id";
-
-        setState(() {
-          storeName = fetchedStoreName;
-          storeID = fetchedStoreid;
-        });
-
-        print("✅ DEBUG - Final storeName set to: '$storeName'");
-        return storeName;
-      } else {
-        print("❌ DEBUG - API returned null result");
-        showSnackbar("Error", "Failed to get store data");
-        return null;
-      }
-    } catch (e) {
-      print("❌ DEBUG - Exception in getStoredta: $e");
-      print("❌ DEBUG - Exception type: ${e.runtimeType}");
-      Log.loga(title, "getStoredta Api:: e >>>>> $e");
-      showSnackbar("Api Error", "An error occurred: $e");
-      return null;
-    }
-  }
-
-// Alternative approach - get store name from SharedPreferences if available:
-  Future<String?> getStoreNameFallback() async {
-    try {
-      // Try to get from previous session
-      String? cachedName = sharedPreferences.getString('last_store_name');
-      if (cachedName != null && cachedName.isNotEmpty) {
-        print("✅ Using cached store name: $cachedName");
-        return cachedName;
-      }
-
-      // Try to get from user preferences or default
-      return "Default Restaurant"; // Replace with your app's default name
-    } catch (e) {
-      print("❌ Fallback failed: $e");
-      return "Restaurant";
-    }
-  }
-
-
-  String formatAmount(double? amount) {
-    if (amount == null) return "0";
-
-    final locale = Get.locale?.languageCode ?? 'en';
-    String localeToUse = locale == 'de' ? 'de_DE' : 'en_US';
-    return NumberFormat('#,##0.00#', localeToUse).format(amount);
+  void showSnackbar(String title, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$title: $message'),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (updatedOrder == null) {
-      return Center(child: CircularProgressIndicator());
-    }
+    // Use widget.historyOrder instead of historyOrder
+    final historyOrder = widget.historyOrder;
 
-    //var amount = (updatedOrder.payment?.amount ?? 0.0).toStringAsFixed(1);
-    var amount = (updatedOrder.invoice?.totalAmount ?? 0.0).toStringAsFixed(1);
-    var discount = (updatedOrder.invoice?.discount_amount ?? 0.0).toStringAsFixed(1);
-    var delFee = (updatedOrder.invoice?.delivery_fee ?? 0.0).toStringAsFixed(1);
-    // Calculate subtotal from all items
-    final subtotal = updatedOrder.items?.fold<double>(0, (sum, item) {
+    final subtotal = historyOrder.items?.fold<double>(0, (sum, item) {
       if (item == null) return sum;
 
       // Toppings total for this item
@@ -259,12 +90,12 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
 
       return sum + itemTotal;
     }) ?? 0;
-    final discountData = updatedOrder.invoice?.discount_amount ?? 0.0;
-    final deliveryFee = updatedOrder.invoice?.delivery_fee ?? 0.0;
-    final grandTotal = subtotal - discountData + deliveryFee;
-    var Note=updatedOrder.note.toString();
 
-    print('Note IS $Note');
+    final discountData = historyOrder.invoice?.discountAmount ?? 0.0;
+    final deliveryFee = historyOrder.invoice?.deliveryFee ?? 0.0;
+    final grandTotal = subtotal - discountData + deliveryFee;
+    var delFee = (historyOrder.invoice?.deliveryFee ?? 0.0).toStringAsFixed(1);
+    var Note = historyOrder.note.toString();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -291,7 +122,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
               width: 25,
               child: IconButton(
                 icon: Icon(
-                    updatedOrder.orderType == 1
+                    historyOrder.orderType == 1
                         ? Icons.car_crash_outlined
                         : Icons.receipt,
                     color: Colors.blue),
@@ -307,11 +138,11 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
           IconButton(
             icon: Icon(
               Icons.print,
-              color: (updatedOrder.approvalStatus == 2) ? Colors.blue : Colors.grey,
+              color: (historyOrder.approvalStatus == 2) ? Colors.blue : Colors.grey,
             ),
-            onPressed: (updatedOrder.approvalStatus == 2)
+            onPressed: (historyOrder.approvalStatus == 2)
                 ? () {
-              printData(updatedOrder);
+              printData(historyOrder);
             }
                 : null,
           ),
@@ -333,7 +164,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                     SizedBox(height: 5),
                     Center(
                       child: Text(
-                        '${'order_id'.tr} # ${updatedOrder.id ?? ''}',
+                        '${'order_id'.tr} # ${historyOrder.id ?? ''}',
                         style: TextStyle(
                             fontWeight: FontWeight.w700, fontSize: 15),
                       ),
@@ -341,7 +172,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                     SizedBox(height: 2),
                     Center(
                       child: Text(
-                        '${'invoice_number'.tr}: ${updatedOrder.invoice?.invoiceNumber ?? ''}',
+                        '${'invoice_number'.tr}: ${historyOrder.invoice?.invoiceNumber ?? ''}',
                         style: TextStyle(
                             fontWeight: FontWeight.w500, fontSize: 13),
                       ),
@@ -349,7 +180,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                     SizedBox(height: 2),
                     Center(
                       child: Text(
-                        '${'date'.tr}: ${updatedOrder.createdAt ?? ''}',
+                        '${'date'.tr}: ${historyOrder.createdAt ?? ''}',
                         style: TextStyle(
                             fontWeight: FontWeight.w500, fontSize: 13),
                       ),
@@ -358,22 +189,22 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                     Container(height: 0.5, color: Colors.grey),
                     SizedBox(height: 2),
                     Text(
-                      '${'customer'.tr}: ${updatedOrder.shipping_address?.customer_name ?? ""}',
+                      '${'customer'.tr}: ${historyOrder.shippingAddress?.customerName ?? ""}',
                       style:
-                          TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
                     SizedBox(height: 2),
-                    if (updatedOrder.orderType == 1)
+                    if (historyOrder.orderType == 1)
                       Text(
-                        '${'address'.tr}: ${updatedOrder.shipping_address?.line1 ?? ""}, ${updatedOrder.shipping_address?.city ?? ""}',
+                        '${'address'.tr}: ${historyOrder.shippingAddress?.line1 ?? ""}, ${historyOrder.shippingAddress?.city ?? ""}',
                         style: TextStyle(
                             fontWeight: FontWeight.w500, fontSize: 13),
                       ),
                     SizedBox(height: 2),
                     Text(
-                      '${'phone'.tr}: ${updatedOrder.shipping_address?.phone ?? ""}',
+                      '${'phone'.tr}: ${historyOrder.shippingAddress?.phone ?? ""}',
                       style:
-                          TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
                     SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
@@ -382,9 +213,9 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                       shrinkWrap: true,
                       physics: NeverScrollableScrollPhysics(),
                       padding: EdgeInsets.all(1),
-                      itemCount: updatedOrder.items?.length ?? 0,
+                      itemCount: historyOrder.items?.length ?? 0,
                       itemBuilder: (context, index) {
-                        final item = updatedOrder.items?[index];
+                        final item = historyOrder.items?[index];
                         if (item == null) return SizedBox.shrink();
 
                         final toppingsTotal = item.toppings?.fold<double>(
@@ -437,24 +268,24 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                         children: [
                           SizedBox(height: 2),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'subtotal'.tr,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 13,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'subtotal'.tr,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 13,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                formatAmount(subtotal),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 13,
-                                ),
-                              ),]
+                                Text(
+                                  formatAmount(subtotal),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 13,
+                                  ),
+                                ),]
                           ),
-                    SizedBox(height: 2),
+                          SizedBox(height: 2),
                           Visibility(
                             visible: discountData == 0.0 ? false : true,
                             child: Row(
@@ -467,7 +298,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                                       fontSize: 13),
                                 ),
                                 Text(formatAmount(discountData),
-                                 // discountData.toString(),
+                                  // discountData.toString(),
                                   style: TextStyle(
                                       fontWeight: FontWeight.w500,
                                       fontSize: 13),
@@ -499,22 +330,6 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                           SizedBox(height: 2),
                           Container(height: 0.5, color: Colors.grey),
                           SizedBox(height: 2),
-                          // Row(
-                          //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          //   children: [
-                          //     Text(
-                          //       'grand_total'.tr,
-                          //       style: TextStyle(
-                          //           fontWeight: FontWeight.w500, fontSize: 13),
-                          //     ),
-                          //     Text(
-                          //       "${'currency'.tr} ${updatedOrder.invoice!.totalAmount} ",
-                          //      // "${'currency'.tr} ${updatedOrder.payment?.amount?.toStringAsFixed(1) ?? "0"} ",
-                          //       style: TextStyle(
-                          //           fontWeight: FontWeight.w500, fontSize: 13),
-                          //     ),
-                          //   ],
-                          // ),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -529,11 +344,6 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                                 style: const TextStyle(
                                     fontWeight: FontWeight.w500, fontSize: 13),
                               ),
-                              // Text("${'currency'.tr} ${formatAmount(updatedOrder.invoice?.totalAmount ?? 0.0)}",
-                              //   //"${'currency'.tr} ${updatedOrder.invoice?.totalAmount?.toStringAsFixed(1) ?? "0"} ",
-                              //   style: TextStyle(
-                              //       fontWeight: FontWeight.w500, fontSize: 13),
-                              // ),
                             ],
                           ),
 
@@ -544,25 +354,25 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                     ),
                     SizedBox(height: 2),
                     Text(
-                      "${'invoice_number'.tr}: ${updatedOrder.invoice?.invoiceNumber ?? ''}",
+                      "${'invoice_number'.tr}: ${historyOrder.invoice?.invoiceNumber ?? ''}",
                       style:
-                          TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
                     Text(
-                      "${'payment_method'.tr}: ${updatedOrder.payment?.paymentMethod ?? ''}",
+                      "${'payment_method'.tr}: ${historyOrder.payment?.paymentMethod ?? ''}",
                       style:
-                          TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
                     SizedBox(height: 2),
                     Text(
-                      "${'paid'.tr}: ${updatedOrder.createdAt ?? ''}",
+                      "${'paid'.tr}: ${historyOrder.createdAt ?? ''}",
                       style:
-                          TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
                     SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
                     SizedBox(height: 2),
-                    if (updatedOrder.brutto_netto_summary?.isNotEmpty ?? false)
+                    if (historyOrder.bruttoNettoSummary?.isNotEmpty ?? false)
                       Padding(
                         padding: const EdgeInsets.only(top: 5),
                         child: Column(
@@ -622,15 +432,15 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                               shrinkWrap: true,
                               physics: NeverScrollableScrollPhysics(),
                               padding: EdgeInsets.all(12),
-                              itemCount: updatedOrder.brutto_netto_summary?.length ?? 0,
+                              itemCount: historyOrder.bruttoNettoSummary?.length ?? 0,
                               itemBuilder: (context, index) {
-                                final tax = updatedOrder.brutto_netto_summary?[index];
+                                final tax = historyOrder.bruttoNettoSummary?[index];
                                 if (tax == null) return SizedBox.shrink();
                                 return brutoItems(
                                   '${tax.taxRate?.toStringAsFixed(0) ?? "0"} %',
                                   tax.brutto?.toString() ?? "0",
                                   tax.netto?.toString() ?? "0",
-                                  tax.tax_amount?.toString() ?? "0",
+                                  tax.taxAmount?.toString() ?? "0",
                                 );
                               },
                             ),
@@ -645,13 +455,21 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
             Padding(
               padding: const EdgeInsets.only(top: 10, bottom: 20),
               child: _buildActionButtons(
-                  context, updatedOrder.approvalStatus ?? 0),
+                  context, historyOrder.approvalStatus ?? 0),
             ),
             SizedBox(height: 30,)
           ],
         ),
       ),
     );
+  }
+
+  String formatAmount(double? amount) {
+    if (amount == null) return "0";
+
+    final locale = Get.locale?.languageCode ?? 'en';
+    String localeToUse = locale == 'de' ? 'de_DE' : 'en_US';
+    return NumberFormat('#,##0.00#', localeToUse).format(amount);
   }
 
   Widget _buildActionButtons(BuildContext context, int approvalStatus) {
@@ -670,13 +488,6 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
             SizedBox(
               height: 5,
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _actionButton(context, Icons.close, "decline".tr, Colors.red),
-                _actionButton(context, Icons.check, "accept".tr, Colors.green),
-              ],
-            )
           ],
         );
       } else if (approvalStatus == 2) {
@@ -746,13 +557,12 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     return SizedBox.shrink();
   }
 
-  Widget _orderItem(String title, String price, OrderItem item, {String? note}) {
+  Widget _orderItem(String title, String price, Items item, {String? note}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Product title and price row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -819,7 +629,6 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
             flex: 1,
             child: Center(
               child: Text(formatAmount(double.tryParse(brutto) ?? 0),
-                //netto,
                 style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
               ),
             ),
@@ -827,8 +636,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
           Expanded(
             flex: 1,
             child: Center(
-              child: Text( formatAmount(double.tryParse(netto) ?? 0),
-               // brutto,
+              child: Text(formatAmount(double.tryParse(netto) ?? 0),
                 style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
               ),
             ),
@@ -838,93 +646,11 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
             child: Align(
               alignment: Alignment.centerRight,
               child: Text(formatAmount(double.tryParse(taxAmount ?? "0") ?? 0),
-               // taxAmount ?? "0",
                 style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _actionButton(BuildContext context, IconData icon, String label, Color color) {
-    return GestureDetector(
-        onTap: () async {
-          if (bearerKey == null) return;
-
-          if (label == 'accept'.tr) {
-            setState(() {
-              isAutoAccept = false;
-              isLoading = true; // Show loader
-            });
-
-            sharedPreferences.setBool('is_auto_accept', false);
-
-            // Give UI a chance to rebuild
-            await Future.delayed(Duration(milliseconds: 200));
-
-            getOrders(bearerKey!, true);
-
-          } else if (label == 'decline'.tr) {
-            setState(() {
-              isLoading = true; // Show loader
-            });
-
-            await Future.delayed(Duration(milliseconds: 200));
-
-            getOrders(bearerKey!, false);
-            setState(() {
-            isLoading = false;
-          });
-          // API ke complete hone par isLoading = false karo
-          }
-        },
-        child: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(10),
-            height: 40,
-            width: 120,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(5),
-            ),
-            child: Text(
-              textAlign: TextAlign.center,
-              label,
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.w400),
-            ),
-          )
-        ],
-      ),
-    );
-  }
-
-  void printData(Order order) {
-    // ✅ Check if order is accepted before printing
-    if (order.approvalStatus != 2) {
-      showSnackbar("Error", "Cannot print pending order. Please accept the order first.");
-      return;
-    }
-
-    if (storeName == null) {
-      showSnackbar("Error", "Store name not available");
-      return;
-    }
-
-    PrinterHelperEnglish.printTestFromSavedIp(
-        context: context,
-        order: order,
-        store: storeName!,
-        auto: false);
-  }
-
-  void showSnackbar(String title, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$title: $message'),
       ),
     );
   }

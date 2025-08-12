@@ -17,6 +17,7 @@ import '../../models/StoreDetail.dart';
 import '../../models/StoreSetting.dart';
 import '../../models/UserMe.dart';
 import '../../models/driver/get_deliver_driver_response_model.dart';
+import '../../models/order_history_response_model.dart';
 import '../../models/order_model.dart';
 import '../api.dart';
 import '../api_end_points.dart';
@@ -737,7 +738,7 @@ class CallService extends GetConnect {
   }
 
 
-
+//For Getting Specific Store Driver
   Future<GetSpecificStoreDeliveryDriverResponseModel> getDeliveryDriver(String storeId) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? accessToken = prefs.getString(valueShared_BEARER_KEY);
@@ -754,7 +755,40 @@ class CallService extends GetConnect {
       throw Exception(Error());
     }
   }
+  Future<List<orderHistoryResponseModel>> orderHistory(dynamic body) async {
+    httpClient.baseUrl = Api.baseUrl;
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $accessToken");
 
+    var res = await post(
+      'orders/store/filter',
+      body,
+      headers: {
+        'accept': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+    );
+
+    print("response is ${res.statusCode}");
+
+    if (res.statusCode == 200) {
+      print("order History Response is : ${res.statusCode.toString()}");
+      print("Order History Response Body is : ${res.body}");
+
+      // Parse the response body as a list
+      List<dynamic> jsonList = res.body;
+      List<orderHistoryResponseModel> orders = [];
+
+      for (var json in jsonList) {
+        orders.add(orderHistoryResponseModel.fromJson(json));
+      }
+
+      return orders;
+    } else {
+      throw Exception("Failed to load order history");
+    }
+  }
 
 
 

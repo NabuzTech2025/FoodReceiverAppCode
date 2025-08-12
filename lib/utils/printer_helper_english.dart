@@ -5,7 +5,9 @@ import 'package:food_app/models/OrderItem.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'dart:typed_data';
+import 'dart:convert';
+import '../models/order_history_response_model.dart';
 import '../models/order_model.dart';
 
 class PrinterHelperEnglish {
@@ -135,10 +137,17 @@ class PrinterHelperEnglish {
 
     _printOrderItems(printer, order);
     printer.hr();
-    printer.text(
-      "${'note'.tr}: ${order.note ?? ""}",
-      styles: PosStyles(align: PosAlign.left, bold: true),
+
+    // Mixed formatting for note: bold label + light text
+    printer.textEncoded(
+      Uint8List.fromList([
+        ...utf8.encode("${'note'.tr}: "),
+        0x1B, 0x21, 0x00, // ESC command to cancel bold
+        ...utf8.encode(order.note ?? "")
+      ]),
+      styles: PosStyles(align: PosAlign.left, bold: true), // Start with bold
     );
+
     printer.hr();
     _printItemWithNote(
         printer: printer,
@@ -190,46 +199,6 @@ class PrinterHelperEnglish {
     printer.feed(1);
     printer.cut();
   }
-
-  // static void _printOrderItems(NetworkPrinter printer, Order order) {
-  //   if (order.items == null || order.items!.isEmpty) return;
-  //
-  //   for (final orderItem in order.items!) {
-  //     final quantity = orderItem.quantity ?? 1;
-  //     final productName = orderItem.productName ?? '';
-  //     final unitPrice = orderItem.unitPrice ?? 0.0;
-  //     final priceText = _formatCurrency(unitPrice * quantity);
-  //
-  //     _printItemWithNote(
-  //       printer: printer,
-  //       left: '$quantity $productName',
-  //       right: orderItem.variant != null ? ' ' : '$priceText ',
-  //       note: orderItem.note,
-  //     );
-  //
-  //     if (orderItem.variant != null) {
-  //       final variantName = sanitizeText(orderItem.variant!.name ?? '');
-  //       final variantPrice = orderItem.variant!.price != null
-  //           ? _formatCurrency(orderItem.variant!.price!)
-  //           : '0,00';
-  //       printer.text('$quantity x $variantName [$variantPrice]');
-  //     }
-  //     // Print Toppings
-  //     if (orderItem.toppings != null && orderItem.toppings!.isNotEmpty) {
-  //       for (final topping in orderItem.toppings!) {
-  //         final tQty = topping.quantity ?? 1;
-  //         final tName = sanitizeText(topping.name ?? '');
-  //         final tPrice = _formatCurrency((topping.price ?? 0) * tQty);
-  //         printer.text('  $tQty x $tName [$tPrice]');
-  //       }
-  //     }
-  //     if (orderItem.note != null && orderItem.note!.trim().isNotEmpty) {
-  //       printer.text('+ ${sanitizeText(orderItem.note!.trim())}');
-  //     }
-  //
-  //     printer.feed(0);
-  //   }
-  // }
 
   static void _printOrderItems(NetworkPrinter printer, Order order) {
     if (order.items == null || order.items!.isEmpty) return;
@@ -290,15 +259,12 @@ class PrinterHelperEnglish {
       printer.feed(1); // Add spacing between different items
     }
   }
-
   static String _formatCurrency(double amount) {
     return NumberFormat('#,##0.00', 'en_US').format(amount);
   }
   static String formatCurrency(double amount) {
     return NumberFormat('#,##0.00', 'en_US').format(amount);
   }
-
-
   static void _printTaxSummary(NetworkPrinter printer, Order order) {
     String formatAmount(double? amount) {
       if (amount == null) return "0";
@@ -567,10 +533,17 @@ class PrinterHelperEnglish {
 
         _printOrderItems(printer, order);
         printer.hr();
-        printer.text(
-          "${trBg('note', savedLocale)}: ${order.note?? ""}",
-          styles: PosStyles(align: PosAlign.left, bold: true),
+
+        // Mixed formatting for note: bold label + light text
+        printer.textEncoded(
+          Uint8List.fromList([
+            ...utf8.encode("${trBg('note', savedLocale)}: "),
+            0x1B, 0x21, 0x00, // ESC command to cancel bold
+            ...utf8.encode(order.note ?? "")
+          ]),
+          styles: PosStyles(align: PosAlign.left, bold: true), // Start with bold
         );
+
         printer.hr();
         _printItemWithNote(
           printer: printer,
@@ -636,7 +609,6 @@ class PrinterHelperEnglish {
       print("❌ Background print error: $e");
     }
   }
-
   static void _printTaxSummaryBackground(NetworkPrinter printer, Order order, {String locale = 'de'}) {
     // Updated amount formatter with forced locale
     String formatAmount(double? amount) {
@@ -669,6 +641,278 @@ class PrinterHelperEnglish {
 
 
 
+  static Future<void> printHistoryFromSavedIp({required BuildContext context, required orderHistoryResponseModel order, required String? store, required bool? auto,}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final selectedIndex = prefs.getInt('selected_ip_index');
+    if (auto == false) {
+      if (selectedIndex == null) {
+        _showSnackbar(context, 'no_printer_selected'.tr);
+        Navigator.of(context).pop(true);
+        return;
+      }
+    }
+
+    final ip = prefs.getString('printer_ip_$selectedIndex');
+
+    if (ip == null || ip.trim().isEmpty) {
+      if (auto == false) {
+        _showSnackbar(context, 'empty_printer_ip'.tr);
+        Navigator.of(context).pop(true);
+        return;
+      }
+    }
+
+    try {
+      final profile = await CapabilityProfile.load();
+      final printer = NetworkPrinter(PaperSize.mm80, profile);
+      final result = await printer.connect(ip!, port: 9100);
+
+      if (result == PosPrintResult.success) {
+        await _printOrderHistoryDetails(printer, order, store);
+        printer.disconnect();
+        if (auto == false) {
+          _showSnackbar(context, 'printer_success'.tr);
+          Navigator.of(context).pop(true);
+        }
+      } else {
+        if (auto == false) {
+          _showSnackbar(context, '${'printer_failed'.tr}: $result');
+          Navigator.of(context).pop(true);
+        }
+      }
+    } catch (e) {
+      if (auto == false) {
+        _showSnackbar(context, '${'printer_error'.tr}: $e');
+        Navigator.of(context).pop(true);
+      }
+    }
+  }
+  static Future<void> _printOrderHistoryDetails(NetworkPrinter printer, orderHistoryResponseModel order, String? store) async {
+    String formatAmount(double? amount) {
+      if (amount == null) return "0";
+
+      final locale = Get.locale?.languageCode ?? 'en';
+      String localeToUse = locale == 'de' ? 'de_DE' : 'en_US';
+      return NumberFormat('#,##0.00#', localeToUse).format(amount);
+    }
+    final now = DateTime.now();
+    final dateTimeStr = '${now.day}/${now.month}/${now.year},'
+        ' ${now.hour}:${now.minute.toString().padLeft(2, '0')}';
+
+    var amount = order.invoice?.totalAmount ?? 0.0;
+    var discount = order.invoice?.discountAmount ?? 0.0;
+    var delFee = order.invoice?.deliveryFee ?? 0.0;
+    final subtotal = order.items?.fold<double>(0, (sum, item) {
+      if (item == null) return sum;
+
+      // Toppings total for this item
+      final toppingsTotal = item.toppings?.fold<double>(
+        0,
+            (tSum, topping) => tSum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
+      ) ?? 0;
+
+      // Item total (unit price + toppings) * quantity
+      final itemTotal = ((item.unitPrice ?? 0) + toppingsTotal) * (item.quantity ?? 0);
+
+      return sum + itemTotal;
+    }) ?? 0;
+
+    final discountData = order.invoice?.discountAmount ?? 0.0;
+    final deliveryFee = order.invoice?.deliveryFee ?? 0.0;
+    final orderType =   order.orderType == 2 ?'pickup'.tr:'delivery'.tr;
+    final note =   order.note.toString();
+
+
+    printer.text(" ${store ?? ''}",
+      styles: PosStyles(align: PosAlign.center, bold: true,),);
+    printer.text(
+      sanitizeText(orderType),
+      styles: PosStyles(align: PosAlign.center, bold: true,),
+    );
+    printer.text("${'order'.tr} # ${order.id ?? ''}",
+      styles: PosStyles(align: PosAlign.center, bold: true),
+    );
+
+    printer.setStyles(PosStyles(align: PosAlign.center));
+    printer.text(
+      sanitizeText("${'invoice_number'.tr}: ${order.invoice?.invoiceNumber ?? ''}"),
+      styles: PosStyles(bold: true),
+    );
+    printer.text(
+      sanitizeText("${'date'.tr}: ${order.createdAt ?? dateTimeStr}"),
+      styles: PosStyles(bold: true),
+    );
+    printer.hr();
+    printer.text(
+      sanitizeText("${'customer'.tr}: ${(order.shippingAddress?.customerName ?? '')}"),
+      styles: PosStyles(align: PosAlign.left, bold: true),
+    );
+    // printer.text(
+    //   "${'address'.tr}: ${order.shipping_address?.line1 ?? ""}, ${order.shipping_address?.city ?? ""}",
+    //   styles: PosStyles(align: PosAlign.left, bold: true),
+    // );
+    printer.text(
+      "${'address'.tr}: ${order.shippingAddress?.line1 ?? ""}, ${order.shippingAddress?.city ?? ""}"
+          "${order.orderType != 2 ? ',${order.shippingAddress?.zip ?? ""}' : ''}",
+      styles: PosStyles(align: PosAlign.left, bold: true),
+    );
+    printer.text(
+      "${'phone'.tr}: ${order.shippingAddress?.phone ?? ""}",
+      styles: PosStyles(align: PosAlign.left, bold: true),
+    );
+    printer.hr();
+    printer.feed(1);
+
+    _printOrderHistoryItems(printer, order);
+    printer.hr();
+
+    // Mixed formatting for note: bold label + light text
+    printer.textEncoded(
+      Uint8List.fromList([
+        ...utf8.encode("${'note'.tr}: "),
+        0x1B, 0x21, 0x00, // ESC command to cancel bold
+        ...utf8.encode(order.note ?? "")
+      ]),
+      styles: PosStyles(align: PosAlign.left, bold: true), // Start with bold
+    );
+
+    printer.hr();
+    _printItemWithNote(
+        printer: printer,
+        left: "${'subtotal'.tr}:",
+        right: formatAmount(subtotal),
+        note: '');
+
+    if (discountData != 0.0) {
+      _printItemWithNote(
+          printer: printer,
+          left: "${'discount'.tr}:",
+          right: formatAmount(discount),
+          note: '');
+    }
+
+    if (delFee != 0.0) {
+      _printItemWithNote(
+          printer: printer,
+          left: "${'delivery_fee'.tr}:",
+          right: formatAmount(delFee),
+          note: '');
+    }
+
+    printer.hr();
+    _printItemWithNote(
+      printer: printer,
+      left: "${'grand_total'.tr}:",
+      right: formatAmount(amount),
+      note: '',
+    );
+    printer.hr();
+
+    printer.text("${'invoice_number'.tr}:  ${order.invoice?.invoiceNumber ?? ''}",
+      styles: PosStyles(align: PosAlign.left, bold: true),
+    );
+    printer.text("${'payment_method'.tr}:  ${order.payment?.paymentMethod ?? ''}",
+      styles: PosStyles(align: PosAlign.left, bold: true),
+    );
+    printer.text("${'paid'.tr}: ${order.createdAt ?? ''}",
+      styles: PosStyles(align: PosAlign.left, bold: true),
+    );
+    printer.hr();
+
+    if (order.bruttoNettoSummary != null &&
+        order.bruttoNettoSummary!.isNotEmpty) {
+      _printTaxHistorySummary(printer, order);
+    }
+
+    printer.feed(1);
+    printer.cut();
+  }
+
+  static void _printOrderHistoryItems(NetworkPrinter printer, orderHistoryResponseModel order) {
+    if (order.items == null || order.items!.isEmpty) return;
+
+    for (final item in order.items!) {
+      if (item == null) continue;
+
+      // Calculate total price for this single item (including toppings)
+      final toppingsTotal = item.toppings?.fold<double>(
+        0,
+            (sum, topping) => sum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
+      ) ?? 0;
+      final itemTotal = ((item.unitPrice ?? 0) + toppingsTotal) * (item.quantity ?? 0);
+
+      // Check if should show unit price (matching UI logic)
+      bool shouldShowUnitPrice = (item.toppings?.isNotEmpty ?? false) && item.variant == null;
+
+      // Print main product line (matching UI format exactly)
+      String productLine = '${item.quantity ?? 0}X ${item.productName ?? "Unknown"}';
+      if (shouldShowUnitPrice) {
+        productLine += ' [${_formatCurrency(item.unitPrice ?? 0)}]';
+      }
+
+      final totalPriceText = _formatCurrency(itemTotal);
+
+      _printItemWithNote(
+        printer: printer,
+        left: productLine,
+        right: totalPriceText,
+        note: '',
+      );
+
+      // Print variant info (if exists)
+      if (item.variant != null) {
+        final variantName = sanitizeText(item.variant!.name ?? '');
+        final variantPrice = _formatCurrency(item.variant!.price ?? 0);
+        final variantLine = '  ${item.quantity} × $variantName [$variantPrice]';
+        printer.text(variantLine);
+      }
+
+      // Print toppings info (if exists)
+      if (item.toppings != null && item.toppings!.isNotEmpty) {
+        for (final topping in item.toppings!) {
+          final tQty = topping.quantity ?? 1;
+          final tName = sanitizeText(topping.name ?? '');
+          final totalToppingPrice = (topping.price ?? 0) * tQty;
+          final tPrice = _formatCurrency(totalToppingPrice);
+          final toppingLine = '  $tQty × $tName [$tPrice]';
+          printer.text(toppingLine);
+        }
+      }
+
+      // Print note if exists
+      if (item.note != null && item.note!.trim().isNotEmpty) {
+        printer.text('  + ${sanitizeText(item.note!.trim())}');
+      }
+
+      printer.feed(1); // Add spacing between different items
+    }
+  }
+
+  static void _printTaxHistorySummary(NetworkPrinter printer, orderHistoryResponseModel order) {String formatAmount(double? amount) {
+    if (amount == null) return "0";
+
+    final locale = Get.locale?.languageCode ?? 'en';
+    String localeToUse = locale == 'de' ? 'de_DE' : 'en_US';
+    return NumberFormat('#,##0.00#', localeToUse).format(amount);
+  }
+
+  printer.text(
+    '${'vat_rate'.tr}        ${'gross'.tr}       ${'net'.tr}       ${'vat'.tr}',
+    styles: PosStyles(bold: true, align: PosAlign.left),
+  );
+
+  for (var tax in order.bruttoNettoSummary!) {
+    _printTaxSummaryLine(
+      printer: printer,
+      left: '${(tax.taxRate ?? 0.0).toStringAsFixed(0)} %',
+      middle1: formatAmount(tax.brutto ?? 0.0),
+      middle2: formatAmount(tax.netto ?? 0.0),
+      right: formatAmount(tax.taxAmount ?? 0.0),
+    );
+  }
+  printer.hr();
+  printer.feed(1);
+  }
 
 }
 

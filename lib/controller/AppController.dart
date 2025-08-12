@@ -1,6 +1,10 @@
+import 'package:food_app/models/order_history_response_model.dart';
 import 'package:food_app/models/order_model.dart';
 import 'package:get/get.dart';
 
+import '../models/ShippingAddress.dart';
+import 'package:food_app/models/order_history_response_model.dart' as History;
+import 'package:food_app/models/order_model.dart' as OrderModel;
 final title = "AppController";
 
 class AppController extends GetxController {
@@ -271,4 +275,81 @@ class AppController extends GetxController {
     }
     print("📋 === END DEBUG ===");
   }
+
+  // Add this method in AppController class
+  // ✅ FIXED: Use History models directly instead of converting to OrderModel
+  var _historyOrdersList = <History.orderHistoryResponseModel>[].obs;
+
+  List<History.orderHistoryResponseModel> get historyOrdersList => _historyOrdersList.value;
+
+  void setHistoryOrders(List<History.orderHistoryResponseModel> historyOrders) {
+    print("📋 Setting ${historyOrders.length} history orders");
+
+    _historyOrdersList.clear();
+    _historyOrdersList.assignAll(historyOrders);
+    _historyOrdersList.refresh();
+
+    print("✅ History orders set: ${_historyOrdersList.length}");
+  }
+
+  History.orderHistoryResponseModel? getHistoryOrderByIndex(int index) {
+    if (index >= 0 && index < _historyOrdersList.length) {
+      return _historyOrdersList[index];
+    }
+    return null;
+  }
+
+  // ✅ Helper methods to get data from history orders in a consistent way
+  String? getHistoryOrderCustomerName(int index) {
+    final order = getHistoryOrderByIndex(index);
+    return order?.shippingAddress?.customerName;
+  }
+
+  String? getHistoryOrderPhone(int index) {
+    final order = getHistoryOrderByIndex(index);
+    return order?.shippingAddress?.phone;
+  }
+
+  String? getHistoryOrderAddress(int index) {
+    final order = getHistoryOrderByIndex(index);
+    if (order?.shippingAddress != null) {
+      final addr = order!.shippingAddress!;
+      return "${addr.line1 ?? ''}, ${addr.city ?? ''}, ${addr.zip ?? ''}".trim();
+    }
+    return null;
+  }
+
+  double? getHistoryOrderTotal(int index) {
+    final order = getHistoryOrderByIndex(index);
+    return order?.invoice?.totalAmount;
+  }
+
+  String? getHistoryOrderPaymentMethod(int index) {
+    final order = getHistoryOrderByIndex(index);
+    return order?.payment?.paymentMethod;
+  }
+
+  String? getHistoryOrderStatus(int index) {
+    final order = getHistoryOrderByIndex(index);
+    switch (order?.approvalStatus) {
+      case 0:
+        return "Pending";
+      case 1:
+        return "Approved";
+      case 2:
+        return "Rejected";
+      default:
+        return "Unknown";
+    }
+  }
+
+  List<History.Items>? getHistoryOrderItems(int index) {
+    final order = getHistoryOrderByIndex(index);
+    return order?.items;
+  }
+
+
+
+
+
 }

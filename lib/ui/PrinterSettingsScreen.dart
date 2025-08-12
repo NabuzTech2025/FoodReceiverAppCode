@@ -825,6 +825,51 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                     }
                   },
                 ),
+
+                _ToggleRow(
+                  label: 'Auto Order Remote Print',
+                  activeColor: Colors.blue.shade400,
+                  value: _autoRemoteOrderPrint,
+                  onChanged: (val) async {
+                    _unfocusAllTextFields();
+                    if (mounted) {
+                      setState(() {
+                        _autoRemoteOrderPrint = val;
+                        _hasUnsavedChanges = true;
+                      });
+                    }
+
+                    // ✅ CRITICAL: Use multiple approaches to ensure saving
+                    try {
+                      await sharedPreferences.setBool('auto_order_remote_print', val);
+                      await sharedPreferences.reload();
+
+                      // Method 2: Create fresh instance and verify
+                      final freshPrefs = await SharedPreferences.getInstance();
+                      await freshPrefs.setBool('auto_order_remote_print', val);
+                      await freshPrefs.reload();
+
+                      // Method 3: Verify the save worked
+                      bool savedValue = freshPrefs.getBool('auto_order_remote_print') ?? false;
+
+                      if (savedValue == val) {
+                        print("✅ Auto Order Remote Print toggled to: $val and VERIFIED in SharedPreferences");
+                      } else {
+                        print("❌ Auto Order Remote Print save verification FAILED! Expected: $val, Got: $savedValue");
+                        // Try again with delay
+                        await Future.delayed(Duration(milliseconds: 200));
+                        await freshPrefs.setBool('auto_order_remote_print', val);
+                        await freshPrefs.reload();
+                      }
+
+                      // ✅ ADDITIONAL: Force background handler to refresh its cache
+                      await _triggerBackgroundSettingsRefresh();
+
+                    } catch (e) {
+                      print("❌ Error saving Auto Order Remote Print: $e");
+                    }
+                  },
+                ),
                 const SizedBox(height: 40),
                 Center(
                   child: ElevatedButton(

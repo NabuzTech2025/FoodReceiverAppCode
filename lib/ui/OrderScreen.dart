@@ -905,7 +905,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                   children: [
                     // Date + title
                     GestureDetector(
-                      onTap: openCalendarScreen,
+                      //onTap: openCalendarScreen,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -926,7 +926,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                     Row(
                       children: [
                         Text(
-                          'Total Orders: ${_getTotalOrders()}',
+                          '${'total_order'.tr}: ${_getTotalOrders()}',
                           style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
@@ -952,35 +952,35 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                     children: [
                       // Accepted Orders
                       _buildStatusContainer(
-                        'Accepted: ${_getApprovalStatusCount("accepted")}',
+                        '${'accepted'.tr}: ${_getApprovalStatusCount("accepted")}',
                         Colors.green.withOpacity(0.1),
                       ),
                       SizedBox(width: 8),
 
                       // Declined Orders
                       _buildStatusContainer(
-                        'Decline: ${_getApprovalStatusCount("declined")}',
+                        '${"decline".tr}: ${_getApprovalStatusCount("declined")}',
                         Colors.red.withOpacity(0.1),
                       ),
                       SizedBox(width: 8),
 
-                      // Pending Orders
-                      _buildStatusContainer(
-                        'Pending: ${_getApprovalStatusCount("pending")}',
-                        Colors.yellow.withOpacity(0.2),
-                      ),
-                      SizedBox(width: 8),
+                      // // Pending Orders
+                      // _buildStatusContainer(
+                      //   'Pending: ${_getApprovalStatusCount("pending")}',
+                      //   Colors.yellow.withOpacity(0.2),
+                      // ),
+                      //SizedBox(width: 8),
 
                       // Pickup Orders
                       _buildStatusContainer(
-                        'PickUp: ${_getOrderTypeCount("pickup")}',
+                        '${"pickup".tr}: ${_getOrderTypeCount("pickup")}',
                         Colors.blue.withOpacity(0.1),
                       ),
                       SizedBox(width: 8),
 
                       // Delivery Orders
                       _buildStatusContainer(
-                        'Delivery: ${_getOrderTypeCount("delivery")}',
+                        '${"delivery".tr}: ${_getOrderTypeCount("delivery")}',
                         Colors.purple.withOpacity(0.1),
                       ),
                     ],

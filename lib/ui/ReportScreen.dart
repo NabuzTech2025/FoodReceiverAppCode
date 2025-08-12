@@ -4,7 +4,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:food_app/api/Socket/socket_service.dart';
+import 'package:food_app/models/order_history_response_model.dart';
 import 'package:food_app/models/today_report.dart';
+import 'package:food_app/ui/order_history.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
@@ -13,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../api/repository/api_repository.dart';
 import '../constants/constant.dart';
 import '../models/DailySalesReport.dart';
+import '../models/order_model.dart';
 import '../utils/log_util.dart';
 import '../utils/my_application.dart';
 
@@ -46,6 +49,9 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
   bool _isLiveDataActive = false;
   DateTime? _lastUpdateTime;
   Timer? _liveDataTimer;
+
+  bool isLoading= false;
+
   @override
   void initState() {
     super.initState();
@@ -208,7 +214,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
       displayedMonth = now.month;
       displayedYear = now.year;
       _selectedReport = null;
-      _selectedDate = null;
+      _selectedDate = null; // Make sure this is reset
       dateSeleted = '';
     });
     print("📅 Calendar reset to current month: ${displayedMonth}/${displayedYear}");
@@ -402,9 +408,9 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                             child: Stack(
                               clipBehavior: Clip.none,
                               children: [
-                                const Center(
+                                 Center(
                                   child: Text(
-                                    'Live Sale',
+                                    'liveSale'.tr,
                                     style: TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.w800,
@@ -460,8 +466,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                   },
                   child: Row(
                     children: [
-                      const Text(
-                        'History',
+                      Text(
+                        'history'.tr,
                         style: TextStyle(
                             fontFamily: "Mulish",
                             fontWeight: FontWeight.w800,
@@ -480,15 +486,13 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
               ],
             ),
             const SizedBox(height: 16),
-
-            // Show calendar if showCalendar is true
             if (showCalendar) ...[
               _calendar(),
               const SizedBox(height: 16),
             ],
 
             showCalendar
-                ? _historyStatus(_selectedReport ?? _currentDateReport ?? reportsss)
+                ? (_selectedDate != null ? _historyStatus(_selectedReport ?? _currentDateReport ?? reportsss) : SizedBox.shrink())
                 : _todayStatus(),
             const SizedBox(height: 16),
           ],
@@ -497,29 +501,29 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     );
   }
 
-  Future<void> _selectMonth(BuildContext context) async {
-    final now = DateTime.now();
-
-    final selected = await showDatePicker(
-      context: context,
-      initialDate: DateTime(displayedYear, displayedMonth),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(now.year + 5),
-      helpText: "Select Month",
-      fieldHintText: "Month/Year",
-      initialEntryMode: DatePickerEntryMode.calendarOnly,
-    );
-
-    if (selected != null) {
-      setState(() {
-        displayedMonth = selected.month;
-        displayedYear = selected.year;
-        dateSeleted = DateFormat('MMMM y').format(selected);
-        _selectedReport = null;
-        _selectedDate = null; // Reset selected date
-      });
-    }
-  }
+  // Future<void> _selectMonth(BuildContext context) async {
+  //   final now = DateTime.now();
+  //
+  //   final selected = await showDatePicker(
+  //     context: context,
+  //     initialDate: DateTime(displayedYear, displayedMonth),
+  //     firstDate: DateTime(2020),
+  //     lastDate: DateTime(now.year + 5),
+  //     helpText: "Select Month",
+  //     fieldHintText: "Month/Year",
+  //     initialEntryMode: DatePickerEntryMode.calendarOnly,
+  //   );
+  //
+  //   if (selected != null) {
+  //     setState(() {
+  //       displayedMonth = selected.month;
+  //       displayedYear = selected.year;
+  //       dateSeleted = DateFormat('MMMM y').format(selected);
+  //       _selectedReport = null;
+  //       _selectedDate = null; // Reset selected date
+  //     });
+  //   }
+  // }
 
   Map<int, DailySalesReport> _getReportsForMonth(int month, int year) {
     final Map<int, DailySalesReport> map = {};
@@ -720,13 +724,17 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
   }
 
   Widget _historyStatus(DailySalesReport? report) {
+    if (showCalendar && _selectedDate == null) {
+      return SizedBox.shrink(); // Empty widget
+    }
+
     if (report == null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text( _selectedDate != null
               ? DateFormat('dd MMMM y').format(_selectedDate!)
-              : "Sales Report",
+              : "sales".tr,
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 8),
           const Text("No data available."),
@@ -761,15 +769,14 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                     repeat: true, ),
                 Text( _selectedDate != null
                     ?  DateFormat('dd MMMM y').format(_selectedDate!)
-                    : "Sales Report",
+                    : "sales".tr,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ],
             ),
-
         if (_isLiveDataActive && _selectedReport == null && _lastUpdateTime != null) ...[
           const SizedBox(height: 4),
           Text(
-            "Last updated: ${DateFormat('HH:mm:ss').format(_lastUpdateTime!)}",
+            "${"last".tr}: ${DateFormat('HH:mm:ss').format(_lastUpdateTime!)}",
             style: TextStyle(
               fontSize: 10,
               color: Colors.grey[600],
@@ -781,8 +788,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Total Sales  ",
+               TextSpan(
+                text: "total_sales".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -797,8 +804,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Total Order  ",
+               TextSpan(
+                text: "total_order".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -813,8 +820,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Total tax ",
+               TextSpan(
+                text: "total_tax".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -829,8 +836,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Cash Total  ",
+               TextSpan(
+                text: "cash_total".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -845,8 +852,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Online ",
+           TextSpan(
+                text: "online".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -861,8 +868,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Net (Subtotal) ",
+            TextSpan(
+                text: "net_subtotal".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -877,8 +884,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Discounts  ",
+             TextSpan(
+                text: "discounts".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -893,8 +900,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Delivery Fees  ",
+           TextSpan(
+                text: "delivery_fee".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -909,8 +916,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Total Sales(+ Delivery Fees)  ",
+          TextSpan(
+                text: "sale".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -929,7 +936,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
               width: 30,
               height: 30,
               repeat: true, ),
-            Text("Payment Methods",
+            Text("payment".tr,
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
@@ -937,8 +944,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Cash : ",
+             TextSpan(
+                text: "cash".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -957,7 +964,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
               width: 30,
               height: 30,
               repeat: true, ),
-            Text("Order Types",
+            Text("order_type".tr,
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
@@ -965,8 +972,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Delivery : ",
+         TextSpan(
+                text: "delivery".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -981,8 +988,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Pickup : ",
+              TextSpan(
+                text: "pickup".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -997,8 +1004,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Dine In : ",
+               TextSpan(
+                text: "dine_in".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1009,6 +1016,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
             ],
           ),
         ),
+        const SizedBox(height: 12),
         Row(
           children: [
             Lottie.asset(
@@ -1016,7 +1024,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
               width: 30,
               height: 30,
               repeat: true, ),
-            const Text("Approval Status",
+             Text("approval".tr,
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
@@ -1024,8 +1032,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Pending: ",
+         TextSpan(
+                text: "pending".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1040,8 +1048,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Accepted : ",
+              TextSpan(
+                text: "accepted".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1056,8 +1064,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Declined : ",
+          TextSpan(
+                text: "decline".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1068,7 +1076,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
             ],
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 12),
         Row(
           children: [
             Lottie.asset(
@@ -1076,7 +1084,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
               width: 30,
               height: 30,
               repeat: true, ),
-            const Text("Tax Breakdown",
+             Text("tax".tr,
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
@@ -1084,7 +1092,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
+               TextSpan(
                 text: "19: ",
                 style: TextStyle(color: Colors.black),
               ),
@@ -1100,7 +1108,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
+               TextSpan(
                 text: "7: ",
                 style: TextStyle(color: Colors.black),
               ),
@@ -1112,7 +1120,23 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
             ],
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 20),
+        GestureDetector(
+          onTap: (){
+            orderHistory();
+            //Get.to(()=>OrderHistory());
+            },
+          child: Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(5),
+              color: Colors.green,
+            ),
+            child: Text('View Full Details',style: TextStyle(
+              fontWeight: FontWeight.w600,fontSize: 14,fontFamily: "Mulish",color: Colors.white
+            ),),
+          ),
+        )
       ],
     );
   }
@@ -1135,7 +1159,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                     repeat: true, ),
                 Text( _selectedDate != null
                     ?  DateFormat('dd MMMM y').format(_selectedDate!)
-                    : "Sales Report",
+                    : "sales".tr,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ],
             ),
@@ -1143,7 +1167,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         if (_isLiveDataActive && _selectedReport == null && _lastUpdateTime != null) ...[
           const SizedBox(height: 4),
           Text(
-            "Last updated: ${DateFormat('HH:mm:ss').format(_lastUpdateTime!)}",
+            "${"last".tr}:: ${DateFormat('HH:mm:ss').format(_lastUpdateTime!)}",
             style: TextStyle(
               fontSize: 10,
               color: Colors.grey[600],
@@ -1155,8 +1179,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Total Sales  ",
+              TextSpan(
+                text: "total_sales".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1171,8 +1195,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Total Order  ",
+              TextSpan(
+                text: "total_order".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1187,8 +1211,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Total tax ",
+              TextSpan(
+                text: "total_tax".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1203,8 +1227,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Cash Total  ",
+              TextSpan(
+                text: "cash_total".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1219,8 +1243,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Online ",
+              TextSpan(
+                text: "online".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1235,8 +1259,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Net (Subtotal) ",
+              TextSpan(
+                text: "net_subtotal".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1251,8 +1275,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Discounts  ",
+              TextSpan(
+                text: "discounts".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1267,8 +1291,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Delivery Fees  ",
+              TextSpan(
+                text: "delivery_fee".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1283,8 +1307,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Total Sales(+ Delivery Fees)  ",
+              TextSpan(
+                text: "sale".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1303,7 +1327,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
               width: 30,
               height: 30,
               repeat: true, ),
-            Text("Payment Methods",
+            Text("payment".tr,
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
@@ -1311,8 +1335,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Cash : ",
+              TextSpan(
+                text: "cash".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1331,7 +1355,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
               width: 30,
               height: 30,
               repeat: true, ),
-            Text("Order Types",
+            Text("order_type".tr,
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
@@ -1339,8 +1363,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Delivery : ",
+              TextSpan(
+                text: "delivery".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1355,8 +1379,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Pickup : ",
+              TextSpan(
+                text: "pickup".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1371,8 +1395,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Dine In : ",
+              TextSpan(
+                text: "dine_in".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1390,7 +1414,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
               width: 30,
               height: 30,
               repeat: true, ),
-            const Text("Approval Status",
+            Text("approval".tr,
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
@@ -1398,8 +1422,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Pending: ",
+              TextSpan(
+                text: "pending".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1414,8 +1438,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Accepted : ",
+              TextSpan(
+                text: "accepted".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1430,8 +1454,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: "Declined : ",
+              TextSpan(
+                text: "decline".tr,
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
@@ -1450,7 +1474,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
               width: 30,
               height: 30,
               repeat: true, ),
-            const Text("Tax Breakdown",
+            Text("tax".tr,
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
@@ -1517,5 +1541,95 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
 
   String _formatDate(DateTime date) {
     return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+  }
+
+  Future<void> orderHistory() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    // Dynamic target date - calendar se selected date ya current date
+    String targetDate;
+    if (_selectedDate != null) {
+      // Calendar se selected date use करें
+      targetDate = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+    } else {
+      // Current date use करें
+      targetDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    }
+
+    // SharedPreferences se store ID get करें
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? storeIdString = prefs.getString(valueShared_STORE_KEY);
+    int storeId;
+
+    if (storeIdString != null && storeIdString.isNotEmpty) {
+      storeId = int.tryParse(storeIdString) ?? 13; // Default fallback
+    } else {
+      storeId = 13; // Default store ID
+      print("Warning: Store ID not found in SharedPreferences, using default: 13");
+    }
+
+    var map = {
+      "store_id": storeId,
+      "target_date": targetDate,
+      // "limit": 10, // More orders fetch करें
+      "offset": 0
+    };
+
+    print("Getting History Map Value Is  $map");
+    print("Store ID from SharedPreferences: $storeId");
+
+    try {
+      Get.dialog(
+        Center(
+            child: Lottie.asset(
+              'assets/animations/Delivery.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            )
+        ),
+        barrierDismissible: false,
+      );
+
+      // API call करें
+      List<orderHistoryResponseModel> orders = await CallService().orderHistory(map);
+
+      print('Number of orders received: ${orders.length}');
+      if (orders.isNotEmpty) {
+        print('First order note: ${orders.first.note}');
+        print('First order total amount: ${orders.first.invoice?.totalAmount}');
+      }
+
+      setState(() {
+        isLoading = false;
+      });
+
+      Get.back();
+      app.appController.setHistoryOrders(orders);
+      Get.to(() => OrderHistory(
+        orders: orders,
+        targetDate: targetDate,
+      ));
+
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+
+      Get.back();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An error occurred during Getting History: $e'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      print('Getting History error: $e');
+    }
   }
 }
