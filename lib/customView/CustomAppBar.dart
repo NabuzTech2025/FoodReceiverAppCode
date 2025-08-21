@@ -19,8 +19,6 @@ class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
 class _CustomAppBarState extends State<CustomAppBar> {
   TextEditingController searchControllerTodo = TextEditingController();
   FocusNode searchFocusNode = FocusNode();
-
-  // ✅ Simple boolean for clear button visibility
   bool _showClearButton = false;
 
   @override

@@ -13,6 +13,8 @@ import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/print_order_without_ip.dart';
+
 class OrderDetailEnglish extends StatefulWidget {
   final Order order;
 
@@ -263,7 +265,12 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     final deliveryFee = updatedOrder.invoice?.delivery_fee ?? 0.0;
     final grandTotal = subtotal - discountData + deliveryFee;
     var Note=updatedOrder.note.toString();
-
+    String guestAddress=updatedOrder.guestShippingJson?.line1?.toString()??'';
+    String guestName=updatedOrder.guestShippingJson?.customerName?.toString()??'';
+    String guestPhone=updatedOrder.guestShippingJson?.phone?.toString()??'';
+    print('guest name is $guestName');
+    print('guest name is $guestAddress');
+    print('guest name is $guestPhone');
     print('Note IS $Note');
 
     return Scaffold(
@@ -311,6 +318,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
             ),
             onPressed: (updatedOrder.approvalStatus == 2)
                 ? () {
+
               printData(updatedOrder);
             }
                 : null,
@@ -358,22 +366,26 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                     Container(height: 0.5, color: Colors.grey),
                     SizedBox(height: 2),
                     Text(
-                      '${'customer'.tr}: ${updatedOrder.shipping_address?.customer_name ?? ""}',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      '${'customer'.tr}: '
+                          '${(updatedOrder.shipping_address?.customer_name != null && updatedOrder.shipping_address!.customer_name!.isNotEmpty)
+                          ? updatedOrder.shipping_address!.customer_name!
+                          : guestName}',
+                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
                     SizedBox(height: 2),
                     if (updatedOrder.orderType == 1)
                       Text(
-                        '${'address'.tr}: ${updatedOrder.shipping_address?.line1 ?? ""}, ${updatedOrder.shipping_address?.city ?? ""}',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w500, fontSize: 13),
+                        '${'address'.tr}: ${(updatedOrder.shipping_address?.line1 != null && updatedOrder.shipping_address!.line1!.isNotEmpty)
+                            ? "${updatedOrder.shipping_address!.line1!}, ${updatedOrder.shipping_address?.city ?? ""}"
+                            : guestAddress}',
+                        style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                       ),
                     SizedBox(height: 2),
                     Text(
-                      '${'phone'.tr}: ${updatedOrder.shipping_address?.phone ?? ""}',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      '${'phone'.tr}: ${(updatedOrder.shipping_address?.phone != null && updatedOrder.shipping_address!.phone!.isNotEmpty)
+                          ? updatedOrder.shipping_address!.phone!
+                          : guestPhone}',
+                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
                     SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
@@ -902,25 +914,36 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     );
   }
 
-  void printData(Order order) {
-    // ✅ Check if order is accepted before printing
+  void printData(Order order) async {
+    print("🖨️ DEBUG - printData called");
+
     if (order.approvalStatus != 2) {
+      print("❌ DEBUG - Order not accepted, approval status: ${order.approvalStatus}");
       showSnackbar("Error", "Cannot print pending order. Please accept the order first.");
       return;
     }
 
     if (storeName == null) {
+      print("❌ DEBUG - Store name is null");
       showSnackbar("Error", "Store name not available");
       return;
     }
 
-    PrinterHelperEnglish.printTestFromSavedIp(
-        context: context,
-        order: order,
-        store: storeName!,
-        auto: false);
-  }
+    String? localIP = sharedPreferences.getString('printer_ip_0');
+    print("🔍 DEBUG - Local IP from SharedPreferences: $localIP");
 
+    if (localIP == null || localIP.isEmpty) {
+      print("📡 DEBUG - Local IP is null/empty, calling printWithoutLocalIp()");
+      await printWithoutLocalIp();
+    } else {
+      print("🖨️ DEBUG - Local IP available, calling PrinterHelperEnglish.printTestFromSavedIp()");
+      PrinterHelperEnglish.printTestFromSavedIp(
+          context: context,
+          order: order,
+          store: storeName!,
+          auto: false);
+    }
+  }
   void showSnackbar(String title, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -928,4 +951,80 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
       ),
     );
   }
+
+
+  Future<void> printWithoutLocalIp() async {
+    print("📡 DEBUG - printWithoutLocalIp called");
+
+    setState(() {
+      isLoading = true;
+    });
+
+    String? dynamicStoreId = sharedPreferences.getString(valueShared_STORE_KEY);
+
+    print("🔍 DEBUG - Store ID from SharedPreferences: $dynamicStoreId");
+    print("🔍 DEBUG - Current storeid variable: $storeid");
+    String finalStoreId = dynamicStoreId ?? storeid ?? '';
+
+    print("✅ DEBUG - Final store ID being sent: $finalStoreId");
+
+    var map = {
+      "order_id": updatedOrder.id ?? '',
+      "store_id": finalStoreId
+    };
+
+    print("📋 DEBUG - Print Without local Ip map: $map");
+
+    try {
+      Get.dialog(
+        Center(
+            child: Lottie.asset(
+              'assets/animations/burger.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            )
+        ),
+        barrierDismissible: false,
+      );
+
+      printOrderWithoutIp model = await CallService().printWithoutIp(map);
+
+      setState(() {
+        isLoading = false;
+      });
+      Get.back();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Print Details Sent Successfully'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      print("✅ DEBUG - Print without IP successful");
+
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+
+      Get.back();
+
+      print('❌ DEBUG - Print without IP error: $e');
+
+      // Handle error case
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('An error occurred during Sending Details.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+
+
 }

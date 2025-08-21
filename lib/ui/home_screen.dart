@@ -134,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Obx(() {
       return Container(
         padding: EdgeInsets.fromLTRB(6, 0, 6, 0),
-        height: 85,
+        height: 100,
         color: Colors.grey[100],
         child: BottomAppBar(
           color: appColor.white,

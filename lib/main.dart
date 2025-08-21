@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:math' as Math;
-
+import 'dart:typed_data';
 import 'package:android_intent_plus/android_intent.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -42,7 +42,9 @@ int badgeCount = 0;
 // ✅ ADD THESE GLOBAL VARIABLES AT TOP OF main.dart
 final Set<int> _backgroundProcessedOrders = <int>{};
 final Map<int, DateTime> _backgroundProcessingTime = <int, DateTime>{};
-
+// ✅ NEW: Add notification tracking to prevent duplicates
+final Set<String> _processedNotifications = <String>{};
+final Map<String, DateTime> _notificationTimestamps = <String, DateTime>{};
 // ✅ Clean old processed orders (older than 30 minutes for background)
 void _cleanOldBackgroundProcessedOrders() {
   final now = DateTime.now();
@@ -116,10 +118,187 @@ Future<bool> validateEnvironmentConsistency() async {
   }
 }
 
-/// Updated background handler with environment validation
+// /// Updated background handler with environment validation
+// @pragma('vm:entry-point')
+// Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+//   await Firebase.initializeApp();
+//
+//   print("🔥 Background handler triggered");
+//
+//   // ✅ FIRST: Ensure correct base URL is set
+//   String baseUrl = await ensureCorrectBaseUrl();
+//   bool isValidEnvironment = await validateEnvironmentConsistency();
+//
+//   print("🌐 Background - Using base URL: $baseUrl");
+//   print("✅ Environment validation: ${isValidEnvironment ? 'PASSED' : 'FAILED'}");
+//
+//   // Clean old processed orders
+//   _cleanOldBackgroundProcessedOrders();
+//
+//   final title = message.notification?.title ?? '';
+//   final body = message.notification?.body ?? '';
+//
+//   print('📥 Background title: $title');
+//   print('📥 Background body: $body');
+//
+//   // Show notification regardless of processing status
+//   if (title.contains('New Order')) {
+//     await _showOrderNotification(title, body);
+//   }
+//
+//   badgeCount++;
+//   try {
+//     await AppBadgePlus.updateBadge(badgeCount);
+//   } catch (e) {
+//     print('❌ Badge update failed: $e');
+//   }
+//
+//   // Extract order ID and process
+//   if (title.contains('New Order')) {
+//     RegExp regex = RegExp(r'#(\d+)');
+//     Match? match = regex.firstMatch(body);
+//
+//     if (match != null) {
+//       String orderNumberStr = match.group(1)!;
+//       try {
+//         int orderNumber = int.parse(orderNumberStr);
+//         print("🆔 Background - Extracted Order ID: $orderNumber");
+//
+//         // Check for duplicate processing
+//         if (_backgroundProcessedOrders.contains(orderNumber)) {
+//           print("⚠️ Background - Order $orderNumber already processed recently, skipping");
+//           return;
+//         }
+//
+//         // Mark as being processed
+//         _backgroundProcessedOrders.add(orderNumber);
+//         _backgroundProcessingTime[orderNumber] = DateTime.now();
+//         print("✅ Background - Marked order $orderNumber as processing");
+//
+//         // Get SharedPreferences with retries
+//         SharedPreferences? prefs;
+//         String? bearerKey;
+//         String? storeID;
+//
+//         for (int attempt = 0; attempt < 5; attempt++) {
+//           try {
+//             print("🔄 Attempt ${attempt + 1}/5 to get fresh preferences");
+//
+//             prefs = await SharedPreferences.getInstance();
+//             await prefs.reload();
+//             await Future.delayed(Duration(milliseconds: 500));
+//
+//             bearerKey = prefs.getString(valueShared_BEARER_KEY);
+//             storeID = prefs.getString(valueShared_STORE_KEY);
+//
+//             print("🔍 Attempt ${attempt + 1} - Token: ${bearerKey?.substring(0, 20) ?? 'NULL'}...");
+//             print("🔍 Attempt ${attempt + 1} - Store: $storeID");
+//
+//             if (bearerKey != null && bearerKey.isNotEmpty) {
+//               print("✅ Token found on attempt ${attempt + 1}");
+//               break;
+//             }
+//
+//             await Future.delayed(Duration(milliseconds: 500));
+//           } catch (e) {
+//             print("❌ Attempt ${attempt + 1} failed: $e");
+//           }
+//         }
+//
+//         // Token validation
+//         if (bearerKey == null || bearerKey.isEmpty) {
+//           print("❌ Background - No bearer token found, removing from processed and skipping");
+//           _backgroundProcessedOrders.remove(orderNumber);
+//           return;
+//         }
+//
+//         // Get settings with retries
+//         bool autoAccept = false;
+//         bool autoPrint = false;
+//
+//         for (int i = 0; i < 5; i++) {
+//           try {
+//             print("🔄 Settings read attempt ${i + 1}/5");
+//
+//             await prefs!.reload();
+//             await Future.delayed(Duration(milliseconds: 300));
+//
+//             autoAccept = prefs.getBool('auto_order_accept') ?? false;
+//             autoPrint = prefs.getBool('auto_order_print') ?? false;
+//
+//             print("🔍 Settings attempt ${i + 1}:");
+//             print("🔍 Auto Accept: $autoAccept");
+//             print("🔍 Auto Print: $autoPrint");
+//
+//             if (autoAccept || autoPrint) {
+//               print("✅ Found enabled settings on attempt ${i + 1}");
+//               break;
+//             }
+//
+//             if (i < 4) {
+//               prefs = await SharedPreferences.getInstance();
+//               await Future.delayed(Duration(milliseconds: 500));
+//             }
+//           } catch (e) {
+//             print("❌ Settings read attempt ${i + 1} failed: $e");
+//             await Future.delayed(Duration(milliseconds: 300));
+//           }
+//         }
+//
+//         print("✅ Background - Valid token found: ${bearerKey.substring(0, 20)}...");
+//         print("✅ Background - Store ID: ${storeID ?? 'MISSING'}");
+//         print("✅ Background - Final Auto Accept: $autoAccept");
+//         print("✅ Background - Final Auto Print: $autoPrint");
+//         print("🌐 Background - Confirmed base URL: $baseUrl");
+//
+//         // Early exit if both features are disabled
+//         if (!autoAccept && !autoPrint) {
+//           print("ℹ️ Background - Both auto features disabled, notification shown only");
+//           _backgroundProcessedOrders.remove(orderNumber);
+//           return;
+//         }
+//
+//         String savedLocale = prefs!.getString('selected_language') ?? 'de';
+//
+//         try {
+//           Get.put(AppTranslations());
+//           Get.updateLocale(Locale(savedLocale));
+//         } catch (e) {
+//           print("⚠️ GetX initialization error: $e");
+//         }
+//
+//         print('🌐 Background locale set to: $savedLocale');
+//         print("🔍 Final Check - Auto Accept: $autoAccept");
+//         print("🔍 Final Check - Auto Print: $autoPrint");
+//
+//         // Process the order
+//         if (autoAccept || autoPrint) {
+//           print("✅ Background - At least one auto feature enabled, processing order");
+//           print("📤 Background - All API calls will use base URL: $baseUrl");
+//           await handleBackgroundOrderComplete(orderNumber, prefs, bearerKey, storeID);
+//         }
+//
+//       } catch (e) {
+//         print('❌ Error parsing order number: $e');
+//         if (orderNumberStr.isNotEmpty) {
+//           try {
+//             int failedOrderNumber = int.parse(orderNumberStr);
+//             _backgroundProcessedOrders.remove(failedOrderNumber);
+//           } catch (_) {}
+//         }
+//       }
+//     } else {
+//       print("❌ Could not extract order number from: $body");
+//     }
+//   }
+// }
+//
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
+
+  // ✅ CRITICAL: Initialize local notifications in background
+  await _initializeLocalNotificationsForBackground();
 
   print("🔥 Background handler triggered");
 
@@ -136,12 +315,40 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   final title = message.notification?.title ?? '';
   final body = message.notification?.body ?? '';
 
-  print('📥 Background title: $title');
-  print('📥 Background body: $body');
+  print('🔥 Background title: $title');
+  print('🔥 Background body: $body');
 
-  // Show notification regardless of processing status
-  if (title.contains('New Order')) {
-    await _showOrderNotification(title, body);
+  // ✅ FIXED: Prevent duplicate notifications
+  String notificationKey = "${title}_${body}_${DateTime.now().millisecondsSinceEpoch ~/ 10000}"; // 10 second window
+
+  // ✅ Check if this exact notification was processed recently (within 10 seconds)
+  final now = DateTime.now();
+  final tenSecondsAgo = now.subtract(Duration(seconds: 10));
+
+  // Remove old notification tracking
+  _notificationTimestamps.removeWhere((key, time) => time.isBefore(tenSecondsAgo));
+  _processedNotifications.removeWhere((key) => !_notificationTimestamps.containsKey(key));
+
+  // Check for duplicate notification
+  bool isDuplicate = _processedNotifications.any((existingKey) {
+    return existingKey.contains(title) && existingKey.contains(body);
+  });
+
+  if (isDuplicate) {
+    print("🚫 Duplicate notification detected, skipping: $title");
+    return;
+  }
+
+  // ✅ Only show notification if it contains 'New Order' and has valid content
+  if (title.contains('New Order') && body.isNotEmpty && title.isNotEmpty) {
+    // Track this notification
+    _processedNotifications.add(notificationKey);
+    _notificationTimestamps[notificationKey] = now;
+
+    await _showBackgroundOrderNotification(title, body);
+    print("✅ Background notification shown: $title");
+  } else {
+    print("🚫 Invalid notification ignored - Title: '$title', Body: '$body'");
   }
 
   badgeCount++;
@@ -152,7 +359,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 
   // Extract order ID and process
-  if (title.contains('New Order')) {
+  if (title.contains('New Order') && body.isNotEmpty) {
     RegExp regex = RegExp(r'#(\d+)');
     Match? match = regex.firstMatch(body);
 
@@ -162,16 +369,26 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         int orderNumber = int.parse(orderNumberStr);
         print("🆔 Background - Extracted Order ID: $orderNumber");
 
-        // Check for duplicate processing
+        // ✅ ENHANCED: Check for duplicate processing with time window
+        final now = DateTime.now();
+        final fiveMinutesAgo = now.subtract(Duration(minutes: 5));
+
+        // Clean old processing records
+        _backgroundProcessingTime.removeWhere((id, time) => time.isBefore(fiveMinutesAgo));
+        _backgroundProcessedOrders.removeWhere((id) => !_backgroundProcessingTime.containsKey(id));
+
         if (_backgroundProcessedOrders.contains(orderNumber)) {
-          print("⚠️ Background - Order $orderNumber already processed recently, skipping");
-          return;
+          DateTime? lastProcessed = _backgroundProcessingTime[orderNumber];
+          if (lastProcessed != null && now.difference(lastProcessed).inMinutes < 5) {
+            print("🚫 Background - Order $orderNumber processed recently (${now.difference(lastProcessed).inMinutes} mins ago), skipping");
+            return;
+          }
         }
 
-        // Mark as being processed
+        // Mark as being processed with current timestamp
         _backgroundProcessedOrders.add(orderNumber);
-        _backgroundProcessingTime[orderNumber] = DateTime.now();
-        print("✅ Background - Marked order $orderNumber as processing");
+        _backgroundProcessingTime[orderNumber] = now;
+        print("✅ Background - Marked order $orderNumber as processing at ${now.toString()}");
 
         // Get SharedPreferences with retries
         SharedPreferences? prefs;
@@ -265,7 +482,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
           print("⚠️ GetX initialization error: $e");
         }
 
-        print('🌐 Background locale set to: $savedLocale');
+        print('🌍 Background locale set to: $savedLocale');
         print("🔍 Final Check - Auto Accept: $autoAccept");
         print("🔍 Final Check - Auto Print: $autoPrint");
 
@@ -282,13 +499,103 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
           try {
             int failedOrderNumber = int.parse(orderNumberStr);
             _backgroundProcessedOrders.remove(failedOrderNumber);
+            _backgroundProcessingTime.remove(failedOrderNumber);
           } catch (_) {}
         }
       }
     } else {
       print("❌ Could not extract order number from: $body");
+      print("🚫 Background - Invalid notification without order number, ignoring");
     }
+  } else {
+    print("🚫 Background - Non-order notification ignored: '$title'");
   }
+}
+
+// ✅ NEW: Separate initialization for background notifications
+Future<void> _initializeLocalNotificationsForBackground() async {
+  const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const darwinInit = DarwinInitializationSettings(
+    requestAlertPermission: true,
+    requestBadgePermission: true,
+    requestSoundPermission: true,
+  );
+
+  const initSettings = InitializationSettings(
+    android: androidInit,
+    iOS: darwinInit,
+    macOS: darwinInit,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(initSettings);
+
+  // ✅ CRITICAL: Create notification channel for background
+  final channel = AndroidNotificationChannel(
+    'order_channel',
+    'Order Notifications',
+    description: 'This channel is used for order alerts',
+    importance: Importance.max, // Changed to max
+    sound: const RawResourceAndroidNotificationSound('alarm'),
+    playSound: true,
+    enableVibration: true,
+    vibrationPattern: Int64List.fromList(const [0, 1000, 500, 1000]), // Added vibration
+  );
+
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+}
+
+// ✅ NEW: Dedicated background notification method with enhanced sound
+Future<void> _showBackgroundOrderNotification(String title, String body) async {
+  print("🔔 Showing background notification with sound");
+
+  final androidDetails = AndroidNotificationDetails(
+    'order_channel',
+    'Order Notifications',
+    channelDescription: 'This channel is used for order alerts',
+    importance: Importance.max, // Maximum importance
+    priority: Priority.max,     // Maximum priority
+    playSound: true,
+    sound: RawResourceAndroidNotificationSound('alarm'),
+    enableVibration: true,
+    vibrationPattern: Int64List.fromList([0, 1000, 500, 1000]),
+    fullScreenIntent: true,     // ✅ Shows notification even when phone is locked
+    category: AndroidNotificationCategory.alarm, // ✅ Treats as alarm
+    visibility: NotificationVisibility.public,
+    autoCancel: false,          // ✅ Doesn't auto-dismiss
+    ongoing: false,
+    showWhen: true,
+    when: DateTime.now().millisecondsSinceEpoch,
+  );
+
+  final iosDetails = DarwinNotificationDetails(
+    presentAlert: true,
+    presentBadge: true,
+    presentSound: true,
+    sound: 'alarm.wav', // ✅ Make sure alarm.wav exists in iOS bundle
+    badgeNumber: badgeCount,
+    categoryIdentifier: 'ORDER_CATEGORY',
+    interruptionLevel: InterruptionLevel.critical, // ✅ Critical level for iOS
+  );
+
+  final platformDetails = NotificationDetails(
+    android: androidDetails,
+    iOS: iosDetails,
+    macOS: iosDetails,
+  );
+
+  // ✅ Use unique ID based on timestamp to avoid replacing notifications
+  int notificationId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+  await flutterLocalNotificationsPlugin.show(
+      notificationId, // ✅ Unique ID
+      title,
+      body,
+      platformDetails
+  );
+
+  print("✅ Background notification shown with ID: $notificationId");
 }
 // ✅ Updated background order handler with base URL initialization
 Future<void> handleBackgroundOrderComplete(int orderNumber, SharedPreferences prefs, String bearerKey, String? storeID) async {
@@ -440,9 +747,16 @@ Future<void> backgroundPrintOrder(Order order, SharedPreferences prefs) async {
 
     // ✅ Enhanced printer IP detection with multiple attempts
     String selectedIp = '';
+    await prefs.reload();
+    await Future.delayed(Duration(milliseconds: 100));
 
-    // Method 1: Try primary printer IP
+// ✅ Always check printer_ip_0 first and validate it exists
     String? primaryIp = prefs.getString('printer_ip_0');
+    if (primaryIp != null && primaryIp.trim().isNotEmpty) {
+      selectedIp = primaryIp.trim();
+    }
+    // Method 1: Try primary printer IP
+    //String? primaryIp = prefs.getString('printer_ip_0');
     print("🖨️ Primary printer_ip_0: '${primaryIp ?? 'NULL'}'");
 
     if (primaryIp != null && primaryIp.trim().isNotEmpty) {
@@ -818,7 +1132,51 @@ Future<void> askIgnoreBatteryOptimizations() async {
 // -----------------------------------------------------------------------------
 //  LOCAL NOTIFICATIONS (ANDROID + iOS)
 // -----------------------------------------------------------------------------
-
+//
+// Future<void> _initializeLocalNotifications() async {
+//   // --- Android settings --------------------------------------------------
+//   const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+//
+//   // --- iOS / macOS settings ---------------------------------------------
+//   const darwinInit = DarwinInitializationSettings(
+//     requestAlertPermission: true,
+//     requestBadgePermission: true,
+//     requestSoundPermission: true,
+//   );
+//
+//   // Combine for all platforms -------------------------------------------
+//   const initSettings = InitializationSettings(
+//     android: androidInit,
+//     iOS: darwinInit,
+//     macOS: darwinInit,
+//   );
+//
+//   // Initialise plugin ----------------------------------------------------
+//   await flutterLocalNotificationsPlugin.initialize(
+//     initSettings,
+//     onDidReceiveNotificationResponse: (_) => callOrderApiFromNotification(),
+//   );
+//
+//   // Android notification channel (high importance) ----------------------
+//   const channel = AndroidNotificationChannel(
+//     'order_channel',
+//     'Order Notifications',
+//     description: 'This channel is used for order alerts',
+//     importance: Importance.high,
+//     sound: RawResourceAndroidNotificationSound('alarm'),
+//     playSound: true,
+//   );
+//
+//   await flutterLocalNotificationsPlugin
+//       .resolvePlatformSpecificImplementation<
+//       AndroidFlutterLocalNotificationsPlugin>()
+//       ?.createNotificationChannel(channel);
+//
+//   // Runtime permission (Android 13+) ------------------------------------
+//   if (Platform.isAndroid && await Permission.notification.isDenied) {
+//     await Permission.notification.request();
+//   }
+// }
 Future<void> _initializeLocalNotifications() async {
   // --- Android settings --------------------------------------------------
   const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -828,6 +1186,7 @@ Future<void> _initializeLocalNotifications() async {
     requestAlertPermission: true,
     requestBadgePermission: true,
     requestSoundPermission: true,
+    requestCriticalPermission: true, // ✅ Added for critical notifications
   );
 
   // Combine for all platforms -------------------------------------------
@@ -843,46 +1202,112 @@ Future<void> _initializeLocalNotifications() async {
     onDidReceiveNotificationResponse: (_) => callOrderApiFromNotification(),
   );
 
-  // Android notification channel (high importance) ----------------------
-  const channel = AndroidNotificationChannel(
+  // ✅ ENHANCED: Android notification channel with maximum sound settings
+  final channel = AndroidNotificationChannel(
     'order_channel',
     'Order Notifications',
     description: 'This channel is used for order alerts',
-    importance: Importance.high,
-    sound: RawResourceAndroidNotificationSound('alarm'),
+    importance: Importance.max,     // Maximum importance
+    sound: const RawResourceAndroidNotificationSound('alarm'),
     playSound: true,
+    enableVibration: true,
+    vibrationPattern: Int64List.fromList(const [0, 1000, 500, 1000]),
+    enableLights: true,             // ✅ Added LED lights
+    ledColor: const Color.fromARGB(255, 255, 0, 0), // Red LED
+    showBadge: true,               // ✅ Added badge
   );
 
   await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<
-      AndroidFlutterLocalNotificationsPlugin>()
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(channel);
 
-  // Runtime permission (Android 13+) ------------------------------------
-  if (Platform.isAndroid && await Permission.notification.isDenied) {
-    await Permission.notification.request();
+  // ✅ CRITICAL: Request notification permissions properly
+  if (Platform.isAndroid) {
+    // Request notification permission
+    if (await Permission.notification.isDenied) {
+      await Permission.notification.request();
+    }
+
+    // ✅ NEW: Request additional Android 13+ permissions
+    final androidInfo = await DeviceInfoPlugin().androidInfo;
+    if (androidInfo.version.sdkInt >= 33) {
+      await Permission.notification.request();
+      await Permission.scheduleExactAlarm.request();
+    }
+  }
+
+  // ✅ CRITICAL: For iOS, request critical notification permissions
+  if (Platform.isIOS) {
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+        ?.requestPermissions(
+      alert: true,
+      badge: true,
+      sound: true,
+      critical: true, // ✅ Request critical notifications
+    );
   }
 }
-
-
-
+//
+// Future<void> _showOrderNotification(String title, String body) async {
+//   final androidDetails = AndroidNotificationDetails(
+//     'order_channel',
+//     'Order Notifications',
+//     channelDescription: 'This channel is used for order alerts',
+//     importance: Importance.max,
+//     priority: Priority.high,
+//     playSound: true,
+//     sound: RawResourceAndroidNotificationSound('alarm'),
+//   );
+//
+//   final iosDetails = DarwinNotificationDetails(
+//     presentAlert: true,
+//     presentBadge: true,
+//     presentSound: true,
+//     badgeNumber: badgeCount, // ✅ Yeh add kiya
+//     sound: 'alarm',
+//   );
+//
+//   final platformDetails = NotificationDetails(
+//     android: androidDetails,
+//     iOS: iosDetails,
+//     macOS: iosDetails,
+//   );
+//
+//   await flutterLocalNotificationsPlugin.show(
+//       0, title, body, platformDetails
+//   );
+// }
 Future<void> _showOrderNotification(String title, String body) async {
+  print("🔔 Showing foreground notification with sound");
+
   final androidDetails = AndroidNotificationDetails(
     'order_channel',
     'Order Notifications',
     channelDescription: 'This channel is used for order alerts',
     importance: Importance.max,
-    priority: Priority.high,
+    priority: Priority.max,
     playSound: true,
     sound: RawResourceAndroidNotificationSound('alarm'),
+    enableVibration: true,
+    vibrationPattern: Int64List.fromList([0, 1000, 500, 1000]),
+    fullScreenIntent: true,
+    category: AndroidNotificationCategory.alarm,
+    visibility: NotificationVisibility.public,
+    autoCancel: false,
+    ongoing: false,
+    showWhen: true,
+    when: DateTime.now().millisecondsSinceEpoch,
   );
 
   final iosDetails = DarwinNotificationDetails(
     presentAlert: true,
     presentBadge: true,
     presentSound: true,
-    badgeNumber: badgeCount, // ✅ Yeh add kiya
-    sound: 'alarm',
+    sound: 'alarm.wav',
+    badgeNumber: badgeCount,
+    categoryIdentifier: 'ORDER_CATEGORY',
+    interruptionLevel: InterruptionLevel.critical,
   );
 
   final platformDetails = NotificationDetails(
@@ -891,12 +1316,17 @@ Future<void> _showOrderNotification(String title, String body) async {
     macOS: iosDetails,
   );
 
+  int notificationId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
   await flutterLocalNotificationsPlugin.show(
-      0, title, body, platformDetails
+      notificationId,
+      title,
+      body,
+      platformDetails
   );
+
+  print("✅ Foreground notification shown with ID: $notificationId");
 }
-
-
 
 Future<void> callOrderApiFromNotification() async {
   debugPrint('📞 API called from notification tap!');

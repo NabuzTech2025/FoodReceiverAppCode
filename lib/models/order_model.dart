@@ -33,6 +33,8 @@ class Order {
   ShippingAddress? shipping_address;
   List<TaxSummary>? taxSummary;
   List<BruttoSummary>? brutto_netto_summary;
+  GuestShippingJson? guestShippingJson;
+
 
   Order({
     this.userId,
@@ -56,6 +58,7 @@ class Order {
     this.shipping_address,
     this.taxSummary,
     this.brutto_netto_summary,
+    this.guestShippingJson
   });
 
   Order.withError({
@@ -102,6 +105,8 @@ class Order {
           ? List<BruttoSummary>.from(json["brutto_netto_summary"]
               .map((x) => BruttoSummary.fromJson(x)))
           : [],
+      guestShippingJson:
+      json["guest_shipping_json"] != null ? GuestShippingJson.fromJson(json["guest_shipping_json"]) : null,
     );
   }
 
@@ -128,8 +133,49 @@ class Order {
         "tax_summary": taxSummary?.map((x) => x.toJson()).toList(),
         "brutto_netto_summary":
             brutto_netto_summary?.map((x) => x.toJson()).toList(),
+    "guest_shipping_json": guestShippingJson?.toJson(),
       };
 
   static List<Order> fromJsonList(String str) =>
       List<Order>.from(json.decode(str).map((x) => Order.fromJson(x)));
+}
+class GuestShippingJson {
+  String? zip;
+  String? city;
+  String? type;
+  String? line1;
+  String? phone;
+  String? country;
+  String? customerName;
+
+  GuestShippingJson(
+      {this.zip,
+        this.city,
+        this.type,
+        this.line1,
+        this.phone,
+        this.country,
+        this.customerName});
+
+  GuestShippingJson.fromJson(Map<String, dynamic> json) {
+    zip = json['zip'];
+    city = json['city'];
+    type = json['type'];
+    line1 = json['line1'];
+    phone = json['phone'];
+    country = json['country'];
+    customerName = json['customer_name'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['zip'] = this.zip;
+    data['city'] = this.city;
+    data['type'] = this.type;
+    data['line1'] = this.line1;
+    data['phone'] = this.phone;
+    data['country'] = this.country;
+    data['customer_name'] = this.customerName;
+    return data;
+  }
 }

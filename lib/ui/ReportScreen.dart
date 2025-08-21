@@ -246,56 +246,58 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
       }
 
       // ✅ Update state with received data (even if it's all zeros)
-      setState(() {
-        totalSales = '€${formatAmount(model.totalSales ?? 0.0)}';
-        totalOrder = '${model.totalOrders ?? 0}';
-        totalTax = '€${formatAmount(model.totalTax ?? 0.0)}';
-        cashTotal = '€${formatAmount(model.cashTotal ?? 0.0)}';
+      if (mounted) {
+        setState(() {
+          totalSales = '€${formatAmount(model.totalSales ?? 0.0)}';
+          totalOrder = '${model.totalOrders ?? 0}';
+          totalTax = '€${formatAmount(model.totalTax ?? 0.0)}';
+          cashTotal = '€${formatAmount(model.cashTotal ?? 0.0)}';
 
-        // Handle onlineTotal
-        double onlineValue = 0.0;
-        if (model.onlineTotal != null) {
-          onlineValue = model.onlineTotal is int
-              ? (model.onlineTotal as int).toDouble()
-              : model.onlineTotal as double;
-        }
-        online = '€${formatAmount(onlineValue)}';
+          // Handle onlineTotal
+          double onlineValue = 0.0;
+          if (model.onlineTotal != null) {
+            onlineValue = model.onlineTotal is int
+                ? (model.onlineTotal as int).toDouble()
+                : model.onlineTotal as double;
+          }
+          online = '€${formatAmount(onlineValue)}';
 
-        net = '€${formatAmount(model.netTotal ?? 0.0)}';
+          net = '€${formatAmount(model.netTotal ?? 0.0)}';
 
-        // Handle discountTotal
-        int discountValue = 0;
-        if (model.discountTotal != null) {
-          discountValue = model.discountTotal is double
-              ? (model.discountTotal as double).toInt()
-              : model.discountTotal as int;
-        }
-        discount = '$discountValue';
+          // Handle discountTotal
+          int discountValue = 0;
+          if (model.discountTotal != null) {
+            discountValue = model.discountTotal is double
+                ? (model.discountTotal as double).toInt()
+                : model.discountTotal as int;
+          }
+          discount = '$discountValue';
 
-        // Handle deliveryTotal
-        double deliveryValue = 0.0;
-        if (model.deliveryTotal != null) {
-          deliveryValue = model.deliveryTotal is int
-              ? (model.deliveryTotal as int).toDouble()
-              : model.deliveryTotal as double;
-        }
-        deliveryFee = '€${formatAmount(deliveryValue)}';
+          // Handle deliveryTotal
+          double deliveryValue = 0.0;
+          if (model.deliveryTotal != null) {
+            deliveryValue = model.deliveryTotal is int
+                ? (model.deliveryTotal as int).toDouble()
+                : model.deliveryTotal as double;
+          }
+          deliveryFee = '€${formatAmount(deliveryValue)}';
 
-        salesDelivery = '€${formatAmount(model.totalSalesDelivery ?? 0.0)}';
-        cashMethod = '${model.paymentMethods?.cash ?? 0}';
-        delivery = '${model.orderTypes?.delivery ?? 0}';
-        pickUp = '${model.orderTypes?.pickup ?? 0}';
-        dineIn = '${model.orderTypes?.dineIn ?? 0}';
-        pending = '${model.approvalStatuses?.pending ?? 0}';
-        accepted = '${model.approvalStatuses?.accepted ?? 0}';
-        declined = '${model.approvalStatuses?.declined ?? 0}';
-        tax19 = '€${formatAmount(model.taxBreakdown?.d19 ?? 0.0)}';
-        tax7 = '€${formatAmount(model.taxBreakdown?.d7 ?? 0.0)}';
+          salesDelivery = '€${formatAmount(model.totalSalesDelivery ?? 0.0)}';
+          cashMethod = '${model.paymentMethods?.cash ?? 0}';
+          delivery = '${model.orderTypes?.delivery ?? 0}';
+          pickUp = '${model.orderTypes?.pickup ?? 0}';
+          dineIn = '${model.orderTypes?.dineIn ?? 0}';
+          pending = '${model.approvalStatuses?.pending ?? 0}';
+          accepted = '${model.approvalStatuses?.accepted ?? 0}';
+          declined = '${model.approvalStatuses?.declined ?? 0}';
+          tax19 = '€${formatAmount(model.taxBreakdown?.d19 ?? 0.0)}';
+          tax7 = '€${formatAmount(model.taxBreakdown?.d7 ?? 0.0)}';
 
-        // Set live data as active even for empty data
-        _isLiveDataActive = true;
-        _lastUpdateTime = DateTime.now();
-      });
+          // Set live data as active even for empty data
+          _isLiveDataActive = true;
+          _lastUpdateTime = DateTime.now();
+        });
+      }
 
       print('✅ State updated successfully');
       print('📊 UI Variables - totalSales: $totalSales, totalOrder: $totalOrder');
@@ -321,29 +323,32 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
       }
     }
   }
-  void _setEmptyValues() {
-    setState(() {
-      _isLiveDataActive = false;
 
-      totalSales = '€0.00';
-      totalOrder = '0';
-      totalTax = '€0.00';
-      cashTotal = '€0.00';
-      online = '€0.00';
-      net = '€0.00';
-      discount = '0';
-      deliveryFee = '€0.00';
-      salesDelivery = '€0.00';
-      cashMethod = '0';
-      delivery = '0';
-      pickUp = '0';
-      dineIn = '0';
-      pending = '0';
-      accepted = '0';
-      declined = '0';
-      tax19 = '€0.00';
-      tax7 = '€0.00';
-    });
+  void _setEmptyValues() {
+    if (mounted) {
+      setState(() {
+        _isLiveDataActive = false;
+
+        totalSales = '€0.00';
+        totalOrder = '0';
+        totalTax = '€0.00';
+        cashTotal = '€0.00';
+        online = '€0.00';
+        net = '€0.00';
+        discount = '0';
+        deliveryFee = '€0.00';
+        salesDelivery = '€0.00';
+        cashMethod = '0';
+        delivery = '0';
+        pickUp = '0';
+        dineIn = '0';
+        pending = '0';
+        accepted = '0';
+        declined = '0';
+        tax19 = '€0.00';
+        tax7 = '€0.00';
+      });
+    }
 
     print("📊 Set empty/default values for UI");
   }
@@ -412,7 +417,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                                   child: Text(
                                     'liveSale'.tr,
                                     style: TextStyle(
-                                        fontSize: 18,
+                                        fontSize: 17,
                                         fontWeight: FontWeight.w800,
                                         fontFamily: "Mulish",
                                         color: Color(0xff0C831F),
@@ -420,7 +425,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                                   ),
                                 ),
                                 Positioned(
-                                  right: -8,
+                                  right: -11,
                                   top: 0,
                                   child: FadeTransition(
                                       opacity: _animation,
@@ -630,10 +635,10 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
   }
 
   String _monthName(int month) {
-    const names = [
+     var names = [
       '',
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'january'.tr, 'february'.tr, 'march'.tr, 'april'.tr, 'may'.tr, 'june'.tr,
+      'july'.tr, 'august'.tr, 'september'.tr, 'october'.tr, 'november'.tr, 'december'.tr
     ];
     return names[month];
   }
@@ -776,7 +781,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         if (_isLiveDataActive && _selectedReport == null && _lastUpdateTime != null) ...[
           const SizedBox(height: 4),
           Text(
-            "${"last".tr}: ${DateFormat('HH:mm:ss').format(_lastUpdateTime!)}",
+            "${"last".tr}:   ${DateFormat('HH:mm:ss').format(_lastUpdateTime!)}",
             style: TextStyle(
               fontSize: 10,
               color: Colors.grey[600],
@@ -792,8 +797,9 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 text: "total_sales".tr,
                 style: TextStyle(color: Colors.black),
               ),
+
               TextSpan(
-                text: "€${formatAmount(totalSales)}",
+                text: "    €${formatAmount(totalSales)}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -809,7 +815,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text:"${order.toInt().toString()}", // Convert to int for display
+                text:"   ${order.toInt().toString()}", // Convert to int for display
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -825,7 +831,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "€${formatAmount(tax)}",
+                text: "   €${formatAmount(tax)}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -841,7 +847,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "€${formatAmount(cashTotal)}",
+                text: "    €${formatAmount(cashTotal)}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -857,7 +863,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "€${formatAmount(onlineTotal)}",
+                text: "   €${formatAmount(onlineTotal)}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -873,7 +879,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "€${formatAmount(net)}",
+                text: "    €${formatAmount(net)}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -889,7 +895,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "${discount.toInt().toString()}", // Keep as int for display
+                text: "   ${discount.toInt().toString()}", // Keep as int for display
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -905,7 +911,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "€${formatAmount(delivery)}",
+                text: "   €${formatAmount(delivery)}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -921,7 +927,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "€${formatAmount(salesDelivery)}",
+                text: "   €${formatAmount(salesDelivery)}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -949,7 +955,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "${payment['cash'] ?? 0}",
+                text: "    ${payment['cash'] ?? 0}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -977,7 +983,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "${orderType['delivery'] ?? 0}",
+                text: "   ${orderType['delivery'] ?? 0}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -993,7 +999,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "${orderType['pickup'] ?? 0}",
+                text: "    ${orderType['pickup'] ?? 0}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1009,7 +1015,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "${orderType['dine_in'] ?? 0}",
+                text: "   ${orderType['dine_in'] ?? 0}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1037,7 +1043,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "${approval['pending'] ?? 0}",
+                text: "   ${approval['pending'] ?? 0}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1053,7 +1059,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "${approval['accepted'] ?? 0}",
+                text: "   ${approval['accepted'] ?? 0}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1069,7 +1075,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: "${approval['declined'] ?? 0}",
+                text: "    ${approval['declined'] ?? 0}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1132,7 +1138,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
               borderRadius: BorderRadius.circular(5),
               color: Colors.green,
             ),
-            child: Text('View Full Details',style: TextStyle(
+            child: Text('view_full'.tr,style: TextStyle(
               fontWeight: FontWeight.w600,fontSize: 14,fontFamily: "Mulish",color: Colors.white
             ),),
           ),
@@ -1167,7 +1173,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         if (_isLiveDataActive && _selectedReport == null && _lastUpdateTime != null) ...[
           const SizedBox(height: 4),
           Text(
-            "${"last".tr}:: ${DateFormat('HH:mm:ss').format(_lastUpdateTime!)}",
+            "${"last".tr}: ${DateFormat('HH:mm:ss').format(_lastUpdateTime!)}",
             style: TextStyle(
               fontSize: 10,
               color: Colors.grey[600],
@@ -1184,7 +1190,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: totalSales,
+                text: "   ${totalSales}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1200,7 +1206,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text:totalOrder, // Convert to int for display
+                text: "    ${totalOrder}", // Convert to int for display
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1216,7 +1222,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: totalTax,
+                text: "   ${totalTax}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1232,7 +1238,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: cashTotal,
+                text: "   ${cashTotal}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1248,7 +1254,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: online,
+                text: "   ${online}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1264,7 +1270,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: net,
+                text: "   ${net}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1280,7 +1286,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: discount, // Keep as int for display
+                text: "   ${discount}", // Keep as int for display
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1296,7 +1302,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: deliveryFee,
+                text:"   ${deliveryFee}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1312,7 +1318,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: salesDelivery,
+                text: "   ${salesDelivery}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1340,7 +1346,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text:cashMethod,
+                text:"   ${cashMethod}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1368,7 +1374,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: delivery,
+                text: "   ${delivery}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1384,7 +1390,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: pickUp,
+                text: "   ${pickUp}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1400,7 +1406,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text:dineIn,
+                text: "   ${dineIn}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1427,7 +1433,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: pending,
+                text:"   ${pending}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1443,7 +1449,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: accepted,
+                text: "   ${accepted}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1459,7 +1465,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 style: TextStyle(color: Colors.black),
               ),
               TextSpan(
-                text: declined,
+                text: "   ${declined}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.green),
               ),
@@ -1584,7 +1590,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
       Get.dialog(
         Center(
             child: Lottie.asset(
-              'assets/animations/Delivery.json',
+              'assets/animations/burger.json',
               width: 150,
               height: 150,
               repeat: true,

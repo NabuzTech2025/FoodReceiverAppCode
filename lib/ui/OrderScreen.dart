@@ -89,11 +89,13 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     'delivery': 0,
     'totalOrders': 0,
   };
+  bool isLoading=false;
+  bool _isInitialLoading = true;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this); // Register observer
+    WidgetsBinding.instance.addObserver(this);
     print("Callingapp When refresh reumed 1111 ");
 
     _blinkController = AnimationController(
@@ -104,9 +106,12 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     _opacityAnimation = Tween<double>(begin: 0.4, end: 1.0).animate(
       CurvedAnimation(parent: _blinkController, curve: Curves.easeInOut),
     );
-    initVar();
-  }
 
+    // ✅ Wait for the frame to complete before calling initVar
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      initVar();
+    });
+  }
 
   Future<void> _checkAndClearOldData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -163,57 +168,180 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     }
   }
 
-  // ─────────────────── Initialisation ───────────────────
-  // initVar method को इससे replace करें:
   Future<void> initVar() async {
     print("Callingapp When refresh resumed 3333");
-    sharedPreferences = await SharedPreferences.getInstance();
-    bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
 
-    // ✅ NEW: Clear previous user's data first
-    _socketService.disconnect();
-    setState(() {
-      _isLiveDataActive = false;
-      _lastUpdateTime = null;
-      _currentDateReport = null;
-      reportsss = DailySalesReport();
-    });
+    // Show loader immediately at the start
+    Get.dialog(
+      Center(
+          child: Lottie.asset(
+            'assets/animations/burger.json',
+            width: 150,
+            height: 150,
+            repeat: true,
+          )
+      ),
+      barrierDismissible: false,
+    );
 
-    await _preloadStoreData();
+    try {
+      sharedPreferences = await SharedPreferences.getInstance();
+      bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
 
-    // ✅ Check and clear old data FIRST before loading new data
-    await _checkAndClearOldData();
+      // Clear previous user's data first
+      _socketService.disconnect();
+      setState(() {
+        _isLiveDataActive = false;
+        _lastUpdateTime = null;
+        _currentDateReport = null;
+        reportsss = DailySalesReport();
+      });
 
-    final storeID = sharedPreferences.getString(valueShared_STORE_KEY);
-    print("🆔 DEBUG - initVar storeID: '$storeID'");
+      await _preloadStoreData();
+      await _checkAndClearOldData();
 
-    if (storeID != null && storeID.isNotEmpty) {
-      print("✅ Using existing store ID: $storeID");
+      final storeID = sharedPreferences.getString(valueShared_STORE_KEY);
+      print("🆔 DEBUG - initVar storeID: '$storeID'");
 
-      // ✅ Store data fetch करें पहले
-      await getStoredta(bearerKey!);
+      if (storeID != null && storeID.isNotEmpty) {
+        print("✅ Using existing store ID: $storeID");
 
-      // ✅ NEW: Restore user-specific IP data
-      await _restoreUserSpecificData(storeID);
+        await getStoredta(bearerKey!);
+        await _restoreUserSpecificData(storeID);
 
-      getOrders(bearerKey, false, false, storeID);
+        // Call without showing individual loaders
+        await getOrdersWithoutLoader(bearerKey, storeID);
 
-      if (bearerKey != null && bearerKey!.isNotEmpty) {
-        print("🔌 Initializing socket with store ID: $storeID");
-        _initializeSocket();
+        if (bearerKey != null && bearerKey!.isNotEmpty) {
+          print("🔌 Initializing socket with store ID: $storeID");
+          _initializeSocket();
+        }
+      } else {
+        print("❌ No store ID found, getting user data first");
+        await getStoreUserMeDataWithoutLoader(bearerKey);
       }
-    } else {
-      print("❌ No store ID found, getting user data first");
-      await getStoreUserMeData(bearerKey);
-    }
 
-    getCurrentDateReport();
-    _loadCachedSalesData();
-    _startNoOrderTimer();
-    getLiveSaleReport();
+      getCurrentDateReport();
+      _loadCachedSalesData();
+      _startNoOrderTimer();
+      await getLiveSaleReportWithoutLoader();
+
+    } finally {
+      // Close loader
+      Get.back();
+      setState(() {
+        _isInitialLoading = false;
+      });
+    }
   }
 
-// ✅ NEW: Restore user-specific data method
+  Future<void> getOrdersWithoutLoader(String? bearerKey, String? id) async {
+    try {
+      DateTime formatted = DateTime.now();
+      String date = DateFormat('yyyy-MM-dd').format(formatted);
+
+      final Map<String, dynamic> data = {
+        "store_id": id,
+        "target_date": date,
+        "limit": 0,
+        "offset": 0,
+      };
+
+      final result = await ApiRepo().orderGetApiFilter(bearerKey!, data);
+
+      if (result.isNotEmpty && result.first.code == null) {
+        setState(() {
+          app.appController.setOrders(result);
+        });
+        if (result.isNotEmpty) {
+          _stopNoOrderTimer();
+        }
+      } else {
+        _startNoOrderTimer();
+      }
+    } catch (e) {
+      Log.loga(title, "Login Api:: e >>>>> $e");
+      showSnackbar("Api Error", "An error occurred: $e");
+    }
+  }
+
+  Future<void> getLiveSaleReportWithoutLoader() async {
+    try {
+      print("📄 Starting getLiveSaleReport...");
+
+      if (bearerKey == null || bearerKey!.isEmpty) {
+        print("❌ Bearer token is null or empty");
+        _setEmptyValues();
+        return;
+      }
+
+      GetTodayReport model = await CallService().getLiveSaleData();
+      print("✅ API call completed successfully");
+
+      if (model.code != null && model.code != 200) {
+        print("⚠️ API returned code: ${model.code}, message: ${model.mess}");
+        _setEmptyValues();
+        return;
+      }
+
+      setState(() {
+        delivery = '${model.orderTypes?.delivery ?? 0}';
+        pickUp = '${model.orderTypes?.pickup ?? 0}';
+        pending = '${model.approvalStatuses?.pending ?? 0}';
+        accepted = '${model.approvalStatuses?.accepted ?? 0}';
+        declined = '${model.approvalStatuses?.declined ?? 0}';
+
+        _liveApiData = {
+          'accepted': model.approvalStatuses?.accepted ?? 0,
+          'declined': model.approvalStatuses?.declined ?? 0,
+          'pending': model.approvalStatuses?.pending ?? 0,
+          'pickup': model.orderTypes?.pickup ?? 0,
+          'delivery': model.orderTypes?.delivery ?? 0,
+          'totalOrders': model.totalOrders ?? 0,
+        };
+
+        _isLiveDataActive = true;
+        _lastUpdateTime = DateTime.now();
+      });
+
+    } catch (e, stackTrace) {
+      print('❌ Error in getLiveSaleReport: $e');
+      _setEmptyValues();
+
+      if (!e.toString().contains('204')) {
+        showSnackbar("Info", "Unable to load live sales data");
+      }
+    }
+  }
+
+  Future<void> getStoreUserMeDataWithoutLoader(String? bearerKey) async {
+    try {
+      final result = await ApiRepo().getUserMe(bearerKey);
+      if (result != null) {
+        setState(() {
+          userMe = result;
+        });
+
+        await sharedPreferences.setString(valueShared_STORE_KEY, userMe.store_id.toString());
+        print("✅ Store ID saved from API: ${userMe.store_id}");
+
+        await getStoredta(bearerKey!);
+        await _restoreUserSpecificData(userMe.store_id.toString());
+        await getOrdersWithoutLoader(bearerKey, userMe.store_id.toString());
+
+        if (bearerKey != null && bearerKey!.isNotEmpty) {
+          print("🔌 Initializing socket after getting user data");
+          _initializeSocket();
+        }
+      } else {
+        showSnackbar("Error", "Failed to get user data");
+      }
+    } catch (e) {
+      Log.loga(title, "getUserMe Api:: e >>>>> $e");
+      showSnackbar("Api Error", "An error occurred: $e");
+    }
+  }
+
   Future<void> _restoreUserSpecificData(String currentStoreId) async {
     try {
       print("🔄 Checking for user-specific data: $currentStoreId");
@@ -395,7 +523,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     }
   }
 
-
   Future<void> _preloadStoreData() async {
     if (bearerKey != null) {
       try {
@@ -413,8 +540,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       }
     }
   }
-
-
 
   void _initializeSocket() {
     print("🔥 Starting socket initialization");
@@ -516,6 +641,20 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
   Future<void> getLiveSaleReport() async {
     try {
+
+        // show modal loader
+        Get.dialog(
+          Center(
+              child:  Lottie.asset(
+                'assets/animations/burger.json',
+                width: 150,
+                height: 150,
+                repeat: true, )
+          ),
+          barrierDismissible: false,
+        );
+
+
       print("🔄 Starting getLiveSaleReport...");
 
       if (bearerKey == null || bearerKey!.isEmpty) {
@@ -528,7 +667,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
       // Call the API
       GetTodayReport model = await CallService().getLiveSaleData();
-
+      Get.back();
       print("✅ API call completed successfully");
 
       // Check if model has error code
@@ -592,22 +731,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     });
 
     print("📊 Set empty/default values for UI");
-  }
-
-
-  Future<void> _ensureStoreIdIsSaved() async {
-    String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
-
-    if (storeID == null || storeID.isEmpty) {
-      print("⚠️ Store ID missing, fetching from API...");
-
-      if (userMe != null && userMe.store_id != null) {
-        await sharedPreferences.setString(valueShared_STORE_KEY, userMe.store_id.toString());
-        print("✅ Store ID saved: ${userMe.store_id}");
-      } else {
-        print("❌ Cannot save store ID - userMe data unavailable");
-      }
-    }
   }
 
   void _startNoOrderTimer() {
@@ -694,6 +817,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       print('❌ Current date report is null, cannot update');
     }
   }
+
   Future<void> _loadCachedSalesData() async {
     final cachedData = await SalesCacheHelper.loadSalesData();
     if (cachedData != null) {
@@ -754,12 +878,10 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     await getOrders(bearerKey, false, false, storeID);
   }
 
-  /// Used by the toolbar icon – shows the loading dialog
-  Future<void> _manualRefresh() async {                               // ✨ NEW
+  Future<void> _manualRefresh() async {
     final storeID = sharedPreferences.getString(valueShared_STORE_KEY);
     await getOrders(bearerKey, true, false, storeID);
   }
-
 
   Future<void> getOrders(String? bearerKey, bool orderType, bool isBellRunning, String? id) async {
     try {
@@ -775,7 +897,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                width: 150,
                height: 150,
                repeat: true, )
-             //CupertinoActivityIndicator(radius: 20, color: Colors.orange),
           ),
           barrierDismissible: false,
         );
@@ -850,6 +971,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     // Otherwise, use API data
     return _liveApiData[status] ?? 0;
   }
+
   int _getOrderTypeCount(String type) {
     // If socket data is available, use socket data
     if (_hasSocketData && _currentDateReport?.data?.orderTypes != null) {
@@ -952,14 +1074,14 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                     children: [
                       // Accepted Orders
                       _buildStatusContainer(
-                        '${'accepted'.tr}: ${_getApprovalStatusCount("accepted")}',
+                        '${'accepted'.tr} ${_getApprovalStatusCount("accepted")}',
                         Colors.green.withOpacity(0.1),
                       ),
                       SizedBox(width: 8),
 
                       // Declined Orders
                       _buildStatusContainer(
-                        '${"decline".tr}: ${_getApprovalStatusCount("declined")}',
+                        '${"decline".tr} ${_getApprovalStatusCount("declined")}',
                         Colors.red.withOpacity(0.1),
                       ),
                       SizedBox(width: 8),
@@ -973,14 +1095,14 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
                       // Pickup Orders
                       _buildStatusContainer(
-                        '${"pickup".tr}: ${_getOrderTypeCount("pickup")}',
+                        '${"pickup".tr} ${_getOrderTypeCount("pickup")}',
                         Colors.blue.withOpacity(0.1),
                       ),
                       SizedBox(width: 8),
 
                       // Delivery Orders
                       _buildStatusContainer(
-                        '${"delivery".tr}: ${_getOrderTypeCount("delivery")}',
+                        '${"delivery".tr} ${_getOrderTypeCount("delivery")}',
                         Colors.purple.withOpacity(0.1),
                       ),
                     ],
@@ -998,19 +1120,34 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                   color: Colors.green,
                   backgroundColor: Colors.white,
                   displacement: 60,
-                  child: Obx(() {
+                  child: _isInitialLoading
+                      ? Container() // Show nothing during initial loading (burger loader is shown as dialog)
+                      :Obx(() {
                     if (app.appController.searchResultOrder.isEmpty) {
                       return ListView(
+
                         physics: const AlwaysScrollableScrollPhysics(),
                         children: [
                           SizedBox(height: 100),
-                          Center(
-                              child: _showNoOrderText
-                                  ? Text(
-                                'No orders yet',
-                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                              )
-                                  : SizedBox.shrink()
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Lottie.asset(
+                                'assets/animations/empty.json',
+                                width: 150,
+                                height: 150,
+                              ),
+                              Text(
+                                _showNoOrderText
+                                    ? 'No orders found '
+                                    : 'No orders found ',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       );
@@ -1026,7 +1163,12 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                           String formattedEnd = DateFormat('hh:mm a').format(endTime);
                           DateTime dateTime = DateTime.parse(order.createdAt.toString());
                           String time = DateFormat('hh:mm a').format(dateTime);
-
+                          String guestAddress=order.guestShippingJson?.zip?.toString()??'';
+                          String guestName=order.guestShippingJson?.customerName?.toString()??'';
+                          String guestPhone=order.guestShippingJson?.phone?.toString()??'';
+                          print('guest name is $guestName');
+                          print('guest name is $guestAddress');
+                          print('guest name is $guestPhone');
                           return AnimatedBuilder(
                             animation: _opacityAnimation,
                             builder: (context, child) {
@@ -1068,7 +1210,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                     ],
                                   ),
                                   child: Padding(
-                                    padding: EdgeInsets.all(10),
+                                    padding: EdgeInsets.all(8),
                                     child: GestureDetector(
                                       behavior: HitTestBehavior.opaque,
                                       onTap: () => Get.to(() => OrderDetailEnglish(order)),
@@ -1098,33 +1240,41 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                     ),
                                                   ),
                                                   SizedBox(width: 6),
-                                                  Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      Text(
-                                                  order.orderType == 2 ?'pickup'.tr:order.shipping_address!.zip.toString(),
-                                                        style: const TextStyle(
-                                                            fontWeight: FontWeight.w700,
-                                                            fontSize: 13,
-                                                            fontFamily: "Mulish-Regular"
-                                                        ),
-                                                      ),
-                                                      Visibility(
-                                                        visible: order.shipping_address != null,
-                                                        child: Text(
-                                                          order.orderType == 1 && order.shipping_address != null
-                                                              ? '${order.shipping_address!.line1!}, ${order.shipping_address!.city!}'
-                                                              : '',
+                                                  Container(
+                                                    width: MediaQuery.of(context).size.width*0.6,
+                                                    child: Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Text(
+                                                          order.orderType == 2
+                                                              ? 'pickup'.tr
+                                                              : (order.shipping_address?.zip?.toString() ?? guestAddress),
                                                           style: const TextStyle(
-                                                              fontWeight: FontWeight.w500,
-                                                              fontSize: 11,
-                                                              letterSpacing: 0,
-                                                              height: 0,
-                                                              fontFamily: "Mulish"
+                                                              fontWeight: FontWeight.w700,
+                                                              fontSize: 13,
+                                                              fontFamily: "Mulish-Regular"
                                                           ),
                                                         ),
-                                                      ),
-                                                    ],
+                                                        Visibility(
+                                                          visible: order.shipping_address != null || order.guestShippingJson != null,
+                                                          child: Text(
+                                                            order.orderType == 1
+                                                                ? (order.shipping_address != null
+                                                                ? '${order.shipping_address!.line1!}, ${order.shipping_address!.city!}'
+                                                                : '${order.guestShippingJson?.line1 ?? ''}, '
+                                                                '${order.guestShippingJson?.city ?? ''}')
+                                                                : '',
+                                                            style: const TextStyle(
+                                                                fontWeight: FontWeight.w500,
+                                                                fontSize: 11,
+                                                                letterSpacing: 0,
+                                                                height: 0,
+                                                                fontFamily: "Mulish"
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
                                                   )
                                                 ],
                                               ),
@@ -1143,20 +1293,20 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                             ],
                                           ),
                                           SizedBox(height: 8),
-
                                           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                             children: [
                                               Container(
                                                 width: MediaQuery.of(context).size.width*0.5,
                                                 child: Text(
-                                                  '${order.shipping_address?.customer_name ?? "User"} / ${order.shipping_address?.phone ?? "0000000000"}',
+                                                  '${order.shipping_address?.customer_name ??
+                                                      guestName ?? ""} / ${order.shipping_address?.phone ??
+                                                      guestPhone}',
                                                   style: const TextStyle(
                                                       fontWeight: FontWeight.w700,
                                                       fontFamily: "Mulish",
                                                       fontSize: 13
                                                   ),
-                                                ),
-                                              ),
+                                                ),),
                                               Row(
                                                 children: [
                                                   Text(

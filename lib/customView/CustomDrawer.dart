@@ -370,7 +370,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/repository/api_repository.dart';
 import '../constants/constant.dart';
+import '../ui/Discount/discount.dart';
 import '../ui/LoginScreen.dart';
+import '../ui/Products/Category/category.dart';
+import '../ui/StoreTiming/store_timing.dart';
+import '../ui/Tax MAnagement/taxmanagement.dart';
 import '../utils/log_util.dart';
 import '../utils/my_application.dart';
 
@@ -386,6 +390,7 @@ class CustomDrawer extends StatefulWidget {
 class _CustomDrawerState extends State<CustomDrawer> {
   late SharedPreferences sharedPreferences;
   String? storeName;
+  bool isProductExpanded = false;
   @override
   initState() {
     initVar();
@@ -441,87 +446,196 @@ class _CustomDrawerState extends State<CustomDrawer> {
     }
   }
 
+  // @override
+  // Widget build(BuildContext context) {
+  //   return Drawer(
+  //     width: MediaQuery.of(context).size.width * 0.75,
+  //     child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         const SizedBox(height: 60),
+  //         Align(
+  //           alignment: Alignment.centerLeft,
+  //           child: Row(
+  //             children: [
+  //               IconButton(
+  //                 icon: const Icon(Icons.arrow_back),
+  //                 onPressed: () => Navigator.of(context).pop(),
+  //               ),
+  //               storeName == null || storeName!.isEmpty ?
+  //               SizedBox(
+  //                 width: 30,
+  //                 height: 30,
+  //                 child: Lottie.asset(
+  //                   'assets/animations/burger.json',
+  //                   width: 30,
+  //                   height: 30,
+  //                   repeat: true,
+  //                 ),
+  //               )
+  //                   : Text(
+  //                 storeName.toString(),
+  //                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+  //               )
+  //             ],
+  //           ),
+  //         ),
+  //
+  //         _drawerItem('order'.tr, onTap: () {
+  //           _navigateToHomeScreenTab(0);
+  //         }),
+  //         _drawerItem('reports'.tr, onTap: () {
+  //           _navigateToHomeScreenTab(1);
+  //         }),
+  //         _drawerItem('setting'.tr, onTap: () {
+  //           _navigateToHomeScreenTab(2);
+  //         }),
+  //         // New expandable Product section
+  //         _expandableProductItem(),
+  //         _drawerItem('discount'.tr, onTap: () {
+  //           Navigator.of(context).pop(); // close drawer
+  //           Get.to(() => Discount());
+  //         }),
+  //         _drawerItem('store'.tr, onTap: () {
+  //           Navigator.of(context).pop(); // close drawer
+  //           Get.to(() => StoreTiming());
+  //         }),
+  //         _drawerItem('manage'.tr, onTap: () {
+  //           Navigator.of(context).pop(); // close drawer
+  //           Get.to(() => Taxmanagement());
+  //         }),
+  //         const Spacer(),
+  //
+  //         Container(
+  //           child: _drawerItem('logout'.tr, onTap: () async {
+  //             var bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
+  //             logutAPi(bearerKey);
+  //           }),
+  //         ),
+  //         const Padding(
+  //           padding:  EdgeInsets.only(left: 15.0),
+  //           child: Text('Version:1.6.0',style: TextStyle(
+  //               fontWeight: FontWeight.w300,
+  //               fontSize: 15
+  //           ),),
+  //         ),
+  //         const SizedBox(
+  //           height: 60,
+  //         ),
+  //         /* Container(
+  //           color: Colors.grey[200],
+  //           child: _drawerItem("Logout", onTap: () async {
+  //             await sharedPreferences.remove(valueShared_BEARER_KEY);
+  //             Navigator.of(context).pop(); // close drawer
+  //             Get.to(() => LoginScreen());
+  //             // Add logout logic here
+  //           }),
+  //         ),*/
+  //       ],
+  //     ),
+  //   );
+  // }
+  // Replace the existing build method's return statement with this:
   @override
   Widget build(BuildContext context) {
     return Drawer(
+      backgroundColor: Colors.white,
       width: MediaQuery.of(context).size.width * 0.75,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
         children: [
-          const SizedBox(height: 60),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Row(
+          // Fixed header section
+          Container(
+            color: Colors.white,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-                storeName == null || storeName!.isEmpty ?
-                SizedBox(
-                  width: 30,
-                  height: 30,
-                  child: Lottie.asset(
-                    'assets/animations/burger.json',
-                    width: 30,
-                    height: 30,
-                    repeat: true,
+                const SizedBox(height: 60),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      storeName == null || storeName!.isEmpty ?
+                      SizedBox(
+                        width: 30,
+                        height: 30,
+                        child: Lottie.asset(
+                          'assets/animations/burger.json',
+                          width: 30,
+                          height: 30,
+                          repeat: true,
+                        ),
+                      )
+                          : Text(
+                        storeName.toString(),
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                      )
+                    ],
                   ),
-                )
-                    : Text(
-                  storeName.toString(),
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                )
+                ),
               ],
             ),
           ),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _drawerItem('order'.tr, onTap: () {
+                    _navigateToHomeScreenTab(0);
+                  }),
+                  _drawerItem('reports'.tr, onTap: () {
+                    _navigateToHomeScreenTab(1);
+                  }),
+                  _drawerItem('setting'.tr, onTap: () {
+                    _navigateToHomeScreenTab(2);
+                  }),
 
-          _drawerItem('order'.tr, onTap: () {
-            _navigateToHomeScreenTab(0);
-          }),
-          /*_drawerItem('customer'.tr, onTap: () {
-            Navigator.of(context).pop(); // close drawer
-            //widget.onSelectTab(1); //
-          }),*/
-          _drawerItem('reports'.tr, onTap: () {
-            _navigateToHomeScreenTab(1);
-          }),
-          _drawerItem('Driver', onTap: () {
-            Navigator.of(context).pop();
+                  // Expandable Product section
+                  _expandableProductItem(),
 
-            Future.delayed(Duration(milliseconds: 100), () {
-              Get.to(() => DriverScreen());
-            });
-          }),
-          _drawerItem('setting'.tr, onTap: () {
-            _navigateToHomeScreenTab(2);
-          }),
-          const Spacer(),
-
+                  _drawerItem('discount'.tr, onTap: () {
+                    Navigator.of(context).pop();
+                    Get.to(() => Discount());
+                  }),
+                  _drawerItem('store'.tr, onTap: () {
+                    Navigator.of(context).pop();
+                    Get.to(() => StoreTiming());
+                  }),
+                  _drawerItem('manage'.tr, onTap: () {
+                    Navigator.of(context).pop();
+                    Get.to(() => Taxmanagement());
+                  }),
+                ],
+              ),
+            ),
+          ),
           Container(
-            child: _drawerItem('logout'.tr, onTap: () async {
-              var bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
-              logutAPi(bearerKey);
-            }),
+            color: Colors.white,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  child: _drawerItem('logout'.tr, onTap: () async {
+                    var bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
+                    logutAPi(bearerKey);
+                  }),
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(left: 15.0),
+                  child: Text('Version:1.6.0', style: TextStyle(
+                      fontWeight: FontWeight.w300,
+                      fontSize: 15
+                  ),),
+                ),
+                const SizedBox(
+                  height: 60,
+                ),
+              ],
+            ),
           ),
-          Padding(
-            padding:  EdgeInsets.only(left: 15.0),
-            child: Text('Version:1.3.0',style: TextStyle(
-                fontWeight: FontWeight.w300,
-                fontSize: 15
-            ),),
-          ),
-          SizedBox(
-            height: 60,
-          ),
-          /* Container(
-            color: Colors.grey[200],
-            child: _drawerItem("Logout", onTap: () async {
-              await sharedPreferences.remove(valueShared_BEARER_KEY);
-              Navigator.of(context).pop(); // close drawer
-              Get.to(() => LoginScreen());
-              // Add logout logic here
-            }),
-          ),*/
         ],
       ),
     );
@@ -531,6 +645,9 @@ class _CustomDrawerState extends State<CustomDrawer> {
     return ListTile(
       title: Text(title, style: const TextStyle(fontSize: 16)),
       onTap: onTap,
+        dense: true, // Add this line to reduce height
+        contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0), // Add this line
+        visualDensity: VisualDensity.compact
     );
   }
 
@@ -799,5 +916,84 @@ class _CustomDrawerState extends State<CustomDrawer> {
     } catch (e) {
       print("❌ Error clearing background handler cache: $e");
     }
+  }
+  // 3. Add this new method to your _CustomDrawerState class:
+  Widget _expandableProductItem() {
+    return Column(
+      children: [
+        ListTile(
+          title: Row(
+            children: [
+              Text('Product', style: const TextStyle(fontSize: 16)),
+              Spacer(),
+              Icon(
+                isProductExpanded ? Icons.expand_less : Icons.expand_more,
+                color: Colors.grey[600],
+              ),
+            ],
+          ),
+          onTap: () {
+            setState(() {
+              isProductExpanded = !isProductExpanded;
+            });
+          },
+            dense: true, // Add this line
+            contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0), // Add this line
+            visualDensity: VisualDensity.compact,
+        ),
+        if (isProductExpanded) ...[
+          _subDrawerItem('Category', onTap: () {
+            Navigator.of(context).pop();
+            // Navigate to Category screen
+             Get.to(() => Category());
+          }),
+          _subDrawerItem('Items', onTap: () {
+            Navigator.of(context).pop();
+            // Navigate to Items screen
+            // Get.to(() => ItemsScreen());
+          }),
+          _subDrawerItem('Toppings', onTap: () {
+            Navigator.of(context).pop();
+            // Navigate to Toppings screen
+            // Get.to(() => ToppingsScreen());
+          }),
+          _subDrawerItem('Topping Group', onTap: () {
+            Navigator.of(context).pop();
+            // Navigate to Topping Group screen
+            // Get.to(() => ToppingGroupScreen());
+          }),
+          _subDrawerItem('Group Item', onTap: () {
+            Navigator.of(context).pop();
+            // Navigate to Group Item screen
+            // Get.to(() => GroupItemScreen());
+          }),
+          _subDrawerItem('Product Groups', onTap: () {
+            Navigator.of(context).pop();
+            // Navigate to Product Groups screen
+            // Get.to(() => ProductGroupsScreen());
+          }),
+        ],
+      ],
+    );
+  }
+
+  Widget _subDrawerItem(String title, {required VoidCallback onTap}) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 32.0),
+      child: ListTile(
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[700],
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+        onTap: onTap,
+        dense: true,
+        contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0), // Add this line
+        visualDensity: VisualDensity.compact, //
+      ),
+    );
   }
 }

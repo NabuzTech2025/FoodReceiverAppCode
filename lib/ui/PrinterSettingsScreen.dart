@@ -23,8 +23,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
   bool get wantKeepAlive => true;
 
   // ──────────────────────────────────────────────────  PRINTER IPs
-  final List<TextEditingController> _ipControllers =
-  List.generate(1, (_) => TextEditingController());
+  final List<TextEditingController> _ipControllers = List.generate(1, (_) => TextEditingController());
   final List<TextEditingController> _ipRemoteControllers =
   List.generate(1, (_) => TextEditingController());
   final List<FocusNode> _ipFocusNodes = List.generate(1, (_) => FocusNode());
@@ -45,30 +44,27 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
   // ✅ Tab tracking variables
   int? _lastTabIndex;
   bool _isCurrentTab = false;
-
-  // ✅ Add worker reference for proper disposal
   Worker? _tabWorker;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initSharedPrefsAndLoadSettings();
+    _debugSharedPreferences().then((_) {
+      _initSharedPrefsAndLoadSettings();
+    });
+
     _setupTabListener();
   }
 
-  // ✅ Setup tab change listener using GetX controller
   void _setupTabListener() {
-    // Use the reactive getter from AppController and store the worker reference
     _tabWorker = ever(app.appController.selectedTabIndexRx, (int tabIndex) {
-      // ✅ Check if widget is still mounted before handling tab change
       if (mounted) {
         _handleTabChange(tabIndex);
       }
     });
   }
 
-  // ✅ Handle tab change logic
   void _handleTabChange(int tabIndex) {
     print("📱 Tab changed to: $tabIndex");
 
@@ -81,12 +77,23 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       _lastTabIndex = tabIndex;
       _unfocusAllTextFields();
       // ✅ FIX: Remove delay and call immediately
-      _refreshSettings();
+      _refreshOnlyServerSettings();
     } else {
       _isCurrentTab = isNowCurrentTab;
       if (!isNowCurrentTab) {
         _unfocusAllTextFields();
       }
+
+    }
+  }
+
+  Future<void> _refreshOnlyServerSettings() async {
+    if (!mounted) return;
+
+    if (bearerKey != null && bearerKey!.isNotEmpty) {
+      print("🔄 Refreshing only server settings...");
+      // This will call getStoreSetting but won't overwrite local IPs
+      await getStoreSetting(bearerKey!);
     }
   }
 
@@ -138,7 +145,6 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
     }
   }
 
-  // ✅ App lifecycle detection (for app foreground/background)
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
@@ -150,7 +156,6 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
     }
   }
 
-  // ✅ Refresh settings method
   Future<void> _refreshSettings() async {
     if (!mounted) return; // ✅ Check mounted state
 
@@ -163,59 +168,40 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
   }
 
   Future<void> _initSharedPrefsAndLoadSettings() async {
-    if (!mounted) return; // ✅ Check mounted state
+    if (!mounted) return;
+
+    print("🔍 INIT ENHANCED - Starting...");
 
     sharedPreferences = await SharedPreferences.getInstance();
+
+    // 🔥 IMMEDIATE DIAGNOSTICS
+    await _logAllSharedPreferences();
+
     bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
     print("🔑 Bearer Key found: ${bearerKey != null}");
 
-    await _loadSavedSettings();
+    // 🔥 USE ENHANCED LOAD METHOD
+    await _loadOnlyLocalSettings();
 
     if (bearerKey != null && mounted) {
       await getStoreSetting(bearerKey!);
     }
-  }
 
-  // ──────────────────────────────────────────────────  PREFERENCES
-  Future<void> _loadSavedSettings() async {
-    if (!mounted) return; // ✅ Check mounted state
-
-    try {
-      final prefs = sharedPreferences;
-
-      _selectedIpIndex = prefs.getInt('selected_ip_index') ?? 0;
-      _autoOrderPrint = prefs.getBool('auto_order_print') ?? false;
-      _autoRemoteOrderrAccept =
-          prefs.getBool('auto_order_remote_accept') ?? false;
-      _autoRemoteOrderPrint =
-          prefs.getBool('auto_order_remote_print') ?? false;
-      _autoOrderAccept = prefs.getBool('auto_order_accept') ?? false;
-
-      _ipControllers[0].text = prefs.getString('printer_ip_0') ?? '';
-      _ipRemoteControllers[0].text =
-          prefs.getString('printer_ip_remote_0') ?? '';
-
-      if (mounted) {
-        setState(() {}); // trigger rebuild with loaded values
-      }
-
-      print("✅ Local settings loaded from SharedPreferences");
-    } catch (e) {
-      print("❌ Error loading settings: $e");
-    }
+    print("🔍 INIT ENHANCED - Complete");
   }
 
   Future<void> _saveIps() async {
-    if (!mounted) return; // ✅ Check mounted state
-
+    if (!mounted) return;
     try {
       setState(() {
-        _isSaving = true; // ✅ NEW: Set saving state
+        _isSaving = true;
       });
-      // ✅ IMPORTANT: Unfocus all text fields BEFORE API call
-      _unfocusAllTextFields();
+      if (Get.isDialogOpen == true) {
+        Get.back();
+        await Future.delayed(Duration(milliseconds: 50));
+      }
 
-      // ✅ Show loading dialog
+      _unfocusAllTextFields();
       Get.dialog(
         Center(
             child: Lottie.asset(
@@ -227,21 +213,16 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
         ),
         barrierDismissible: false,
       );
-
-      // ✅ FIXED: Call poststoreSetting with showDialog: true to let it handle dialogs
       await poststoreSetting(bearerKey!, showDialog: false);
+
       setState(() {
         _hasUnsavedChanges = false;
         _isSaving = false;
       });
-
-      // ✅ Close loading dialog first
       if (Get.isDialogOpen == true) {
         Get.back();
-        await Future.delayed(Duration(milliseconds: 300)); // Wait for dialog to close
+        await Future.delayed(Duration(milliseconds: 50)); // Wait for dialog to close
       }
-
-      // ✅ Sync settings after successful API call
       await SettingsSync.syncSettingsAfterLogin();
 
       // ✅ Show success animation
@@ -257,12 +238,11 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
         barrierDismissible: false,
       );
 
-      // ✅ Wait for success animation, then close
-      await Future.delayed(Duration(seconds: 2));
+      await Future.delayed(Duration(seconds: 1));
 
       if (Get.isDialogOpen == true) {
         Get.back();
-        await Future.delayed(Duration(milliseconds: 200)); // Wait for dialog to close
+        await Future.delayed(Duration(milliseconds: 50));
       }
 
       _unfocusAllTextFields();
@@ -280,15 +260,11 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       setState(() {
         _isSaving = false;
       });
-      // ✅ Close any open dialog
       if (Get.isDialogOpen == true) {
         Get.back();
-        await Future.delayed(Duration(milliseconds: 200));
+        await Future.delayed(Duration(milliseconds: 50));
       }
-
-      // ✅ IMPORTANT: Unfocus on error as well
       _unfocusAllTextFields();
-
       Get.snackbar(
         'Error',
         'Failed to save settings: $e',
@@ -299,64 +275,115 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       );
     }
   }
-
   Future<void> _saveLocalIps() async {
-    if (!mounted) return; // ✅ Check mounted state
+    if (!mounted) return;
 
     try {
-      // ✅ IMPORTANT: Unfocus before validation and saving
       _unfocusAllTextFields();
 
-      final prefs = sharedPreferences;
       String ip = _ipControllers[0].text.trim();
+      print("🔍 SAVING IP ENHANCED - Input: '$ip'");
 
-      if (ip.isEmpty || _validateIP(ip) != null) {
-        // Using Get.snackbar instead of ScaffoldMessenger
+      if (_validateIP(ip) != null) {
+        print("❌ IP validation failed, not saving");
         Get.snackbar(
-          'Invalid IP',
-          'Enter valid Local IP',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
+            'Invalid IP',
+            'Enter valid Local IP',
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+            duration: Duration(seconds: 1)
         );
         return;
       }
 
-      await prefs.setString('printer_ip_0', ip);
-      await prefs.setInt('selected_ip_index', _selectedIpIndex);
+      if (ip.isNotEmpty) {
+        print("🔍 SAVING IP ENHANCED - About to save: '$ip'");
 
-      // ✅ Make sure focus is removed
-      if (_ipFocusNodes[0].hasFocus) {
-        _ipFocusNodes[0].unfocus();
+        // 🔥 STRATEGY 1: Multiple save attempts with verification
+        bool saveSuccessful = false;
+
+        for (int attempt = 1; attempt <= 3; attempt++) {
+          try {
+            print("🔄 Save attempt $attempt/3");
+
+            // Method A: Use existing instance
+            await sharedPreferences.setString('printer_ip_0', ip);
+            await sharedPreferences.setInt('selected_ip_index', _selectedIpIndex);
+
+            // Method B: Create fresh instance
+            final freshPrefs = await SharedPreferences.getInstance();
+            await freshPrefs.setString('printer_ip_0', ip);
+            await freshPrefs.setInt('selected_ip_index', _selectedIpIndex);
+
+            // 🔥 STRATEGY 2: Force commit and reload
+            await freshPrefs.reload();
+            await Future.delayed(Duration(milliseconds: 200));
+
+            // 🔥 STRATEGY 3: Immediate verification
+            String? savedIp = freshPrefs.getString('printer_ip_0');
+            print("🔍 VERIFICATION attempt $attempt - Saved IP: '$savedIp'");
+
+            if (savedIp == ip) {
+              print("✅ SAVE SUCCESSFUL on attempt $attempt");
+              saveSuccessful = true;
+
+              // 🔥 STRATEGY 4: Additional backup keys
+              await freshPrefs.setString('printer_ip_backup', ip);
+              await freshPrefs.setString('printer_ip_0_backup', ip);
+              await freshPrefs.setInt('last_save_timestamp', DateTime.now().millisecondsSinceEpoch);
+
+              break;
+            } else {
+              print("⚠️ Save verification failed on attempt $attempt. Expected: '$ip', Got: '$savedIp'");
+              if (attempt < 3) {
+                await Future.delayed(Duration(milliseconds: 500 * attempt));
+              }
+            }
+
+          } catch (e) {
+            print("❌ Error on save attempt $attempt: $e");
+            if (attempt < 3) {
+              await Future.delayed(Duration(milliseconds: 500 * attempt));
+            }
+          }
+        }
+
+        if (saveSuccessful) {
+          Get.snackbar(
+              'Success',
+              'Local IP Saved Successfully',
+              backgroundColor: Colors.green,
+              colorText: Colors.white,
+              snackPosition: SnackPosition.BOTTOM,
+              duration: Duration(seconds: 2)
+          );
+
+          // 🔥 STRATEGY 5: Log all keys after successful save
+          await _logAllSharedPreferences();
+
+        } else {
+          print("❌ ALL SAVE ATTEMPTS FAILED");
+          Get.snackbar(
+              'Error',
+              'Failed to save IP address. Please try again.',
+              backgroundColor: Colors.red,
+              colorText: Colors.white,
+              snackPosition: SnackPosition.BOTTOM,
+              duration: Duration(seconds: 2)
+          );
+        }
+
+      } else {
+        print("❌ IP field is empty, not saving");
       }
-
-      // Using Get.snackbar for success message
-      Get.snackbar(
-        'Success',
-        'Local IP saved',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-      );
     } catch (e) {
-      print("❌ Save Local IP error: $e");
-
-      // ✅ Unfocus on error
-      _unfocusAllTextFields();
-
-      // Show error snackbar
-      Get.snackbar(
-        'Error',
-        'Failed to save Local IP',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      print("❌ Save Local IP Enhanced error: $e");
     }
   }
 
   Future<void> poststoreSetting(String bearerKey, {bool showDialog = true}) async {
-    if (!mounted) return; // ✅ Check mounted state
+    if (!mounted) return;
 
     String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
     Map<String, dynamic> jsonData = {
@@ -368,8 +395,13 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
     };
 
     try {
-      // ✅ Show loading dialog only if requested
       if (showDialog) {
+        // Close any existing dialog first
+        if (Get.isDialogOpen == true) {
+          Get.back();
+          await Future.delayed(Duration(milliseconds: 300));
+        }
+
         Get.dialog(
           Center(
               child: Lottie.asset(
@@ -382,6 +414,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
           barrierDismissible: false,
         );
       }
+
 
       // ✅ NEW: Add timeout wrapper around API call
       final result = await Future.any([
@@ -407,7 +440,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
             backgroundColor: Colors.orange,
             colorText: Colors.white,
             snackPosition: SnackPosition.BOTTOM,
-            duration: Duration(seconds: 3),
+            duration: Duration(seconds: 1),
           );
         }
 
@@ -459,7 +492,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
           backgroundColor: Colors.green,
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
-          duration: Duration(seconds: 3),
+          duration: Duration(seconds: 1),
         );
       }
 
@@ -498,13 +531,17 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
   }
 
   Future<void> getStoreSetting(String bearerKey) async {
-    if (!mounted) return; // ✅ Check mounted state
+    if (!mounted) return;
 
     try {
       print("🌐 Calling getStoreSetting API... (Tab active: $_isCurrentTab)");
 
       // ✅ IMPORTANT: Unfocus before API call
       _unfocusAllTextFields();
+
+      // ✅ Store current IP values BEFORE API call
+      String currentLocalIp = _ipControllers[0].text;
+      String currentRemoteIp = _ipRemoteControllers[0].text;
 
       // ✅ FIX: Show loading dialog IMMEDIATELY if this is the current active tab
       if (_isCurrentTab) {
@@ -531,35 +568,33 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       if (result != null && mounted) {
         StoreSetting store = result;
 
-        // ✅ Get SharedPreferences instance
-        final prefs = await SharedPreferences.getInstance();
-
         setState(() {
-          // API response se toggle values set karo
+          // ✅ ONLY update server settings, NOT local IPs
           _autoOrderPrint = store.auto_print_orders_local ?? false;
           _autoRemoteOrderrAccept = store.auto_accept_orders_remote ?? false;
           _autoOrderAccept = store.auto_accept_orders_local ?? false;
           _autoRemoteOrderPrint = store.auto_print_orders_remote ?? false;
           _hasUnsavedChanges = false;
+
+          // ✅ PRESERVE local IP values
+          _ipControllers[0].text = currentLocalIp;
+          _ipRemoteControllers[0].text = currentRemoteIp;
+
           print("✅ Settings loaded from API (Tab: $_isCurrentTab):");
           print("🔍 Auto Accept Local: $_autoOrderAccept");
           print("🔍 Auto Print Local: $_autoOrderPrint");
           print("🔍 Auto Accept Remote: $_autoRemoteOrderrAccept");
           print("🔍 Auto Print Remote: $_autoRemoteOrderPrint");
+          print("🔍 Preserved Local IP: '${_ipControllers[0].text}'");
         });
 
-        // ✅ SharedPreferences me save karo - IMPORTANT: Use correct keys
-        await prefs.setBool('auto_order_accept', _autoOrderAccept);
-        await prefs.setBool('auto_order_print', _autoOrderPrint);
-        await prefs.setBool('auto_order_remote_accept', _autoRemoteOrderrAccept);
-        await prefs.setBool('auto_order_remote_print', _autoRemoteOrderPrint);
+        // ✅ Save server settings to SharedPreferences
+        await sharedPreferences.setBool('auto_order_accept', _autoOrderAccept);
+        await sharedPreferences.setBool('auto_order_print', _autoOrderPrint);
+        await sharedPreferences.setBool('auto_order_remote_accept', _autoRemoteOrderrAccept);
+        await sharedPreferences.setBool('auto_order_remote_print', _autoRemoteOrderPrint);
 
-        print("✅ Settings saved to SharedPreferences after API call");
-
-        // ✅ Verify saved values
-        bool savedAccept = prefs.getBool('auto_order_accept') ?? false;
-        bool savedPrint = prefs.getBool('auto_order_print') ?? false;
-        print("🔍 Verified - Auto Accept: $savedAccept, Auto Print: $savedPrint");
+        print("✅ Server settings saved to SharedPreferences after API call");
 
         // ✅ IMPORTANT: Ensure focus remains removed after API success
         Future.delayed(Duration(milliseconds: 100), () {
@@ -582,31 +617,132 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       showSnackbar("Api Error", "An error occurred: $e");
     }
   }
+  Future<void> _loadOnlyLocalSettings() async {
+    print("🔍 LOADING ENHANCED - Starting load process");
 
-  Future<void> _setToggle(String key, bool value) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(key, value);
+      // 🔥 STRATEGY 1: Multiple reload attempts
+      for (int attempt = 1; attempt <= 3; attempt++) {
+        print("🔄 Load attempt $attempt/3");
 
-      // Verify it was saved
-      bool saved = prefs.getBool(key) ?? false;
-      print("✅ Setting '$key' set to $value, verified: $saved");
+        await sharedPreferences.reload();
+        await Future.delayed(Duration(milliseconds: 100 * attempt));
+
+        String? savedIp = sharedPreferences.getString('printer_ip_0');
+        print("🔍 Load attempt $attempt - Found IP: '$savedIp'");
+        String? savedRemoteIp = sharedPreferences.getString('printer_ip_remote_0');
+        if (savedRemoteIp != null && savedRemoteIp.isNotEmpty) {
+          _ipRemoteControllers[0].text = savedRemoteIp;
+        }
+        _selectedRemoteIpIndex = sharedPreferences.getInt('selected_ip_remote_index') ?? 0;
+
+// Also load auto settings from SharedPreferences:
+        _autoOrderAccept = sharedPreferences.getBool('auto_order_accept') ?? false;
+        _autoOrderPrint = sharedPreferences.getBool('auto_order_print') ?? false;
+        _autoRemoteOrderrAccept = sharedPreferences.getBool('auto_order_remote_accept') ?? false;
+        _autoRemoteOrderPrint = sharedPreferences.getBool('auto_order_remote_print') ?? false;
+        if (savedIp != null && savedIp.isNotEmpty) {
+          _ipControllers[0].text = savedIp;
+          _selectedIpIndex = sharedPreferences.getInt('selected_ip_index') ?? 0;
+          print("✅ LOAD SUCCESSFUL on attempt $attempt - Set controller to: '${_ipControllers[0].text}'");
+          return;
+        }
+      }
+
+      // 🔥 STRATEGY 2: Try backup keys
+      print("🔍 Primary key failed, trying backup keys...");
+      String? backupIp = sharedPreferences.getString('printer_ip_backup') ??
+          sharedPreferences.getString('printer_ip_0_backup');
+
+      if (backupIp != null && backupIp.isNotEmpty) {
+        print("✅ RECOVERED from backup - IP: '$backupIp'");
+        _ipControllers[0].text = backupIp;
+        _selectedIpIndex = sharedPreferences.getInt('selected_ip_index') ?? 0;
+
+        // Restore primary key
+        await sharedPreferences.setString('printer_ip_0', backupIp);
+        return;
+      }
+
+      // 🔥 STRATEGY 3: Try fresh SharedPreferences instance
+      print("🔍 Trying fresh SharedPreferences instance...");
+      final freshPrefs = await SharedPreferences.getInstance();
+      await freshPrefs.reload();
+
+      String? freshIp = freshPrefs.getString('printer_ip_0');
+      if (freshIp != null && freshIp.isNotEmpty) {
+        print("✅ RECOVERED from fresh instance - IP: '$freshIp'");
+        _ipControllers[0].text = freshIp;
+        _selectedIpIndex = freshPrefs.getInt('selected_ip_index') ?? 0;
+        return;
+      }
+
+      print("❌ ALL LOAD STRATEGIES FAILED - No IP found");
+      _ipControllers[0].text = '';
+      _selectedIpIndex = 0;
+
     } catch (e) {
-      print("❌ Failed to save setting '$key': $e");
+      print("❌ Error in enhanced load: $e");
+      _ipControllers[0].text = '';
+      _selectedIpIndex = 0;
+    }
+
+    // Log final state
+    await _logAllSharedPreferences();
+  }
+  Future<void> _logAllSharedPreferences() async {
+    try {
+      await sharedPreferences.reload();
+      print("🔍 === CURRENT SHAREDPREFERENCES STATE ===");
+      print("🔍 Total keys: ${sharedPreferences.getKeys().length}");
+
+      for (String key in sharedPreferences.getKeys().toList()..sort()) {
+        dynamic value = sharedPreferences.get(key);
+        if (key.contains('printer') || key.contains('ip') || key.contains('selected')) {
+          print("🔍 *** $key: $value");
+        } else {
+          print("🔍     $key: $value");
+        }
+      }
+      print("🔍 ========================================");
+
+      // Also check timestamp
+      int? lastSave = sharedPreferences.getInt('last_save_timestamp');
+      if (lastSave != null) {
+        DateTime saveTime = DateTime.fromMillisecondsSinceEpoch(lastSave);
+        print("🔍 Last save time: $saveTime");
+      }
+
+    } catch (e) {
+      print("❌ Error logging SharedPreferences: $e");
     }
   }
 
-  // ──────────────────────────────────────────────────  UI HELPERS
+  Future<void> _debugSharedPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+
+      print("🔍 DEBUG - All SharedPreferences contents:");
+      for (String key in prefs.getKeys()) {
+        dynamic value = prefs.get(key);
+        print("   $key: $value (${value.runtimeType})");
+      }
+
+      // ✅ Specifically check our IP key
+      String? ip = prefs.getString('printer_ip_0');
+      print("🔍 DEBUG - printer_ip_0 specifically: '$ip'");
+
+    } catch (e) {
+      print("❌ Debug SharedPreferences error: $e");
+    }
+  }
+
   Widget _buildIpField(int index) {
     return Column(
       children: [
         Row(
           children: [
-            Radio<int>(
-              value: index,
-              groupValue: _selectedIpIndex,
-              onChanged: (value) => setState(() => _selectedIpIndex = value!),
-            ),
             Expanded(
               child: TextFormField(
                 controller: _ipControllers[index],
@@ -624,11 +760,9 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                     setState(() {}); // Trigger rebuild to show validation
                   }
                 },
-                // ✅ IMPORTANT: Handle form submission
                 onFieldSubmitted: (value) {
                   _ipFocusNodes[index].unfocus();
                 },
-                // ✅ IMPORTANT: Handle tap outside
                 onTapOutside: (event) {
                   _ipFocusNodes[index].unfocus();
                 },
@@ -639,7 +773,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
         // Show current saved IP
         if (_ipControllers[index].text.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(left: 48, top: 4),
+            padding: const EdgeInsets.only(left: 8, top: 4),
             child: Row(
               children: [
                 Icon(
@@ -669,8 +803,6 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       ],
     );
   }
-
-  // Add this validation method to your class:
   String? _validateIP(String ip) {
     if (ip.isEmpty) return null;
 
@@ -691,11 +823,10 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    super.build(context);
 
     return GestureDetector(
       onTap: () {
-        // ✅ IMPORTANT: Unfocus when tapping outside
         _unfocusAllTextFields();
       },
       child: Scaffold(
@@ -712,12 +843,17 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                   style: TextStyle(
                       color: Colors.black, fontWeight: FontWeight.w500),
                 ),
+                SizedBox(height: 8),
                 _buildIpField(0),
                 Center(
                   child: Container(
                     margin: EdgeInsets.all(15),
                     child: ElevatedButton(
-                      onPressed: _saveLocalIps,
+                      onPressed: () {
+                        print("🔍 BUTTON PRESSED - IP Controller text: '${_ipControllers[0].text}'");
+                        print("🔍 BUTTON PRESSED - IP Controller text length: ${_ipControllers[0].text.length}");
+                        _saveLocalIps();
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green[300],
                         foregroundColor: Colors.black,
@@ -826,67 +962,67 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                   },
                 ),
 
-                _ToggleRow(
-                  label: 'Auto Order Remote Print',
-                  activeColor: Colors.blue.shade400,
-                  value: _autoRemoteOrderPrint,
-                  onChanged: (val) async {
-                    _unfocusAllTextFields();
-                    if (mounted) {
-                      setState(() {
-                        _autoRemoteOrderPrint = val;
-                        _hasUnsavedChanges = true;
-                      });
-                    }
-
-                    // ✅ CRITICAL: Use multiple approaches to ensure saving
-                    try {
-                      await sharedPreferences.setBool('auto_order_remote_print', val);
-                      await sharedPreferences.reload();
-
-                      // Method 2: Create fresh instance and verify
-                      final freshPrefs = await SharedPreferences.getInstance();
-                      await freshPrefs.setBool('auto_order_remote_print', val);
-                      await freshPrefs.reload();
-
-                      // Method 3: Verify the save worked
-                      bool savedValue = freshPrefs.getBool('auto_order_remote_print') ?? false;
-
-                      if (savedValue == val) {
-                        print("✅ Auto Order Remote Print toggled to: $val and VERIFIED in SharedPreferences");
-                      } else {
-                        print("❌ Auto Order Remote Print save verification FAILED! Expected: $val, Got: $savedValue");
-                        // Try again with delay
-                        await Future.delayed(Duration(milliseconds: 200));
-                        await freshPrefs.setBool('auto_order_remote_print', val);
-                        await freshPrefs.reload();
-                      }
-
-                      // ✅ ADDITIONAL: Force background handler to refresh its cache
-                      await _triggerBackgroundSettingsRefresh();
-
-                    } catch (e) {
-                      print("❌ Error saving Auto Order Remote Print: $e");
-                    }
-                  },
-                ),
+                // _ToggleRow(
+                //   label: 'Auto Order Remote Print',
+                //   activeColor: Colors.blue.shade400,
+                //   value: _autoRemoteOrderPrint,
+                //   onChanged: (val) async {
+                //     _unfocusAllTextFields();
+                //     if (mounted) {
+                //       setState(() {
+                //         _autoRemoteOrderPrint = val;
+                //         _hasUnsavedChanges = true;
+                //       });
+                //     }
+                //
+                //     // ✅ CRITICAL: Use multiple approaches to ensure saving
+                //     try {
+                //       await sharedPreferences.setBool('auto_order_remote_print', val);
+                //       await sharedPreferences.reload();
+                //
+                //       // Method 2: Create fresh instance and verify
+                //       final freshPrefs = await SharedPreferences.getInstance();
+                //       await freshPrefs.setBool('auto_order_remote_print', val);
+                //       await freshPrefs.reload();
+                //
+                //       // Method 3: Verify the save worked
+                //       bool savedValue = freshPrefs.getBool('auto_order_remote_print') ?? false;
+                //
+                //       if (savedValue == val) {
+                //         print("✅ Auto Order Remote Print toggled to: $val and VERIFIED in SharedPreferences");
+                //       } else {
+                //         print("❌ Auto Order Remote Print save verification FAILED! Expected: $val, Got: $savedValue");
+                //         // Try again with delay
+                //         await Future.delayed(Duration(milliseconds: 200));
+                //         await freshPrefs.setBool('auto_order_remote_print', val);
+                //         await freshPrefs.reload();
+                //       }
+                //
+                //       // ✅ ADDITIONAL: Force background handler to refresh its cache
+                //       await _triggerBackgroundSettingsRefresh();
+                //
+                //     } catch (e) {
+                //       print("❌ Error saving Auto Order Remote Print: $e");
+                //     }
+                //   },
+                // ),
                 const SizedBox(height: 40),
                 Center(
                   child: ElevatedButton(
-                    onPressed: (_hasUnsavedChanges && !_isSaving) ? _saveIps : null, // ✅ NEW: Conditional
+                    onPressed: (_hasUnsavedChanges && !_isSaving) ? _saveIps : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: (_hasUnsavedChanges && !_isSaving)
                           ? Colors.green[300]
-                          : Colors.grey[300], // ✅ NEW: Visual feedback
+                          : Colors.grey[300],
                       foregroundColor: (_hasUnsavedChanges && !_isSaving)
                           ? Colors.black
-                          : Colors.grey[600], // ✅ NEW: Visual feedback
+                          : Colors.grey[600],
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(50),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
                     ),
-                    child: Text(_isSaving ? 'Saving...' : 'Save IPs'), // ✅ NEW: Dynamic text
+                    child: Text(_isSaving ? 'Saving...' : 'Save IPs'),
                   ),
                 ),
               ],
@@ -896,7 +1032,8 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       ),
     );
   }
-  // ✅ ADD THIS METHOD TO YOUR PrinterSettingsScreen class
+
+
   Future<void> _triggerBackgroundSettingsRefresh() async {
     try {
       // Create multiple fresh instances to ensure background handler will see the changes
@@ -914,7 +1051,6 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
 
 }
 
-// ──────────────────────────────────────────────────  TOGGLE ROW WIDGET
 class _ToggleRow extends StatelessWidget {
   const _ToggleRow({
     required this.label,

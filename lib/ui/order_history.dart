@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:food_app/models/order_history_response_model.dart';
-import 'package:food_app/ui/OrderDetailEnglish.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
-
-import '../api/repository/api_repository.dart';
-import '../models/order_model.dart';
-import '../utils/my_application.dart';
 import 'order_history_details.dart';
 
 class OrderHistory extends StatefulWidget {
-  final List<orderHistoryResponseModel> orders; // Data receive करें
-  final String targetDate; // Date receive करें
+  final List<orderHistoryResponseModel> orders;
+  final String targetDate;
 
   const OrderHistory({
     super.key,
@@ -27,7 +22,11 @@ class OrderHistory extends StatefulWidget {
 
 class _OrderHistoryState extends State<OrderHistory> {
 
-  // Status के अनुसार icon return करें
+  TextEditingController searchController = TextEditingController();
+  FocusNode searchFocusNode = FocusNode();
+  bool _showClearButton = false;
+  List<orderHistoryResponseModel> _filteredOrders = [];
+  String _searchQuery = '';
   IconData getStatusIcon(int status) {
     switch (status) {
       case 1:
@@ -41,7 +40,6 @@ class _OrderHistoryState extends State<OrderHistory> {
     }
   }
 
-  // Status के अनुसार color return करें
   Color getStatusColor(int status) {
     switch (status) {
       case 1:
@@ -81,7 +79,6 @@ class _OrderHistoryState extends State<OrderHistory> {
     }
   }
 
-
   String getOrderTypeIcon(int? orderType) {
     switch (orderType) {
       case 1:
@@ -114,32 +111,65 @@ class _OrderHistoryState extends State<OrderHistory> {
   }
 
   bool isLoading = false;
+  @override
+  void initState() {
+    super.initState();
+    _filteredOrders = widget.orders; // Initialize with all orders
+
+    // Add search listener
+    searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    searchController.removeListener(_onSearchChanged);
+    searchController.dispose();
+    searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    final query = searchController.text;
+    setState(() {
+      _searchQuery = query;
+      _showClearButton = query.isNotEmpty;
+      _filterOrders(query);
+    });
+  }
+
+  // 1. Update the _filterOrders method to include guest data:
+
+  void _filterOrders(String query) {
+    if (query.isEmpty) {
+      _filteredOrders = widget.orders;
+    } else {
+      _filteredOrders = widget.orders.where((order) {
+        final orderId = order.id?.toString().toLowerCase() ?? '';
+
+        // Get customer name with guest fallback
+        final customerName = ((order.shippingAddress?.customerName != null && order.shippingAddress!.customerName!.isNotEmpty)
+            ? order.shippingAddress!.customerName!
+            : (order.guestShippingJson?.customerName?.toString() ?? order.user?.username ?? '')).toLowerCase();
+
+        // Get phone with guest fallback
+        final phone = ((order.shippingAddress?.phone != null && order.shippingAddress!.phone!.isNotEmpty)
+            ? order.shippingAddress!.phone!
+            : (order.guestShippingJson?.phone?.toString() ?? '')).toLowerCase();
+
+        final searchLower = query.toLowerCase();
+
+        return orderId.contains(searchLower) ||
+            customerName.contains(searchLower) ||
+            phone.contains(searchLower);
+      }).toList();
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      // appBar: AppBar(
-      //   backgroundColor: Colors.white,
-      //   title: Row(
-      //    // mainAxisSize: MainAxisSize.min,
-      //     children: [
-      //       Text(
-      //         DateFormat('dd/MM/yyyy').format(DateTime.parse(widget.targetDate)),
-      //         style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w400),
-      //       ),
-      //       Text(
-      //         'order_details'.tr,
-      //         style: TextStyle(color: Colors.black, fontWeight: FontWeight.w500, fontSize: 18),
-      //       ),
-      //     ],
-      //   ),
-      //   centerTitle: true,
-      //   leading: IconButton(
-      //     icon: Icon(Icons.arrow_back, color: Colors.black),
-      //     onPressed: () => Navigator.pop(context),
-      //   ),
-      // ),
       appBar: AppBar(
         backgroundColor: Colors.white,
         title: Text(
@@ -171,12 +201,69 @@ class _OrderHistoryState extends State<OrderHistory> {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            height: 40,
+            padding:  EdgeInsets.all(8),
+            margin: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              border: Border.all(color:Color(0xFFDDE6F3)),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.search, color: Colors.green, size: 20),
+                SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: searchController,
+                    focusNode: searchFocusNode,
+                    autofocus: false,
+                    enableInteractiveSelection: true,
+                    style: TextStyle(fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'search_item'.tr,
+                      hintStyle: TextStyle(fontSize: 14),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    onTap: () {
+                      searchFocusNode.requestFocus();
+                    },
+
+                  ),
+                ),
+                // ✅ Clear search button (simple approach)
+                if (_showClearButton)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4.0),
+                    child: GestureDetector(
+                      onTap: () {
+                        searchController.clear();
+                        searchFocusNode.unfocus();
+                        setState(() {
+                          _searchQuery = '';
+                          _showClearButton = false;
+                          _filteredOrders = widget.orders; // Reset to original list
+                        });
+                      },
+                      child: Icon(
+                        Icons.clear,
+                        color: Colors.grey,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
               children: [
-                Text(
-                  'Total Orders: ${widget.orders.length}',
+                Text('${"total_order".tr}: ${_filteredOrders.length}',
                   style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
@@ -187,19 +274,21 @@ class _OrderHistoryState extends State<OrderHistory> {
               ],
             ),
           ),
-          if (widget.orders.isEmpty)
+          if (_filteredOrders.isEmpty)
             Expanded(
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Lottie.asset(
-                      'assets/animations/empty.json', // Empty animation
-                      width: 200,
-                      height: 200,
+                      'assets/animations/empty.json',
+                      width: 150,
+                      height: 150,
                     ),
                     Text(
-                      'No orders found for this date',
+                      _searchQuery.isEmpty
+                          ? 'No orders found for this date'
+                          : 'No orders found for "$_searchQuery"',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -210,15 +299,13 @@ class _OrderHistoryState extends State<OrderHistory> {
                 ),
               ),
             )
-
-          // Order list
           else
             Expanded(
               child: ListView.builder(
-                padding: EdgeInsets.all(15),
-                itemCount: widget.orders.length,
+                padding: EdgeInsets.all(10),
+                itemCount: _filteredOrders.length,
                 itemBuilder: (context, index) {
-                  final order = widget.orders[index];
+                  final order = _filteredOrders[index];
                   String time = '';
                   if (order.createdAt != null) {
                     DateTime dateTime = DateTime.parse(order.createdAt!);
@@ -248,7 +335,7 @@ class _OrderHistoryState extends State<OrderHistory> {
                       ],
                     ),
                     child: Padding(
-                      padding: EdgeInsets.all(10),
+                      padding: EdgeInsets.all(8),
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () {
@@ -276,29 +363,42 @@ class _OrderHistoryState extends State<OrderHistory> {
                                       ),
                                     ),
                                     SizedBox(width: 6),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          getOrderTypeText(order.orderType),
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 13,
-                                            fontFamily: "Mulish-Regular",
-                                          ),
-                                        ),
-                                        if (order.shippingAddress != null &&
-                                            order.orderType == 1)
+                                    Container(
+                                      width: MediaQuery.of(context).size.width*0.6,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
                                           Text(
-                                            '${order.shippingAddress!.line1 ?? ''}, ${order.shippingAddress!.city ?? ''}',
+                                            order.orderType == 2
+                                                ? 'pickup'.tr
+                                                : (order.shippingAddress?.zip?.toString() ?? order.guestShippingJson?.zip?.toString()??''),
                                             style: const TextStyle(
-                                              fontWeight: FontWeight.w500,
-                                              fontSize: 11,
-                                              fontFamily: "Mulish",
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 13,
+                                                fontFamily: "Mulish-Regular"
                                             ),
                                           ),
-                                      ],
-                                    )
+                                          Visibility(
+                                            visible: order.shippingAddress != null || order.guestShippingJson != null,
+                                            child: Text(
+                                              order.orderType == 1
+                                                  ? (order.shippingAddress != null
+                                                  ? '${order.shippingAddress!.line1!}, ${order.shippingAddress!.city!}'
+                                                  : '${order.guestShippingJson?.line1 ?? ''}, '
+                                                  '${order.guestShippingJson?.city ?? ''}')
+                                                  : '',
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize: 11,
+                                                  letterSpacing: 0,
+                                                  height: 0,
+                                                  fontFamily: "Mulish"
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 Row(
@@ -318,27 +418,39 @@ class _OrderHistoryState extends State<OrderHistory> {
                               ],
                             ),
                             SizedBox(height: 8),
-
-                            // Customer info and order ID
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Container(
                                   width: MediaQuery.of(context).size.width * 0.5,
-                                  child: Text(
-                                    '${order.shippingAddress?.customerName ?? order.user?.username ?? "User"} / ${order.shippingAddress?.phone ?? "N/A"}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontFamily: "Mulish",
-                                      fontSize: 13,
-                                    ),
+                                  child: Builder(
+                                    builder: (context) {
+                                      // Get customer name with guest fallback
+                                      String customerName = (order.shippingAddress?.customerName != null && order.shippingAddress!.customerName!.isNotEmpty)
+                                          ? order.shippingAddress!.customerName!
+                                          : (order.guestShippingJson?.customerName?.toString() ?? order.user?.username ?? "User");
+
+                                      // Get phone with guest fallback
+                                      String phone = (order.shippingAddress?.phone != null && order.shippingAddress!.phone!.isNotEmpty)
+                                          ? order.shippingAddress!.phone!
+                                          : (order.guestShippingJson?.phone?.toString() ?? "N/A");
+
+                                      return Text(
+                                        '$customerName / $phone',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontFamily: "Mulish",
+                                          fontSize: 13,
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
                                 Row(
                                   children: [
-                                    Text(
+                                    const Text(
                                       'Order ID: ',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.w700,
                                         fontSize: 11,
                                         fontFamily: "Mulish",

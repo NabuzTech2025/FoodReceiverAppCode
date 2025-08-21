@@ -26,16 +26,16 @@ class ItemBottomBar extends StatelessWidget {
       children: [
         Image.asset(
           icon,
-          width: 22,
-          height: 22,
+          width: 20,
+          height: 20,
           color: selected ? Colors.green : Colors.black,
         ),
         const SizedBox(height: 4),
         Text(
           name,
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w400,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
             color: selected ? Colors.green : Colors.black,
           ),
         ),

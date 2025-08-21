@@ -505,6 +505,7 @@ Future<void> getOrders(String bearerKey, bool orderStatus, Order updatedOrder) a
     print("❌ Exception in getOrders: $e");
   }
 }
+
 Future<void> processOrderInBackground(int orderID) async {
   try {
     print("🌙 Background order processing: $orderID");
@@ -544,7 +545,6 @@ Future<void> processOrderInBackground(int orderID) async {
       if (autoPrint) {
         final updatedOrder = await ApiRepo().getNewOrderData(bearerKey, orderID);
         if (updatedOrder?.invoice != null) {
-          // Background print logic here
           print("🖨️ Background printing order: $orderID");
         }
       }

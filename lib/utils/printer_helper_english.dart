@@ -93,7 +93,9 @@ class PrinterHelperEnglish {
     final deliveryFee = order.invoice?.delivery_fee ?? 0.0;
     final orderType =   order.orderType == 2 ?'pickup'.tr:'delivery'.tr;
     final note =   order.note.toString();
-
+    String guestAddress = order.guestShippingJson?.line1?.toString() ?? '';
+    String guestName = order.guestShippingJson?.customerName?.toString() ?? '';
+    String guestPhone = order.guestShippingJson?.phone?.toString() ?? '';
 
     printer.text(" ${store ?? ''}",
       styles: PosStyles(align: PosAlign.center, bold: true,),);
@@ -116,20 +118,31 @@ class PrinterHelperEnglish {
     );
     printer.hr();
     printer.text(
-      sanitizeText("${'customer'.tr}: ${(order.shipping_address?.customer_name ?? '')}"),
+      sanitizeText("${'customer'.tr}: ${(order.shipping_address?.customer_name != null && order.shipping_address!.customer_name!.isNotEmpty)
+          ? order.shipping_address!.customer_name!
+          : guestName}"),
       styles: PosStyles(align: PosAlign.left, bold: true),
     );
-    // printer.text(
-    //   "${'address'.tr}: ${order.shipping_address?.line1 ?? ""}, ${order.shipping_address?.city ?? ""}",
-    //   styles: PosStyles(align: PosAlign.left, bold: true),
-    // );
+
+    String addressText = "${'address'.tr}: ";
+    if (order.shipping_address?.line1 != null && order.shipping_address!.line1!.isNotEmpty) {
+      addressText += "${order.shipping_address!.line1!}, ${order.shipping_address?.city ?? ""}";
+      if (order.orderType != 2) {
+        addressText += ",${order.shipping_address?.zip ?? ""}";
+      }
+    } else {
+      addressText += guestAddress;
+    }
+
     printer.text(
-      "${'address'.tr}: ${order.shipping_address?.line1 ?? ""}, ${order.shipping_address?.city ?? ""}"
-          "${order.orderType != 2 ? ',${order.shipping_address?.zip ?? ""}' : ''}",
+      addressText,
       styles: PosStyles(align: PosAlign.left, bold: true),
     );
+
     printer.text(
-      "${'phone'.tr}: ${order.shipping_address?.phone ?? ""}",
+      "${'phone'.tr}: ${(order.shipping_address?.phone != null && order.shipping_address!.phone!.isNotEmpty)
+          ? order.shipping_address!.phone!
+          : guestPhone}",
       styles: PosStyles(align: PosAlign.left, bold: true),
     );
     printer.hr();
@@ -259,12 +272,15 @@ class PrinterHelperEnglish {
       printer.feed(1); // Add spacing between different items
     }
   }
+
   static String _formatCurrency(double amount) {
     return NumberFormat('#,##0.00', 'en_US').format(amount);
   }
+
   static String formatCurrency(double amount) {
     return NumberFormat('#,##0.00', 'en_US').format(amount);
   }
+
   static void _printTaxSummary(NetworkPrinter printer, Order order) {
     String formatAmount(double? amount) {
       if (amount == null) return "0";
@@ -355,7 +371,6 @@ class PrinterHelperEnglish {
     );
   }
 
-// Translation map for background printing
   static Map<String, Map<String, String>> translations = {
     'en': {
       'order': 'Order',
@@ -416,7 +431,6 @@ class PrinterHelperEnglish {
     }
   };
 
-// Modified trBg function with fallback
   static String trBg(String key, String locale) {
     String normalizedLocale = translations.containsKey(locale) ? locale : 'de';
     return translations[normalizedLocale]?[key] ??
@@ -425,7 +439,6 @@ class PrinterHelperEnglish {
         key;
   }
 
-// Final printInBackground
   static Future<void> printInBackground({required Order order, required String ipAddress, required String store, String locale = 'de',}) async {
     try {
       print("🖨️ Background printing started for order: ${order.id}");
@@ -463,6 +476,9 @@ class PrinterHelperEnglish {
         var amount = order.invoice?.totalAmount ?? 0.0;
         var discount = order.invoice?.discount_amount ?? 0.0;
         var delFee = order.invoice?.delivery_fee ?? 0.0;
+        String guestAddress = order.guestShippingJson?.line1?.toString() ?? '';
+        String guestName = order.guestShippingJson?.customerName?.toString() ?? '';
+        String guestPhone = order.guestShippingJson?.phone?.toString() ?? '';
 
         final subtotal = order.items?.fold<double>(0, (sum, item) {
           if (item == null) return sum;
@@ -504,20 +520,20 @@ class PrinterHelperEnglish {
 
         printer.text(
           sanitizeText(
-              "${trBg('customer', savedLocale)}: ${(order.shipping_address?.customer_name ?? '')}"),
+              "${trBg('customer', savedLocale)}: ${(order.shipping_address?.customer_name != null && order.shipping_address!.customer_name!.isNotEmpty)
+                  ? order.shipping_address!.customer_name!
+                  : guestName}"),
           styles: PosStyles(align: PosAlign.left, bold: true),
         );
-        // printer.text(
-        //   "${trBg('address', savedLocale)}: "
-        //       "${order.shipping_address?.line1 ?? ""}, ${order.shipping_address?.city ?? ""},${order.shipping_address!.zip}",
-        //   styles: PosStyles(align: PosAlign.left, bold: true),
-        // );
-        String addressText = "${trBg('address', savedLocale)}: "
-            "${order.shipping_address?.line1 ?? ""}, ${order.shipping_address?.city ?? ""}";
 
-        // Only add ZIP code if order type is NOT pickup (orderType != 2)
-        if (order.orderType != 2) {
-          addressText += ",${order.shipping_address?.zip ?? ""}";
+        String addressText = "${trBg('address', savedLocale)}: ";
+        if (order.shipping_address?.line1 != null && order.shipping_address!.line1!.isNotEmpty) {
+          addressText += "${order.shipping_address!.line1!}, ${order.shipping_address?.city ?? ""}";
+          if (order.orderType != 2) {
+            addressText += ",${order.shipping_address?.zip ?? ""}";
+          }
+        } else {
+          addressText += guestAddress;
         }
 
         printer.text(
@@ -525,7 +541,9 @@ class PrinterHelperEnglish {
           styles: PosStyles(align: PosAlign.left, bold: true),
         );
         printer.text(
-          "${trBg('phone', savedLocale)}: ${order.shipping_address?.phone ?? ""}",
+          "${trBg('phone', savedLocale)}: ${(order.shipping_address?.phone != null && order.shipping_address!.phone!.isNotEmpty)
+              ? order.shipping_address!.phone!
+              : guestPhone}",
           styles: PosStyles(align: PosAlign.left, bold: true),
         );
         printer.hr();
@@ -609,6 +627,7 @@ class PrinterHelperEnglish {
       print("❌ Background print error: $e");
     }
   }
+
   static void _printTaxSummaryBackground(NetworkPrinter printer, Order order, {String locale = 'de'}) {
     // Updated amount formatter with forced locale
     String formatAmount(double? amount) {
@@ -702,6 +721,10 @@ class PrinterHelperEnglish {
     var amount = order.invoice?.totalAmount ?? 0.0;
     var discount = order.invoice?.discountAmount ?? 0.0;
     var delFee = order.invoice?.deliveryFee ?? 0.0;
+    String guestAddress = order.guestShippingJson?.line1?.toString() ?? '';
+    String guestName = order.guestShippingJson?.customerName?.toString() ?? '';
+    String guestPhone = order.guestShippingJson?.phone?.toString() ?? '';
+
     final subtotal = order.items?.fold<double>(0, (sum, item) {
       if (item == null) return sum;
 
@@ -744,20 +767,31 @@ class PrinterHelperEnglish {
     );
     printer.hr();
     printer.text(
-      sanitizeText("${'customer'.tr}: ${(order.shippingAddress?.customerName ?? '')}"),
+      sanitizeText("${'customer'.tr}: ${(order.shippingAddress?.customerName != null && order.shippingAddress!.customerName!.isNotEmpty)
+          ? order.shippingAddress!.customerName!
+          : guestName}"),
       styles: PosStyles(align: PosAlign.left, bold: true),
     );
-    // printer.text(
-    //   "${'address'.tr}: ${order.shipping_address?.line1 ?? ""}, ${order.shipping_address?.city ?? ""}",
-    //   styles: PosStyles(align: PosAlign.left, bold: true),
-    // );
+
+    String addressText = "${'address'.tr}: ";
+    if (order.shippingAddress?.line1 != null && order.shippingAddress!.line1!.isNotEmpty) {
+      addressText += "${order.shippingAddress!.line1!}, ${order.shippingAddress?.city ?? ""}";
+      if (order.orderType != 2) {
+        addressText += ",${order.shippingAddress?.zip ?? ""}";
+      }
+    } else {
+      addressText += guestAddress;
+    }
+
     printer.text(
-      "${'address'.tr}: ${order.shippingAddress?.line1 ?? ""}, ${order.shippingAddress?.city ?? ""}"
-          "${order.orderType != 2 ? ',${order.shippingAddress?.zip ?? ""}' : ''}",
+      addressText,
       styles: PosStyles(align: PosAlign.left, bold: true),
     );
+
     printer.text(
-      "${'phone'.tr}: ${order.shippingAddress?.phone ?? ""}",
+      "${'phone'.tr}: ${(order.shippingAddress?.phone != null && order.shippingAddress!.phone!.isNotEmpty)
+          ? order.shippingAddress!.phone!
+          : guestPhone}",
       styles: PosStyles(align: PosAlign.left, bold: true),
     );
     printer.hr();

@@ -6,6 +6,8 @@ import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/repository/api_repository.dart';
+import '../constants/constant.dart';
+import '../models/print_order_without_ip.dart';
 import '../utils/printer_helper_english.dart';
 
 class OrderHistoryDetails extends StatefulWidget {
@@ -28,7 +30,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
   late SharedPreferences sharedPreferences;
   String? bearerKey;
   String? storeName;
-
+  String? storeid;
   @override
   void initState() {
     super.initState();
@@ -44,25 +46,45 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
     setState(() {});
   }
 
-  void printData(orderHistoryResponseModel history) {
-    // ✅ Check if order is accepted before printing
+  void printData(orderHistoryResponseModel history) async {
+    print("🖨️ DEBUG - printData called");
+
     if (history.approvalStatus != 2) {
+      print("❌ DEBUG - Order not accepted, approval status: ${history.approvalStatus}");
       showSnackbar("Error", "Cannot print pending order. Please accept the order first.");
       return;
     }
 
     if (storeName == null) {
+      print("❌ DEBUG - Store name is null");
       showSnackbar("Error", "Store name not available");
       return;
     }
+    await sharedPreferences.reload();
+    String? localIP = sharedPreferences.getString('printer_ip_0');
+    print("🔍 DEBUG - Local IP from SharedPreferences: $localIP");
 
-    PrinterHelperEnglish.printHistoryFromSavedIp(
-        context: context,
-        order: history,
-        store: storeName!,
-        auto: false);
+    if (localIP == null || localIP.isEmpty || localIP.trim().isEmpty) {
+      print("📡 DEBUG - Local IP is null/empty, calling printWithoutLocalIp()");
+      await printWithoutLocalIp();
+    } else {
+      print(
+          "🖨️ DEBUG - Local IP available, calling PrinterHelperEnglish.printHistoryFromSavedIp()");
+      try {
+        PrinterHelperEnglish.printHistoryFromSavedIp(
+            context: context,
+            order: history,
+            store: storeName!,
+            auto: false
+        );
+      } catch (e) {
+        print("❌ DEBUG - Print error: $e");
+        showSnackbar("Print Error", "Failed to print: $e");
+        // Fallback to remote print
+        await printWithoutLocalIp();
+      }
+    }
   }
-
   void showSnackbar(String title, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -96,6 +118,9 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
     final grandTotal = subtotal - discountData + deliveryFee;
     var delFee = (historyOrder.invoice?.deliveryFee ?? 0.0).toStringAsFixed(1);
     var Note = historyOrder.note.toString();
+    String guestAddress = historyOrder.guestShippingJson?.line1?.toString() ?? '';
+    String guestName = historyOrder.guestShippingJson?.customerName?.toString() ?? '';
+    String guestPhone = historyOrder.guestShippingJson?.phone?.toString() ?? '';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -189,22 +214,34 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                     Container(height: 0.5, color: Colors.grey),
                     SizedBox(height: 2),
                     Text(
-                      '${'customer'.tr}: ${historyOrder.shippingAddress?.customerName ?? ""}',
-                      style:
-                      TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      '${'customer'.tr}: ${(historyOrder.shippingAddress?.customerName != null && historyOrder.shippingAddress!.customerName!.isNotEmpty)
+                          ? historyOrder.shippingAddress!.customerName!
+                          : guestName}',
+                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
                     SizedBox(height: 2),
                     if (historyOrder.orderType == 1)
-                      Text(
-                        '${'address'.tr}: ${historyOrder.shippingAddress?.line1 ?? ""}, ${historyOrder.shippingAddress?.city ?? ""}',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w500, fontSize: 13),
+                      Builder(
+                        builder: (context) {
+                          String displayAddress = '';
+                          if (historyOrder.shippingAddress?.line1 != null && historyOrder.shippingAddress!.line1!.isNotEmpty) {
+                            displayAddress = '${'address'.tr}: ${historyOrder.shippingAddress!.line1!}, ${historyOrder.shippingAddress?.city ?? ""}';
+                          } else {
+                            displayAddress = '${'address'.tr}: $guestAddress';
+                          }
+
+                          return Text(
+                            displayAddress,
+                            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                          );
+                        },
                       ),
                     SizedBox(height: 2),
                     Text(
-                      '${'phone'.tr}: ${historyOrder.shippingAddress?.phone ?? ""}',
-                      style:
-                      TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      '${'phone'.tr}: ${(historyOrder.shippingAddress?.phone != null && historyOrder.shippingAddress!.phone!.isNotEmpty)
+                          ? historyOrder.shippingAddress!.phone!
+                          : guestPhone}',
+                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
                     SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
@@ -654,4 +691,77 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
       ),
     );
   }
+
+  Future<void> printWithoutLocalIp() async {
+    print("📡 DEBUG - printWithoutLocalIp called");
+
+    setState(() {
+      isLoading = true;
+    });
+
+    String? dynamicStoreId = sharedPreferences.getString(valueShared_STORE_KEY);
+
+    print("🔍 DEBUG - Store ID from SharedPreferences: $dynamicStoreId");
+    print("🔍 DEBUG - Current storeid variable: $storeid");
+    String finalStoreId = dynamicStoreId ?? storeid ?? '';
+
+    print("✅ DEBUG - Final store ID being sent: $finalStoreId");
+
+    var map = {
+      "order_id":widget.historyOrder.id ?? '',
+      "store_id": finalStoreId
+    };
+
+    print("📋 DEBUG - Print Without local Ip map: $map");
+
+    try {
+      Get.dialog(
+        Center(
+            child: Lottie.asset(
+              'assets/animations/burger.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            )
+        ),
+        barrierDismissible: false,
+      );
+
+      printOrderWithoutIp model = await CallService().printWithoutIp(map);
+
+      setState(() {
+        isLoading = false;
+      });
+      Get.back();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Print Details Sent Successfully'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      print("✅ DEBUG - Print without IP successful");
+
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+
+      Get.back();
+
+      print('❌ DEBUG - Print without IP error: $e');
+
+      // Handle error case
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('An error occurred during Sending Details.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
 }

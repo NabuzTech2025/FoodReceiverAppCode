@@ -21,6 +21,7 @@ class orderHistoryResponseModel {
   dynamic billingAddress;  // Changed from Null? to dynamic
   List<TaxSummary>? taxSummary;
   List<BruttoNettoSummary>? bruttoNettoSummary;
+  GuestShippingJson? guestShippingJson;
 
   orderHistoryResponseModel({
     this.userId,
@@ -43,6 +44,7 @@ class orderHistoryResponseModel {
     this.billingAddress,
     this.taxSummary,
     this.bruttoNettoSummary,
+    this.guestShippingJson
   });
 
   orderHistoryResponseModel.fromJson(Map<String, dynamic> json) {
@@ -82,6 +84,9 @@ class orderHistoryResponseModel {
         bruttoNettoSummary!.add(BruttoNettoSummary.fromJson(v));
       });
     }
+    guestShippingJson = json['guest_shipping_json'] != null
+        ? new GuestShippingJson.fromJson(json['guest_shipping_json'])
+        : null;
   }
 
   Map<String, dynamic> toJson() {
@@ -121,6 +126,9 @@ class orderHistoryResponseModel {
     }
     if (bruttoNettoSummary != null) {
       data['brutto_netto_summary'] = bruttoNettoSummary!.map((v) => v.toJson()).toList();
+    }
+    if (this.guestShippingJson != null) {
+      data['guest_shipping_json'] = this.guestShippingJson!.toJson();
     }
     return data;
   }
@@ -453,6 +461,46 @@ class BruttoNettoSummary {
     data['brutto'] = brutto;
     data['netto'] = netto;
     data['tax_amount'] = taxAmount;
+    return data;
+  }
+}
+class GuestShippingJson {
+  String? zip;
+  String? city;
+  String? type;
+  String? line1;
+  String? phone;
+  String? country;
+  String? customerName;
+
+  GuestShippingJson(
+      {this.zip,
+        this.city,
+        this.type,
+        this.line1,
+        this.phone,
+        this.country,
+        this.customerName});
+
+  GuestShippingJson.fromJson(Map<String, dynamic> json) {
+    zip = json['zip'];
+    city = json['city'];
+    type = json['type'];
+    line1 = json['line1'];
+    phone = json['phone'];
+    country = json['country'];
+    customerName = json['customer_name'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['zip'] = this.zip;
+    data['city'] = this.city;
+    data['type'] = this.type;
+    data['line1'] = this.line1;
+    data['phone'] = this.phone;
+    data['country'] = this.country;
+    data['customer_name'] = this.customerName;
     return data;
   }
 }
