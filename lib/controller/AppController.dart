@@ -1,10 +1,13 @@
 import 'package:food_app/models/order_history_response_model.dart';
 import 'package:food_app/models/order_model.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 import '../models/ShippingAddress.dart';
 import 'package:food_app/models/order_history_response_model.dart' as History;
 import 'package:food_app/models/order_model.dart' as OrderModel;
+
+import '../models/reservation/get_user_reservation_details.dart';
 final title = "AppController";
 
 class AppController extends GetxController {
@@ -39,95 +42,231 @@ class AppController extends GetxController {
 
   List<Order> get orderList => _ordersList.value;
 
-  Future<void> setOrders(List<Order>? listOrders) async {
-    if (listOrders == null || listOrders.isEmpty) {
+  // Future<void> setOrders(List<Order>? listOrders) async {
+  //   if (listOrders == null) {
+  //     print("⚠️ setOrders called with null list");
+  //     return;
+  //   }
+  //
+  //   if (listOrders.isEmpty) {
+  //     print("📋 API returned empty order list");
+  //     // Don't clear existing orders, just log and return
+  //     return;
+  //   }
+  //
+  //   print("📦 Setting orders - Received: ${listOrders.length} orders");
+  //
+  //   // Check if this is a full refresh (contains orders we already have)
+  //   bool isFullRefresh = false;
+  //   if (_ordersList.isNotEmpty && listOrders.length > 1) {
+  //     // If we have existing orders and API returns multiple orders,
+  //     // check if any existing order ID exists in the new list
+  //     Set<int> newOrderIds = listOrders.where((o) => o.id != null).map((o) => o.id!).toSet();
+  //     Set<int> existingOrderIds = _ordersList.where((o) => o.id != null).map((o) => o.id!).toSet();
+  //
+  //     // If there's overlap, this is likely a full refresh
+  //     isFullRefresh = newOrderIds.intersection(existingOrderIds).isNotEmpty;
+  //     print("🔄 Is full refresh: $isFullRefresh");
+  //   }
+  //
+  //   if (isFullRefresh) {
+  //     // This is a full refresh - replace all orders
+  //     print("🔄 Full refresh detected - replacing all orders");
+  //     _ordersList.clear();
+  //     _ordersList.assignAll(listOrders);
+  //
+  //     // Sort by ID descending (newest first)
+  //     _ordersList.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+  //
+  //     // Update search results with all orders
+  //     searchResultOrder.clear();
+  //     searchResultOrder.assignAll(_ordersList);
+  //   } else {
+  //     // This is an incremental update - only add new orders
+  //     print("➕ Incremental update - adding new orders only");
+  //     Set<int> existingIds = _ordersList.map((order) => order.id ?? 0).toSet();
+  //
+  //     List<Order> newOrders = listOrders.where((order) =>
+  //     order.id != null && !existingIds.contains(order.id!)
+  //     ).toList();
+  //
+  //     if (newOrders.isNotEmpty) {
+  //       // Add new orders at the beginning
+  //       _ordersList.insertAll(0, newOrders);
+  //
+  //       // Sort to maintain order
+  //       _ordersList.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+  //
+  //       // Add new orders to search results too
+  //       searchResultOrder.insertAll(0, newOrders);
+  //       searchResultOrder.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+  //
+  //       print("✅ Added ${newOrders.length} new orders");
+  //     } else {
+  //       print("ℹ️ No new orders to add");
+  //     }
+  //   }
+  //
+  //   // Refresh observables
+  //   _ordersList.refresh();
+  //   searchResultOrder.refresh();
+  //
+  //   // Update pending count
+  //   int pendingCount = _ordersList.where((o) => o.approvalStatus == 1).length;
+  //   onSetPendingOrder(pendingCount);
+  //
+  //   print("✅ Orders updated - Total: ${_ordersList.length}, Search results: ${searchResultOrder.length}");
+  // }
+  var searchResultOrder = <Order>[].obs;
+
+  Future<void> forceSetAllOrders(List<Order> orders) async {
+    print("🔄 Force setting all orders - Received: ${orders.length}");
+
+    // Clear everything first
+    _ordersList.clear();
+    searchResultOrder.clear();
+
+    // Add all orders
+    _ordersList.assignAll(orders);
+
+    // Sort by ID descending (newest first)
+    _ordersList.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+
+    // Update search results with all orders
+    searchResultOrder.assignAll(_ordersList);
+
+    // Refresh observables
+    _ordersList.refresh();
+    searchResultOrder.refresh();
+
+    // Update pending count
+    int pendingCount = _ordersList.where((o) => o.approvalStatus == 1).length;
+    onSetPendingOrder(pendingCount);
+
+    print("✅ Force set completed - Total orders: ${_ordersList.length}");
+
+    // Debug print order IDs
+    print("📋 Order IDs: ${_ordersList.take(5).map((o) => o.id).toList()}...");
+  }
+
+// Also modify the existing setOrders method to be more explicit about merge vs replace:
+
+  Future<void> setOrders(List<Order>? listOrders, {bool forceReplace = false}) async {
+    if (listOrders == null) {
+      print("⚠️ setOrders called with null list");
       return;
     }
 
-    _ordersList.value.clear();
-    _ordersList.assignAll(listOrders);
-    _ordersList.refresh();
-
-    if (searchResultOrder.isNotEmpty) {
-      searchResultOrder.clear();
+    if (listOrders.isEmpty) {
+      print("📋 API returned empty order list");
+      // Don't clear existing orders unless explicitly told to
+      if (forceReplace) {
+        _ordersList.clear();
+        searchResultOrder.clear();
+        _ordersList.refresh();
+        searchResultOrder.refresh();
+      }
+      return;
     }
-    searchResultOrder.assignAll(listOrders);
 
-    onSetPendingOrder(listOrders.where((o) => o.approvalStatus == 1).length);
+    print("📦 Setting orders - Received: ${listOrders.length} orders, forceReplace: $forceReplace");
+
+    if (forceReplace) {
+      // Complete replacement
+      print("🔄 Force replacing all orders");
+      _ordersList.clear();
+      _ordersList.assignAll(listOrders);
+
+      searchResultOrder.clear();
+      searchResultOrder.assignAll(listOrders);
+    } else {
+      // Merge new orders with existing ones (avoid duplicates)
+      Set<int> existingIds = _ordersList.map((order) => order.id ?? 0).toSet();
+
+      List<Order> newOrders = listOrders.where((order) =>
+      order.id != null && !existingIds.contains(order.id!)
+      ).toList();
+
+      if (newOrders.isNotEmpty) {
+        // Add new orders at the beginning
+        _ordersList.insertAll(0, newOrders);
+        searchResultOrder.insertAll(0, newOrders);
+        print("➕ Added ${newOrders.length} new orders");
+      }
+    }
+
+    // Sort both lists
+    _ordersList.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+    searchResultOrder.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+
+    // Refresh observables
+    _ordersList.refresh();
+    searchResultOrder.refresh();
+
+    // Update pending count
+    int pendingCount = _ordersList.where((o) => o.approvalStatus == 1).length;
+    onSetPendingOrder(pendingCount);
+
+    print("✅ setOrders completed - Total: ${_ordersList.length}, Search: ${searchResultOrder.length}");
   }
-
-  var searchResultOrder = <Order>[].obs;
-
-  // ✅ Enhanced search function with multiple criteria
   void filterSearchResultsTodo(String query) {
     print("🔍 Filtering with query: '$query'");
+    print("📊 Total orders available: ${_ordersList.length}");
 
-    if (query.isEmpty) {
-      // ✅ Empty query - show all orders sorted by ID
-      searchResultOrder.assignAll(
-        _ordersList..sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0)), // Latest first
-      );
+    if (query.isEmpty || query.trim().isEmpty) {
+      // Show all orders when search is empty
+      searchResultOrder.assignAll(_ordersList);
+      searchResultOrder.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
       print("✅ Showing all ${searchResultOrder.length} orders");
     } else {
-      final lowerQuery = query.toLowerCase();
-      print("🔍 Searching for: '$lowerQuery'");
+      final lowerQuery = query.toLowerCase().trim();
 
       final filteredOrders = _ordersList.where((order) {
-        // ✅ 1. Search in Order ID
+        // Search in Order ID
         final orderId = order.id?.toString().toLowerCase() ?? '';
-        final matchesOrderId = orderId.contains(lowerQuery);
+        if (orderId.contains(lowerQuery)) return true;
 
-        // ✅ 2. Search in Customer Name
-        final customerName = order.shipping_address?.customer_name?.toLowerCase() ?? '';
-        final matchesCustomerName = customerName.contains(lowerQuery);
+        // Search in Customer Name (both regular and guest)
+        final customerName = order.shipping_address?.customer_name?.toLowerCase() ??
+            order.guestShippingJson?.customerName?.toLowerCase() ?? '';
+        if (customerName.contains(lowerQuery)) return true;
 
-        // ✅ 3. Search in Customer Phone/Mobile
-        final customerPhone = order.shipping_address?.phone?.toLowerCase() ?? '';
-        final matchesPhone = customerPhone.contains(lowerQuery);
+        // Search in Phone (both regular and guest)
+        final phone = order.shipping_address?.phone?.toLowerCase() ??
+            order.guestShippingJson?.phone?.toLowerCase() ?? '';
+        if (phone.contains(lowerQuery)) return true;
 
-        // ✅ 4. Search in ZIP code
-        final zipCode = order.shipping_address?.zip?.toString().toLowerCase() ?? '';
-        final matchesZip = zipCode.contains(lowerQuery);
+        // Search in ZIP (both regular and guest)
+        final zip = order.shipping_address?.zip?.toString().toLowerCase() ??
+            order.guestShippingJson?.zip?.toString().toLowerCase() ?? '';
+        if (zip.contains(lowerQuery)) return true;
 
-        // ✅ 5. Search in Address (line1, city)
-        final addressLine1 = order.shipping_address?.line1?.toLowerCase() ?? '';
-        final city = order.shipping_address?.city?.toLowerCase() ?? '';
-        final matchesAddress = addressLine1.contains(lowerQuery) || city.contains(lowerQuery);
+        // Search in Address (both regular and guest)
+        final line1 = order.shipping_address?.line1?.toLowerCase() ??
+            order.guestShippingJson?.line1?.toLowerCase() ?? '';
+        final city = order.shipping_address?.city?.toLowerCase() ??
+            order.guestShippingJson?.city?.toLowerCase() ?? '';
+        if (line1.contains(lowerQuery) || city.contains(lowerQuery)) return true;
 
-        // ✅ 6. Search in order items (product name, variant name, note)
-        final matchesItems = order.items?.any((item) =>
+        // Search in order items
+        if (order.items?.any((item) =>
         (item.productName?.toLowerCase().contains(lowerQuery) ?? false) ||
             (item.variantName?.toLowerCase().contains(lowerQuery) ?? false) ||
             (item.note?.toLowerCase().contains(lowerQuery) ?? false)
-        ) ?? false;
+        ) ?? false) return true;
 
-        final isMatch = matchesOrderId ||
-            matchesCustomerName ||
-            matchesPhone ||
-            matchesZip ||
-            matchesAddress ||
-            matchesItems;
-
-        // ✅ Debug logging for each order
-        if (isMatch) {
-          print("✅ Match found - Order ID: ${order.id}, Customer: $customerName, Phone: $customerPhone, ZIP: $zipCode");
-        }
-
-        return isMatch;
+        return false;
       }).toList();
 
-      // ✅ Sort filtered results (latest first)
+      // Sort filtered results
       filteredOrders.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
 
       searchResultOrder.assignAll(filteredOrders);
-
-      print("✅ Search completed. Found ${searchResultOrder.length} matching orders out of ${_ordersList.length} total orders");
+      print("✅ Search completed. Found ${searchResultOrder.length} matching orders");
     }
 
-    // Force UI update
     searchResultOrder.refresh();
   }
-
   // ✅ Method to clear search and show all orders
   void clearSearch() {
     searchResultOrder.assignAll(
@@ -155,8 +294,8 @@ class AppController extends GetxController {
       if (existsInMainList) {
         print("⚠️ Order ${result.id} already exists in main list, skipping add");
         return;
-      }
 
+      }
       bool existsInSearchList = searchResultOrder.any((order) => order.id == result.id);
       if (existsInSearchList) {
         print("⚠️ Order ${result.id} already exists in search list, skipping add");
@@ -171,7 +310,8 @@ class AppController extends GetxController {
       searchResultOrder.insert(0, result);
       searchResultOrder.value = [...searchResultOrder];
 
-      onSetPendingOrder(searchResultOrder.where((o) => o.approvalStatus == 1).length);
+      onSetPendingOrder(_ordersList.where((o) => o.approvalStatus == 1).length);
+      print("✅ Order ${result.id} added successfully. Total: ${_ordersList.length}");
 
       print("✅ Order ${result.id} added successfully");
       print("📊 Total orders now: ${_ordersList.length}");
@@ -211,8 +351,9 @@ class AppController extends GetxController {
   }
 
   var _pendingOrders = 0.obs;
-
+  var _pendingReservations = 0.obs;
   int get getPendingOrder => _pendingOrders.value;
+  int get getPendingReservations => _pendingReservations.value;
 
   void onSetPendingOrder(int index) {
     _pendingOrders.value = index;
@@ -225,6 +366,7 @@ class AppController extends GetxController {
     _selectedTabIndex.value = 0;
     _reportRefreshTrigger.value = 0;
     _isLoading.value = false;
+    clearReservationsOnLogout();
   }
 
   void triggerReportRefresh() {
@@ -276,8 +418,6 @@ class AppController extends GetxController {
     print("📋 === END DEBUG ===");
   }
 
-  // Add this method in AppController class
-  // ✅ FIXED: Use History models directly instead of converting to OrderModel
   var _historyOrdersList = <History.orderHistoryResponseModel>[].obs;
 
   List<History.orderHistoryResponseModel> get historyOrdersList => _historyOrdersList.value;
@@ -299,7 +439,7 @@ class AppController extends GetxController {
     return null;
   }
 
-  // ✅ Helper methods to get data from history orders in a consistent way
+
   String? getHistoryOrderCustomerName(int index) {
     final order = getHistoryOrderByIndex(index);
     return order?.shippingAddress?.customerName;
@@ -348,8 +488,149 @@ class AppController extends GetxController {
     return order?.items;
   }
 
+// In AppController.dart, add reservation methods:
+
+  var _reservationsList = <GetUserReservationDetailsResponseModel>[].obs;
+  var searchResultReservation = <GetUserReservationDetailsResponseModel>[].obs;
+  List<GetUserReservationDetailsResponseModel> get reservationsList => _reservationsList.value;
+
+  void setReservations(List<GetUserReservationDetailsResponseModel> reservations) {
+    _reservationsList.clear();
+    _reservationsList.assignAll(reservations);
+
+    // Initialize search results with all reservations
+    searchResultReservation.clear();
+    searchResultReservation.assignAll(reservations);
+
+    _reservationsList.refresh();
+    searchResultReservation.refresh();
+
+    int pendingCount = reservations.where((reservation) =>
+    reservation.status?.toLowerCase() == 'pending').length;
+    _pendingReservations.value = pendingCount;
+
+    print("Set ${reservations.length} total reservations, ${pendingCount} pending");
+  }
+
+  void addNewReservation(GetUserReservationDetailsResponseModel reservation) {
+    bool exists = _reservationsList.any((r) => r.id == reservation.id);
+    if (!exists) {
+      _reservationsList.insert(0, reservation);
+      _reservationsList.refresh();
+
+      // ADD THIS: Also update search results immediately
+      searchResultReservation.insert(0, reservation);
+      searchResultReservation.refresh();
+
+      int pendingCount = _reservationsList.where((r) =>
+      r.status?.toLowerCase() == 'pending').length;
+      _pendingReservations.value = pendingCount;
+
+      print("✅ New reservation ${reservation.id} added and search results updated");
+    }
+  }
+
+  void updateReservation(GetUserReservationDetailsResponseModel reservation) {
+    int index = _reservationsList.indexWhere((r) => r.id == reservation.id);
+    if (index != -1) {
+      _reservationsList[index] = reservation;
+      _reservationsList.refresh();
+      int pendingCount = _reservationsList.where((r) =>
+      r.status?.toLowerCase() == 'pending').length;
+      _pendingReservations.value = pendingCount;
+    }
+  }
+  void clearReservationSearch() {
+    searchResultReservation.assignAll(_reservationsList);
+    searchResultReservation.refresh();
+    print("🧹 Reservation search cleared, showing all ${searchResultReservation.length} reservations");
+  }
+  void clearReservationsOnLogout() {
+    _reservationsList.clear();
+    searchResultReservation.clear();
+    _pendingReservations.value = 0;
+  }
+
+  void filterSearchResultsReservation(String query) {
+    print("🔍 Filtering reservations with query: '$query'");
+    print("📊 Total reservations available: ${_reservationsList.length}");
+
+    if (query.isEmpty || query.trim().isEmpty) {
+      // Show all reservations when search is empty
+      searchResultReservation.assignAll(_reservationsList);
+      print("✅ Showing all ${searchResultReservation.length} reservations");
+    } else {
+      final lowerQuery = query.toLowerCase().trim();
+
+      final filteredReservations = _reservationsList.where((reservation) {
+        // Search in Reservation ID
+        final reservationId = reservation.id?.toString().toLowerCase() ?? '';
+        if (reservationId.contains(lowerQuery)) return true;
+
+        // Search in Customer Name
+        final customerName = reservation.customerName?.toLowerCase() ?? '';
+        if (customerName.contains(lowerQuery)) return true;
+
+        // Search in Customer Phone
+        final phone = reservation.customerPhone?.toLowerCase() ?? '';
+        if (phone.contains(lowerQuery)) return true;
+
+        // Search in Guest Count
+        final guestCount = reservation.guestCount?.toString().toLowerCase() ?? '';
+        if (guestCount.contains(lowerQuery)) return true;
+
+        // Search in Status
+        final status = reservation.status?.toLowerCase() ?? '';
+        if (status.contains(lowerQuery)) return true;
+
+        return false;
+      }).toList();
+
+      searchResultReservation.assignAll(filteredReservations);
+      print("✅ Search completed. Found ${searchResultReservation.length} matching reservations");
+    }
+
+    searchResultReservation.refresh();
+  }
 
 
+  List<GetUserReservationDetailsResponseModel> getFilteredReservations(String? selectedDate) {
+    DateTime today = DateTime.now();
+    String todayString = DateFormat('yyyy-MM-dd').format(today);
 
+    // Use search results instead of main list
+    return searchResultReservation.where((reservation) {
+      String status = reservation.status?.toLowerCase() ?? '';
 
+      if (status == 'pending') {
+        // Pending reservations show regardless of date
+        return true;
+      } else if (status == 'cancelled' || status == 'booked') {
+        // Cancelled and booked only show for current date or selected date
+        String targetDate = selectedDate ?? todayString;
+
+        // Check reservation date (use reservedFor field if available, otherwise createdAt)
+        String? dateToCheck = reservation.reservedFor ?? reservation.createdAt;
+
+        if (dateToCheck != null) {
+          try {
+            DateTime reservationDate = DateTime.parse(dateToCheck);
+            String reservationDateString = DateFormat('yyyy-MM-dd').format(reservationDate);
+            return reservationDateString == targetDate;
+          } catch (e) {
+            print("Error parsing reservation date: $e");
+            return false;
+          }
+        }
+        return false;
+      }
+
+      // For any other status, show all
+      return true;
+    }).toList();
+  }
+// Also add this method to get filtered count
+  int getFilteredReservationsCount(String? selectedDate) {
+    return getFilteredReservations(selectedDate).length;
+  }
 }

@@ -536,7 +536,6 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
     try {
       print("🌐 Calling getStoreSetting API... (Tab active: $_isCurrentTab)");
 
-      // ✅ IMPORTANT: Unfocus before API call
       _unfocusAllTextFields();
 
       // ✅ Store current IP values BEFORE API call
@@ -577,7 +576,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
           _hasUnsavedChanges = false;
 
           // ✅ PRESERVE local IP values
-          _ipControllers[0].text = currentLocalIp;
+          // _ipControllers[0].text = currentLocalIp;
           _ipRemoteControllers[0].text = currentRemoteIp;
 
           print("✅ Settings loaded from API (Tab: $_isCurrentTab):");
@@ -749,7 +748,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                 focusNode: _ipFocusNodes[index], // ✅ Assign focus node
                 enabled: index == _selectedIpIndex,
                 decoration: InputDecoration(
-                  labelText: 'Local IP Address',
+                  labelText: 'ip'.tr,
                   hintText: 'e.g. 192.168.1.100',
                   border: OutlineInputBorder(),
                   errorText: _validateIP(_ipControllers[index].text),
@@ -788,8 +787,8 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                 SizedBox(width: 4),
                 Text(
                   _validateIP(_ipControllers[index].text) == null
-                      ? 'Valid IP format'
-                      : 'Invalid IP format',
+                      ? 'valid'.tr
+                      : 'invalid'.tr,
                   style: TextStyle(
                     fontSize: 12,
                     color: _validateIP(_ipControllers[index].text) == null
@@ -838,8 +837,8 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(height: 16),
-                const Text(
-                  'Local IP',
+                 Text(
+                  'local'.tr,
                   style: TextStyle(
                       color: Colors.black, fontWeight: FontWeight.w500),
                 ),
@@ -863,13 +862,13 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 30, vertical: 14),
                       ),
-                      child: const Text('Save Local IP'),
+                      child:  Text('save'.tr),
                     ),
                   ),
                 ),
                 const SizedBox(height: 15),
                 _ToggleRow(
-                  label: 'Auto Order Print',
+                  label: 'auto'.tr,
                   activeColor: Colors.blue,
                   value: _autoOrderPrint,
                   onChanged: (val) async {
@@ -916,7 +915,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                 ),
 
                 _ToggleRow(
-                  label: 'Auto Order Remote Accept',
+                  label: 'auto_order'.tr,
                   activeColor: Colors.green,
                   value: _autoRemoteOrderrAccept,
                   onChanged: (val) async {
@@ -1022,7 +1021,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
                     ),
-                    child: Text(_isSaving ? 'Saving...' : 'Save IPs'),
+                    child: Text(_isSaving ? 'Saving...' : 'save_ip'.tr),
                   ),
                 ),
               ],

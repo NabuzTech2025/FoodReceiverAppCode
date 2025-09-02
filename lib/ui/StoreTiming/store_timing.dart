@@ -475,7 +475,7 @@ class _StoreTimingState extends State<StoreTiming> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Store Hours', style: TextStyle(
+                 Text('store_hour'.tr, style: TextStyle(
                       fontFamily: 'Mulish', fontSize: 18, fontWeight: FontWeight.bold
                   )),
                   GestureDetector(
@@ -488,8 +488,8 @@ class _StoreTimingState extends State<StoreTiming> {
                         borderRadius: BorderRadius.circular(3),
                         color: const Color(0xFFFCAE03),
                       ),
-                      child: const Center(
-                        child: Text('Add New', style: TextStyle(
+                      child:  Center(
+                        child: Text('add'.tr, style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
                           fontSize: 12,
@@ -571,15 +571,15 @@ class _StoreTimingState extends State<StoreTiming> {
                   ),
                 ),
               ),
-              const Row(
+             Row(
                 children: [
-                  Text('Open', style: TextStyle(
+                  Text('open'.tr, style: TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 13,
                       fontFamily: 'Mulish'
                   )),
                   SizedBox(width: 20),
-                  Text('Close', style: TextStyle(
+                  Text('close'.tr, style: TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 13,
                       fontFamily: 'Mulish'
@@ -731,7 +731,7 @@ class _StoreTimingState extends State<StoreTiming> {
               children: [
                 SizedBox(height: 20,),
                 Text(
-                  'Are you sure Delete this "$timingName" Time',
+                  '${"are".tr} "$timingName"',
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
@@ -758,8 +758,8 @@ class _StoreTimingState extends State<StoreTiming> {
                             borderRadius: BorderRadius.circular(3),
                           ),
                         ),
-                        child: const Text(
-                          'Cancel',
+                        child:  Text(
+                          'cancel'.tr,
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
@@ -787,8 +787,8 @@ class _StoreTimingState extends State<StoreTiming> {
                             borderRadius: BorderRadius.circular(3),
                           ),
                         ),
-                        child: const Text(
-                          'Delete',
+                        child:  Text(
+                          'delete'.tr,
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
@@ -826,11 +826,6 @@ class _StoreTimingState extends State<StoreTiming> {
     );
   }
   Future<void> _deleteStoreTiming(int timingId) async {
-
-    setState(() {
-      isLoading = true;
-    });
-
     Get.dialog(
       Center(
           child: Lottie.asset(
@@ -855,9 +850,6 @@ class _StoreTimingState extends State<StoreTiming> {
       Get.back();
       print('Error deleting timing: $e');
       Get.snackbar('Error', 'Failed to delete timing');
-      setState(() {
-        isLoading = false;
-      });
     }
   }
 

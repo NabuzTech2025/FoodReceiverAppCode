@@ -107,7 +107,7 @@ class _DiscountState extends State<Discount> {
           padding: const EdgeInsets.all(12.0),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Discount management',
+              Text('managee'.tr,
                 style: TextStyle(fontSize: 18,fontWeight: FontWeight.w800,fontFamily: 'Mulish'),),
               const SizedBox(height: 20),
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -115,7 +115,7 @@ class _DiscountState extends State<Discount> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Delivery discount (%)',
+                     Text('${'delivery_discount'.tr} (%)',
                         style: TextStyle(fontFamily: 'Mulish',fontWeight: FontWeight.w700,fontSize: 13),),
                       const SizedBox(height: 8),
                       Container(
@@ -160,7 +160,7 @@ class _DiscountState extends State<Discount> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Pickup discount (%)',
+                      Text('${'pickup_discount'.tr} (%)',
                         style: TextStyle(fontFamily: 'Mulish',fontWeight: FontWeight.w700,fontSize: 13),),
                       const SizedBox(height: 8),
                       Container(
@@ -205,7 +205,7 @@ class _DiscountState extends State<Discount> {
                 ],
               ),
               const SizedBox(height: 20),
-              const Text('Expiry date',
+              Text('expiry'.tr,
                 style: TextStyle(fontSize: 13,fontWeight: FontWeight.w700,fontFamily: 'Mulish'),),
               SizedBox(height: 10),
               GestureDetector(
@@ -247,15 +247,15 @@ class _DiscountState extends State<Discount> {
                     borderRadius: BorderRadius.circular(3),
                     color: Color(0xFF0C831F),
                   ) ,
-                  child: const Center(
-                    child: Text('Save',style: TextStyle(color: Colors.white,
+                  child:Center(
+                    child: Text('saved'.tr,style: TextStyle(color: Colors.white,
                       fontWeight: FontWeight.w700,fontSize: 20,fontFamily: 'Mulish',
                     ),),
                   ),
                 ),
               ),
               SizedBox(height: 20),
-              const Text('Current discounts',
+              Text('current'.tr,
                 style: TextStyle(fontSize: 14,fontWeight: FontWeight.w800,fontFamily: 'Mulish'),),
               SizedBox(height: 10),
               Column(
@@ -269,11 +269,11 @@ class _DiscountState extends State<Discount> {
                       children: [
                         Container(
                           width: MediaQuery.of(context).size.width*0.5,
-                          child: const Text('Type',style: TextStyle(
+                          child:  Text('type'.tr,style: TextStyle(
                               fontWeight: FontWeight.w700,fontSize: 13,fontFamily: 'Mulish'
                           ),),
                         ) ,
-                        const Text('Wert',style: TextStyle(
+                        Text('value'.tr,style: TextStyle(
                             fontWeight: FontWeight.w700,fontSize: 13,fontFamily: 'Mulish'
                         ),)
                       ],
@@ -283,7 +283,7 @@ class _DiscountState extends State<Discount> {
                   if (currentDiscounts.isEmpty)
                     Container(
                       padding: EdgeInsets.all(15),
-                      child: Text('No current discounts available',
+                      child: Text('no_current'.tr,
                         style: TextStyle(fontFamily: 'Mulish', fontSize: 12),
                       ),
                     )

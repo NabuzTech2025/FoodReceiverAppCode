@@ -78,8 +78,8 @@ class _TaxmanagementState extends State<Taxmanagement> {
                       borderRadius: BorderRadius.circular(3),
                       color: const Color(0xFFFCAE03),
                     ),
-                    child: const Center(
-                      child: Text('Add New', style: TextStyle(
+                    child:  Center(
+                      child: Text('add'.tr, style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
                         fontSize: 12,
@@ -100,17 +100,17 @@ class _TaxmanagementState extends State<Taxmanagement> {
                 children: [
                   Container(
                     width: MediaQuery.of(context).size.width * 0.6,
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Tax Name',
+                        Text('tax_name'.tr,
                           style: TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 13,
                               fontFamily: 'Mulish'
                           ),
                         ),
-                        Text('Percentage',
+                        Text('percent'.tr,
                             style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 13,
@@ -124,7 +124,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
                   Container(
                     width: MediaQuery.of(context).size.width * 0.2,
                     child: Center(
-                      child: Text('Action',
+                      child: Text('action'.tr,
                         style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 13,
@@ -162,7 +162,8 @@ class _TaxmanagementState extends State<Taxmanagement> {
                 itemBuilder: (context, index) {
                   final tax = storeTaxesList[index];
                   var taxid=tax.id.toString();
-                  print('taxidis$taxid');
+                  print('taxId is$taxid');
+                  print('value is${tax.percentage}');
                   return Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
@@ -198,7 +199,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
                                   width: MediaQuery.of(context).size.width * 0.2,
                                   child: Center(
                                     child: Text(
-                                      '${tax.percentage?.toStringAsFixed(1) ?? '0'}%',
+                                      '${tax.percentage?.toStringAsFixed(2) ?? '0.000'}%',
                                       style: const TextStyle(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 14,
@@ -212,18 +213,10 @@ class _TaxmanagementState extends State<Taxmanagement> {
                           ),
                           const SizedBox(width: 15),
                           // Edit button
+                          // Edit button
                           GestureDetector(
                             onTap: () {
-                              print('Delete button click - Tax ID: ${tax.id}');
-                              print('Tax object details: Name=${tax.name}, Percentage=${tax.percentage}');
-
-                              if (tax.id != null) {
-                                print('Passing taxId to confirmation dialog: ${tax.id}');
-                                _showDeleteTaxConfirmation(context, tax.name ?? 'Tax', tax.id!);
-                              } else {
-                                print('Tax ID is null!');
-                                Get.snackbar('Error', 'Invalid tax ID');
-                              }
+                              showEditTaxBottomSheet(context, tax);
                             },
                             child: Container(
                               padding: const EdgeInsets.all(8),
@@ -277,6 +270,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
       ),
     );
   }
+
   void showTaxManagementBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -350,33 +344,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
       });
     }
   }
-// Add this method to your _Tax managementState class
 
-  // void _showDeleteTaxConfirmation(BuildContext context, String taxName, int taxId) {
-  //   print('Confirmation dialog me ayi taxId: $taxId');
-  //   print('Tax name: $taxName');
-  //
-  //   Get.dialog(
-  //     AlertDialog(
-  //       title: const Text('Delete Tax'),
-  //       content: Text('Are you sure you want to delete "$taxName"?\nTax ID: $taxId'), // ID show karo dialog me
-  //       actions: [
-  //         TextButton(
-  //           onPressed: () => Get.back(),
-  //           child: const Text('Cancel'),
-  //         ),
-  //         TextButton(
-  //           onPressed: () {
-  //             print('Delete confirm kiya, taxId pass kar rahe: $taxId');
-  //             Get.back();
-  //             _deleteTax(taxId);
-  //           },
-  //           child: const Text('Delete', style: TextStyle(color: Colors.red)),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
   void _showDeleteTaxConfirmation(BuildContext context, String taxName, int taxId) {
     Get.dialog(
       Dialog(
@@ -403,7 +371,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
                   children: [
                     SizedBox(height: 20,),
                     Text(
-                      'Are you sure you want to delete "$taxName"?',
+                      '${'are'.tr} "$taxName"?',
                       style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
@@ -430,8 +398,8 @@ class _TaxmanagementState extends State<Taxmanagement> {
                                 borderRadius: BorderRadius.circular(3),
                               ),
                             ),
-                            child: const Text(
-                              'Cancel',
+                            child:  Text(
+                              'cancel'.tr,
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
@@ -459,8 +427,8 @@ class _TaxmanagementState extends State<Taxmanagement> {
                                 borderRadius: BorderRadius.circular(3),
                               ),
                             ),
-                            child: const Text(
-                              'Delete',
+                            child:  Text(
+                              'delete'.tr,
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
@@ -499,13 +467,8 @@ class _TaxmanagementState extends State<Taxmanagement> {
   }
 
   Future<void> _deleteTax(int taxId) async {
-    // Yahan taxId print karke check karo
     print('Delete method me ayi taxId: $taxId');
     print('TaxId type: ${taxId.runtimeType}');
-
-    setState(() {
-      isLoading = true;
-    });
 
     Get.dialog(
       Center(
@@ -520,23 +483,32 @@ class _TaxmanagementState extends State<Taxmanagement> {
     );
 
     try {
-
       print('API call kar rahe hain taxId: $taxId ke liye');
 
+      // Wait for actual API response
       await CallService().deleteStoreTax(taxId);
 
-      Get.back();
-      Get.snackbar('Success', 'Tax deleted successfully');
+      Get.back(); // Close loading dialog
 
       await getStoreTaxes(showLoader: false);
+
+      Get.snackbar('Success', 'Tax deleted successfully');
 
     } catch (e) {
       Get.back();
       print('Error deleting tax: $e');
-      Get.snackbar('Error', 'Failed to delete tax');
-      setState(() {
-        isLoading = false;
-      });
+
+      if (e.toString().contains('Cannot delete tax') || e.toString().contains('referenced by')) {
+        Get.snackbar(
+          'Cannot Delete',
+          'This tax is being used by categories or products and cannot be deleted',
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+          duration: Duration(seconds: 4),
+        );
+      } else {
+        Get.snackbar('Error', 'Failed to delete tax');
+      }
     }
   }
 

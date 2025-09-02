@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../api/Socket/reservation_socket_service.dart';
 import '../api/api.dart';
 import '../api/repository/api_repository.dart';
 import '../api/responses/userLogin_h.dart';
@@ -160,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen>
               ],
             ),
             body: Container(
-              margin: EdgeInsets.all(18),
+              margin: EdgeInsets.all(10),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -168,14 +169,8 @@ class _LoginScreenState extends State<LoginScreen>
                   Stack(
                     alignment: Alignment.center,
                     children: [
-                      // SvgPicture.asset(
-                      //   'assets/images/login-vector.svg',
-                      //   width: 120,
-                      //   height: 120,
-                      //   fit: BoxFit.cover,
-                      // ),
                       Transform.translate(
-                        offset: Offset(-10, 25), // Move up by 10 pixels
+                        offset: Offset(-10, 25),
                         child: const Text(
                           "Login!",
                           style: TextStyle(
@@ -188,7 +183,7 @@ class _LoginScreenState extends State<LoginScreen>
                     ],
                   ),
                   SizedBox(
-                    height: 30,
+                    height: 20,
                   ),
                   Form(
                     key: _formKey,

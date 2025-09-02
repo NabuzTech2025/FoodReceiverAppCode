@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:food_app/ui/PrinterSettingsScreen.dart';
+import 'package:food_app/ui/table%20Book/reservation.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/constant.dart';
@@ -42,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     _pageController = PageController(initialPage: 0);
     _setupFCMListeners();
+    _loadInitialData();
 
     final arguments = Get.arguments;
     if (arguments != null && arguments['initialTab'] != null) {
@@ -52,7 +54,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     super.initState();
   }
-
+  Future<void> _loadInitialData() async {
+    await Future.wait([
+      getOrdersInBackground(),
+      getReservationsInBackground(), // Add this method call
+    ]);
+  }
   DateTime? _lastProcessedTime;
 
   void _setupFCMListeners() {
@@ -116,9 +123,9 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Scaffold(
         drawer: CustomDrawer(onSelectTab: _openTab),
         appBar: CustomAppBar(),
-        resizeToAvoidBottomInset: false,
+        resizeToAvoidBottomInset: true,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-         /*   floatingActionButton: floatingButton(context),*/
+
         bottomNavigationBar: _buildBottomBar(),
         body: _buildBody(),
       ),
@@ -133,8 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBottomBar() {
     return Obx(() {
       return Container(
-        padding: EdgeInsets.fromLTRB(6, 0, 6, 0),
-        height: 100,
+        height: 75,
         color: Colors.grey[100],
         child: BottomAppBar(
           color: appColor.white,
@@ -152,32 +158,30 @@ class _HomeScreenState extends State<HomeScreen> {
                   _openTab(0);
                 },
               ),
-              /*ItemBottomBar(
-                selected: app.appController.selectedTabIndex == 1,
-                icon: "assets/images/ic_customer.png",
-                name: 'customer'.tr,
-                showBadge: true,
-                // badgeValue: app.appController.favCount,
-                onPressed: () {},
-              ),*/
-             /* SizedBox(
-                width: 15,
-              ),*/
               ItemBottomBar(
                 selected: app.appController.selectedTabIndex == 1,
-                icon: "assets/images/ic_reports.png",
-                name: 'reports'.tr,
+                icon: "assets/images/reservationIcon.png",
+                name: 'reserv'.tr,
+                showBadge: app.appController.getPendingReservations > 0,
+                badgeValue: app.appController.getPendingReservations,
                 onPressed: () {
                   _openTab(1);
                 },
               ),
-
               ItemBottomBar(
                 selected: app.appController.selectedTabIndex == 2,
+                icon: "assets/images/ic_reports.png",
+                name: 'reports'.tr,
+                onPressed: () {
+                  _openTab(2);
+                },
+              ),
+              ItemBottomBar(
+                selected: app.appController.selectedTabIndex == 3,
                 icon: "assets/images/ic_setting.png",
                 name: 'setting'.tr,
                 onPressed: () {
-                  _openTab(2);
+                  _openTab(3);
                 },
               ),
             ],
@@ -197,6 +201,7 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         // KeepAlivePage(child: HomeTab()),
         KeepAlivePage(child: OrderScreenNew()),
+        KeepAlivePage(child: Reservation()),
         KeepAlivePage(child: ReportScreen()),
         KeepAlivePage(child: PrinterSettingsScreen()),
       ],
@@ -213,16 +218,14 @@ class _HomeScreenState extends State<HomeScreen> {
     print("Switching to Tab 1 : " + index.toString());
     _pageController.jumpToPage(index);
 
-   /* if (index == 5) {
-      //  app.appController.setSyncLoading(true);
-    } else {
-      //  app.appController.setSyncLoading(false);
-    }*/
-
     Future.delayed(Duration(milliseconds: 50), () {
       print("Switching to Tab 2 : " + index.toString());
       app.appController.onTabChanged(index);
+      if (index == 2) {
+        app.appController.reportRefreshTrigger.refresh();
+      }
     });
+
   }
 
   Widget floatingButton(BuildContext context) {

@@ -138,9 +138,8 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
 
       print("Add Tax Map: $map");
 
+      // Wait for actual API response
       AddTaxResponseModel model = await CallService().addStoreTaxes(map);
-
-      await Future.delayed(Duration(seconds: 2));
 
       print("Tax added successfully");
 
@@ -150,11 +149,15 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
 
       Get.back(); // Close loading dialog
       Navigator.pop(context); // Close bottom sheet
-      Get.snackbar('Success', widget.isEditMode ? 'Tax updated successfully' : 'Tax added successfully');
 
       if (widget.onDataAdded != null) {
-        widget.onDataAdded!();
+         widget.onDataAdded!();
+
+         await Future.delayed(Duration(milliseconds: 500));// Make this await if possible
       }
+
+      // Then show success message
+      Get.snackbar('Success', 'Tax added successfully');
 
     } catch (e) {
       setState(() {
@@ -162,10 +165,9 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
       });
       Get.back();
       print('Adding error: $e');
-      Get.snackbar('Error', 'Failed to ${widget.isEditMode ? 'update' : 'add'} tax: ${e.toString()}');
+      Get.snackbar('Error', 'Failed to add tax: ${e.toString()}');
     }
   }
-
   Future<void> _editSavedTax() async {
     if (sharedPreferences == null) {
       Get.snackbar('Error', 'SharedPreferences not initialized');
@@ -208,9 +210,8 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
 
       print("Edit Tax Map: $map");
 
-      editTaxResponseModel model = await CallService().editStoreTaxes(map,widget.editTaxId.toString(),);
-
-      await Future.delayed(Duration(seconds: 2));
+      // Wait for actual API response
+      editTaxResponseModel model = await CallService().editStoreTaxes(map, widget.editTaxId.toString());
 
       print("Tax updated successfully");
 
@@ -220,11 +221,15 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
 
       Get.back(); // Close loading dialog
       Navigator.pop(context); // Close bottom sheet
-      Get.snackbar('Success', 'Tax updated successfully');
 
+      // Call callback first to refresh the list
       if (widget.onDataAdded != null) {
-        widget.onDataAdded!();
+         widget.onDataAdded!();
+         await Future.delayed(Duration(milliseconds: 500));
       }
+
+      // Then show success message
+      Get.snackbar('Success', 'Tax updated successfully');
 
     } catch (e) {
       setState(() {
@@ -268,7 +273,7 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          widget.isEditMode ? 'Edit Tax' : 'Add Tax',
+                          widget.isEditMode ? 'edit_tax'.tr : 'add_tax'.tr,
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -280,8 +285,8 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
                     const SizedBox(height: 30),
 
                     // Tax Name Field
-                    const Text(
-                      'Tax Name',
+                    Text(
+                      'tax_name'.tr,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -293,7 +298,7 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
                     TextField(
                       controller: _taxNameController,
                       decoration: InputDecoration(
-                        hintText: 'Enter tax name (e.g., GST, VAT)',
+                        hintText: 'enter'.tr,
                         hintStyle: const TextStyle(
                           color: Colors.grey,
                           fontFamily: 'Mulish',
@@ -313,8 +318,8 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
                     const SizedBox(height: 20),
 
                     // Tax Percentage Field
-                    const Text(
-                      'Tax Percentage',
+                    Text(
+                      'percentage'.tr,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -330,7 +335,7 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
                         FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')),
                       ],
                       decoration: InputDecoration(
-                        hintText: 'Enter percentage (e.g., 18.5)',
+                        hintText: 'enter_percent'.tr,
                         hintStyle: const TextStyle(
                           color: Colors.grey,
                           fontFamily: 'Mulish',
@@ -377,8 +382,8 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
                             onPressed: () {
                               Navigator.pop(context);
                             },
-                            child: const Text(
-                              'Cancel',
+                            child:  Text(
+                              'cancel'.tr,
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -409,8 +414,8 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
                                 strokeWidth: 2,
                               ),
                             )
-                                : const Text(
-                              'Save',
+                                : Text(
+                              'saved'.tr,
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

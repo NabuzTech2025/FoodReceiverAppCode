@@ -322,7 +322,7 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          widget.isEditMode ? 'Edit Store Hours' : 'Add Store Hours',
+                          widget.isEditMode ? 'edit_store'.tr : 'add_store'.tr,
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -333,8 +333,8 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                     const SizedBox(height: 30),
 
                     // Store Hours Name
-                    const Text(
-                      'Store Hours Name',
+                 Text(
+                      'store_name'.tr,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -346,7 +346,7 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                     TextField(
                       controller: _storeNameController,
                       decoration: InputDecoration(
-                        hintText: 'Add Title..',
+                        hintText: 'title'.tr,
                         hintStyle: const TextStyle(
                           color: Colors.grey,
                           fontFamily: 'Mulish',
@@ -373,8 +373,8 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Opening Time',
+                             Text(
+                                'opening'.tr,
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -420,8 +420,8 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Closing Time',
+                               Text(
+                                'closing'.tr,
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -468,8 +468,8 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Select Days',
+                         Text(
+                          'days'.tr,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -487,8 +487,8 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
-                            const Text(
-                              'Select All',
+                             Text(
+                              'all'.tr,
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
@@ -560,7 +560,7 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                               onPressed: (){
                                 Navigator.pop(context);
                               },
-                              child: Text('Cancel',style: TextStyle(
+                              child: Text('cancel'.tr,style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 fontFamily: 'Mulish',
@@ -589,7 +589,7 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                               ),
                             )
                                 : const Text(
-                              'Save',
+                              'saved',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

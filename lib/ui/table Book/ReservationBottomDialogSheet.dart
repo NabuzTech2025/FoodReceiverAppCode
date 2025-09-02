@@ -9,7 +9,10 @@ import 'package:food_app/utils/log_util.dart';
 import 'package:food_app/utils/my_application.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../models/reservation/get_history_reservation.dart';
 
 class ReportScreenBottom extends StatefulWidget {
   @override
@@ -20,47 +23,56 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
   late SharedPreferences sharedPreferences;
   String? bearerKey;
   List<DailySalesReport> reportList = [];
-
+  DateTime? _selectedDate;
   int selectedMonth = DateTime.now().month;
   int selectedYear = DateTime.now().year;
-
+  bool isLoading=false;
   @override
   void initState() {
     super.initState();
     initVar();
+    loadReservationCounts();
   }
-
+  Map<String, int> reservationCounts = {};
   Future<void> initVar() async {
     sharedPreferences = await SharedPreferences.getInstance();
     bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
-    getReports(bearerKey);
+
   }
 
-  Future<void> getReports(String? bearerKey) async {
-    try {
-      print("DataBearerKey $bearerKey");
-      Get.dialog(
-        const Center(
-            child: CupertinoActivityIndicator(
-              radius: 20,
-              color: Colors.orange,
-            )),
-        barrierDismissible: false,
-      );
-      final result = await ApiRepo().reportGetApi(bearerKey!);
-      Get.back();
-      if (result != null) {
-        setState(() {
-          reportList = result;
-        });
-      } else {
-        showSnackbar("Error", "Error fetching reports.");
+  void _onDateSelected(DateTime selectedDate) {
+    setState(() {
+      _selectedDate = selectedDate;
+    });
+
+    // Call reservation history with selected date
+    reservationHistory();
+  }
+  Future<void> loadReservationCounts() async {
+    var reservations = app.appController.reservationsList;
+
+    Map<String, int> counts = {};
+
+    for (var reservation in reservations) {
+      if (reservation.reservedFor != null) {
+        try {
+          // reserved_for को date में convert करें
+          DateTime reservationDate = DateTime.parse(reservation.reservedFor!);
+          String dateKey = DateFormat('yyyy-MM-dd').format(reservationDate);
+          counts[dateKey] = (counts[dateKey] ?? 0) + 1;
+
+          print("Reservation ${reservation.id} reserved for: $dateKey"); // Debug
+        } catch (e) {
+          print("Error parsing reserved_for date: ${reservation.reservedFor}, Error: $e");
+        }
       }
-    } catch (e) {
-      Get.back();
-      Log.loga(title, "Report API Error: $e");
-      showSnackbar("API Error", "An error occurred: $e");
     }
+
+    print("Final reservation counts: $counts"); // Debug
+
+    setState(() {
+      reservationCounts = counts;
+    });
   }
 
   String formatAmount(double amount) {
@@ -123,11 +135,11 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("Reports", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text("Reservations", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Row(
               children: [
                 IconButton(
-                  icon: Icon(Icons.arrow_left,color: Colors.green,),
+                  icon: Icon(Icons.arrow_left, color: Colors.green),
                   onPressed: () {
                     setState(() {
                       if (selectedMonth == 1) {
@@ -137,10 +149,11 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
                         selectedMonth--;
                       }
                     });
+                    loadReservationCounts(); // Add this line
                   },
                 ),
                 IconButton(
-                  icon: Icon(Icons.arrow_right,color: Colors.green,),
+                  icon: Icon(Icons.arrow_right, color: Colors.green),
                   onPressed: () {
                     setState(() {
                       if (selectedMonth == 12) {
@@ -150,6 +163,7 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
                         selectedMonth++;
                       }
                     });
+                    loadReservationCounts(); // Add this line
                   },
                 ),
               ],
@@ -215,43 +229,79 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
 
   Widget _calendarCellWithDate(DateTime date, DailySalesReport? report, bool isCurrentMonth) {
     final textColor = isCurrentMonth ? Colors.black : Colors.grey[400];
+    String dateKey = DateFormat('yyyy-MM-dd').format(date);
+    int bookingCount = reservationCounts[dateKey] ?? 0;
 
     return Padding(
       padding: const EdgeInsets.all(6),
-      child: SizedBox(
-        height: 65,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "${date.day}",
-              style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
-            ),
-            const SizedBox(height: 2),
-            if (report != null)
-              GestureDetector(
-                onTap: () => showCalendarDialog(
-                  context,
-                  report,
-                  DateFormat('yyyy-MM-dd').format(date),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SvgPicture.asset(
-                      'assets/images/ic_report_dialog.svg',
-                      height: 12,
-                      width: 12,
-                    ),
-                    const SizedBox(height: 2),
-                    Text( "€${formatAmount(report.totalSales ?? 0)}",
-                      //"€${report.totalSales!.toStringAsFixed(2)}",
-                      style: const TextStyle(fontSize: 10, color: Colors.green),
-                    ),
-                  ],
-                ),
+      child: GestureDetector(
+        onTap: isCurrentMonth ? () => _onDateSelected(date) : null,
+        child: Container(
+          height: 65,
+          decoration: BoxDecoration(
+            color: _selectedDate != null &&
+                _selectedDate!.year == date.year &&
+                _selectedDate!.month == date.month &&
+                _selectedDate!.day == date.day
+                ? Colors.green.withOpacity(0.2)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "${date.day}",
+                style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
               ),
-          ],
+              const SizedBox(height: 2),
+
+              // Sales report (existing)
+              if (report != null)
+                GestureDetector(
+                  onTap: () => showCalendarDialog(
+                    context,
+                    report,
+                    DateFormat('yyyy-MM-dd').format(date),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SvgPicture.asset(
+                        'assets/images/ic_report_dialog.svg',
+                        height: 12,
+                        width: 12,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        "€${formatAmount(report.totalSales ?? 0)}",
+                        style: const TextStyle(fontSize: 10, color: Colors.green),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Booking count (new)
+              if (isCurrentMonth && bookingCount > 0) ...[
+                SizedBox(height: 2),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '$bookingCount',
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -281,51 +331,93 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
 
   void showCalendarDialog(BuildContext context, DailySalesReport report, String day) {
     final DateTime parsedDate = DateTime.parse(report.startDate!);
-    getOrdersFilter(bearerKey, true, day);
+
   }
 
   String _formatDate(DateTime date) {
     return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
   }
 
-  Future<void> getOrdersFilter(String? bearerKey, bool orderType, String date) async {
+
+  Future<void> reservationHistory() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    // Use selected date from calendar
+    String targetDate;
+    if (_selectedDate != null) {
+      targetDate = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+    } else {
+      targetDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    }
+
+    // SharedPreferences se store ID get करें
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? storeIdString = prefs.getString(valueShared_STORE_KEY);
+    int storeId;
+
+    if (storeIdString != null && storeIdString.isNotEmpty) {
+      storeId = int.tryParse(storeIdString) ?? 13;
+    } else {
+      storeId = 13;
+      print("Warning: Store ID not found in SharedPreferences, using default: 13");
+    }
+
+    var map = {
+      "store_id": storeId,
+      "target_date": targetDate,
+      "offset": 0
+    };
+
+    print("Getting History Map Value Is $map");
+
     try {
-      if (orderType) {
-        Get.dialog(
-          const Center(
-              child: CupertinoActivityIndicator(
-                radius: 20,
-                color: Colors.orange,
-              )),
-          barrierDismissible: false,
-        );
-      }
-      final Map<String, dynamic> data = {
-        "store_id": 4,
-        "target_date": date,
-        "limit": 0,
-        "offset": 0,
-      };
+      Get.dialog(
+        Center(
+            child: Lottie.asset(
+              'assets/animations/burger.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            )
+        ),
+        barrierDismissible: false,
+      );
 
-      final result = await ApiRepo().orderGetApiFilter(bearerKey!, data);
-      if (orderType) Get.back();
+      List<GetHistoryReservationResponseModel> orders = await CallService().reservationHistory(map);
 
-      if (result.isNotEmpty && result.first.code == null) {
-        setState(() {
-          app.appController.setOrders(result);
-          Navigator.of(context).pop(date);
-        });
-      } else {
-        String errorMessage = result.isNotEmpty
-            ? result.first.mess ?? "Unknown error"
-            : "No data returned";
-        showSnackbar("Error", errorMessage);
-        Navigator.of(context).pop(date);
+      print('Number of orders received: ${orders.length}');
+
+      setState(() {
+        isLoading = false;
+      });
+
+      Get.back();
+
+      // Return selected date and close bottom sheet
+      if (_selectedDate != null) {
+        String displayDate = DateFormat('d MMMM, y').format(_selectedDate!);
+        Navigator.of(context).pop(displayDate);
       }
+
     } catch (e) {
-      Log.loga(title, "Order Filter Error: $e");
-      showSnackbar("API Error", "An error occurred: $e");
-      Navigator.of(context).pop(date);
+      setState(() {
+        isLoading = false;
+      });
+
+      Get.back();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An error occurred during Getting Reservation History: $e'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      print('Getting History error: $e');
     }
   }
 }

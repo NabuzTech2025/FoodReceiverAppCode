@@ -1,8 +1,11 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
+import '../utils/global.dart';
+
 class NotificationService {
   static Future<void> initialize() async {
+    print('push Notification Logs');
     FirebaseMessaging messaging = FirebaseMessaging.instance;
     final AudioPlayer _audioPlayer = AudioPlayer();
     // 🔐 Request notification permissions
@@ -25,11 +28,39 @@ class NotificationService {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       print("NotificationSettings " + message.toString());
       print('📬 Foreground notification: ${message.notification?.title}');
-      await _audioPlayer.play(AssetSource('alarm.mp3'));
-      Future.delayed(Duration(seconds: 5), () {
-        _audioPlayer.stop();
-      });
+      // await _audioPlayer.play(AssetSource('alarm.mp3'));
+      // Future.delayed(Duration(seconds: 5), () {
+      //   _audioPlayer.stop();
+      // });
     });
+
+    // Add reservation notification handling:
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+      String title = message.notification?.title ?? '';
+      String body = message.notification?.body ?? '';
+
+      // Handle order notifications
+      if (title.contains('New Order') && body.isNotEmpty) {
+        // existing order logic
+      }
+
+      // Handle reservation notifications
+      if (title.contains('New Reservation') || title.contains('Reservation')) {
+        if (body.isNotEmpty) {
+          // Extract reservation ID from message
+          RegExp regExp = RegExp(r'#(\d+)');
+          Match? match = regExp.firstMatch(body);
+
+          if (match != null) {
+            int reservationID = int.parse(match.group(1)!);
+            await getReservationInForeground(reservationID);
+          }
+        }
+      }
+    });
+
+
 
     // 🚀 Handle background-to-foreground tap
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
@@ -53,4 +84,5 @@ class NotificationService {
     final token = await messaging.getToken();
     print('📲 FCM Token: $token');
   }
+
 }

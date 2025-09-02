@@ -368,6 +368,7 @@ import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../api/Socket/socket_service.dart';
 import '../api/repository/api_repository.dart';
 import '../constants/constant.dart';
 import '../ui/Discount/discount.dart';
@@ -446,95 +447,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
     }
   }
 
-  // @override
-  // Widget build(BuildContext context) {
-  //   return Drawer(
-  //     width: MediaQuery.of(context).size.width * 0.75,
-  //     child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         const SizedBox(height: 60),
-  //         Align(
-  //           alignment: Alignment.centerLeft,
-  //           child: Row(
-  //             children: [
-  //               IconButton(
-  //                 icon: const Icon(Icons.arrow_back),
-  //                 onPressed: () => Navigator.of(context).pop(),
-  //               ),
-  //               storeName == null || storeName!.isEmpty ?
-  //               SizedBox(
-  //                 width: 30,
-  //                 height: 30,
-  //                 child: Lottie.asset(
-  //                   'assets/animations/burger.json',
-  //                   width: 30,
-  //                   height: 30,
-  //                   repeat: true,
-  //                 ),
-  //               )
-  //                   : Text(
-  //                 storeName.toString(),
-  //                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-  //               )
-  //             ],
-  //           ),
-  //         ),
-  //
-  //         _drawerItem('order'.tr, onTap: () {
-  //           _navigateToHomeScreenTab(0);
-  //         }),
-  //         _drawerItem('reports'.tr, onTap: () {
-  //           _navigateToHomeScreenTab(1);
-  //         }),
-  //         _drawerItem('setting'.tr, onTap: () {
-  //           _navigateToHomeScreenTab(2);
-  //         }),
-  //         // New expandable Product section
-  //         _expandableProductItem(),
-  //         _drawerItem('discount'.tr, onTap: () {
-  //           Navigator.of(context).pop(); // close drawer
-  //           Get.to(() => Discount());
-  //         }),
-  //         _drawerItem('store'.tr, onTap: () {
-  //           Navigator.of(context).pop(); // close drawer
-  //           Get.to(() => StoreTiming());
-  //         }),
-  //         _drawerItem('manage'.tr, onTap: () {
-  //           Navigator.of(context).pop(); // close drawer
-  //           Get.to(() => Taxmanagement());
-  //         }),
-  //         const Spacer(),
-  //
-  //         Container(
-  //           child: _drawerItem('logout'.tr, onTap: () async {
-  //             var bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
-  //             logutAPi(bearerKey);
-  //           }),
-  //         ),
-  //         const Padding(
-  //           padding:  EdgeInsets.only(left: 15.0),
-  //           child: Text('Version:1.6.0',style: TextStyle(
-  //               fontWeight: FontWeight.w300,
-  //               fontSize: 15
-  //           ),),
-  //         ),
-  //         const SizedBox(
-  //           height: 60,
-  //         ),
-  //         /* Container(
-  //           color: Colors.grey[200],
-  //           child: _drawerItem("Logout", onTap: () async {
-  //             await sharedPreferences.remove(valueShared_BEARER_KEY);
-  //             Navigator.of(context).pop(); // close drawer
-  //             Get.to(() => LoginScreen());
-  //             // Add logout logic here
-  //           }),
-  //         ),*/
-  //       ],
-  //     ),
-  //   );
-  // }
-  // Replace the existing build method's return statement with this:
+
   @override
   Widget build(BuildContext context) {
     return Drawer(
@@ -542,7 +455,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
       width: MediaQuery.of(context).size.width * 0.75,
       child: Column(
         children: [
-          // Fixed header section
+
           Container(
             color: Colors.white,
             child: Column(
@@ -594,7 +507,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   }),
 
                   // Expandable Product section
-                  _expandableProductItem(),
+                 // _expandableProductItem(),
 
                   _drawerItem('discount'.tr, onTap: () {
                     Navigator.of(context).pop();
@@ -623,9 +536,9 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     logutAPi(bearerKey);
                   }),
                 ),
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(left: 15.0),
-                  child: Text('Version:1.6.0', style: TextStyle(
+                  child: Text('${'version'.tr}:1.9.0', style: TextStyle(
                       fontWeight: FontWeight.w300,
                       fontSize: 15
                   ),),
@@ -669,7 +582,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
       final result = await ApiRepo().logoutAPi(bearerKey);
       if (result != null) {
         print("✅ Logout API successful");
-
+        await _disconnectSocket();
         // ✅ STEP 1: Save IP data before clearing everything
         await _preserveUserIPData();
 
@@ -698,7 +611,17 @@ class _CustomDrawerState extends State<CustomDrawer> {
       showSnackbar("Api Error", "An error occurred: $e");
     }
   }
-
+  Future<void> _disconnectSocket() async {
+    try {
+      print("🔌 Disconnecting socket...");
+      // Assuming you have a socket service - adjust the class name accordingly
+       SocketService().disconnect();
+      await Future.delayed(Duration(milliseconds: 100));
+      print("✅ Socket disconnected");
+    } catch (e) {
+      print("⚠️ Error disconnecting socket: $e");
+    }
+  }
 // ✅ NEW: Preserve IP data for the current user before logout
   Future<void> _preserveUserIPData() async {
     try {
@@ -849,6 +772,20 @@ class _CustomDrawerState extends State<CustomDrawer> {
         List<String> keysToRemove = [
           valueShared_BEARER_KEY,
           valueShared_STORE_KEY,
+          // ✅ NEW: Clear backup IP keys that are created by PrinterSettingsScreen
+          'printer_ip_backup',
+          'printer_ip_0_backup',
+          'last_save_timestamp',
+          // ✅ Clear current session IP data (will be restored from user-prefixed data on next login)
+          'printer_ip_0',
+          'printer_ip_remote_0',
+          'selected_ip_index',
+          'selected_ip_remote_index',
+          // ✅ Clear current session auto settings (will be restored from user-prefixed data)
+          'auto_order_accept',
+          'auto_order_print',
+          'auto_order_remote_accept',
+          'auto_order_remote_print',
         ];
 
         for (String key in keysToRemove) {
@@ -857,11 +794,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
           print("🗑️ Removed: $key");
         }
 
-        // ✅ DON'T clear printer settings - they are preserved with user prefix
-        // The old code was clearing these, which was the problem:
-        // for (int i = 0; i < 5; i++) {
-        //   await prefs.remove('printer_ip_$i');
-        // }
+        // ✅ Also clear all printer IP keys (0-4) to ensure complete cleanup
+        for (int i = 0; i < 5; i++) {
+          await prefs.remove('printer_ip_$i');
+          await prefs.remove('printer_ip_remote_$i');
+        }
 
         // ✅ Force multiple reloads to ensure changes are committed
         await prefs.reload();
@@ -871,7 +808,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
         // ✅ Verify cleanup for this attempt
         String? testToken = prefs.getString(valueShared_BEARER_KEY);
-        if (testToken == null) {
+        String? testBackupIp = prefs.getString('printer_ip_backup');
+        if (testToken == null && testBackupIp == null) {
           print("✅ Cleanup attempt ${attempt + 1}: SUCCESS");
         } else {
           print("⚠️ Cleanup attempt ${attempt + 1}: Token still exists, retrying...");
@@ -882,11 +820,12 @@ class _CustomDrawerState extends State<CustomDrawer> {
       SharedPreferences finalPrefs = await SharedPreferences.getInstance();
       await finalPrefs.reload();
       String? finalToken = finalPrefs.getString(valueShared_BEARER_KEY);
+      String? finalBackupIp = finalPrefs.getString('printer_ip_backup');
 
-      if (finalToken == null) {
+      if (finalToken == null && finalBackupIp == null) {
         print("✅ Complete logout cleanup SUCCESS - All tokens removed");
       } else {
-        print("❌ Logout cleanup FAILED - Token still exists: ${finalToken.substring(0, 10)}...");
+        print("❌ Logout cleanup FAILED - Token still exists: ${finalToken!.substring(0, 10)}...");
       }
 
     } catch (e) {
@@ -924,7 +863,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
         ListTile(
           title: Row(
             children: [
-              Text('Product', style: const TextStyle(fontSize: 16)),
+              Text('product'.tr, style: const TextStyle(fontSize: 16)),
               Spacer(),
               Icon(
                 isProductExpanded ? Icons.expand_less : Icons.expand_more,
@@ -942,32 +881,32 @@ class _CustomDrawerState extends State<CustomDrawer> {
             visualDensity: VisualDensity.compact,
         ),
         if (isProductExpanded) ...[
-          _subDrawerItem('Category', onTap: () {
+          _subDrawerItem('category'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Category screen
              Get.to(() => Category());
           }),
-          _subDrawerItem('Items', onTap: () {
+          _subDrawerItem('item'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Items screen
             // Get.to(() => ItemsScreen());
           }),
-          _subDrawerItem('Toppings', onTap: () {
+          _subDrawerItem('topping'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Toppings screen
             // Get.to(() => ToppingsScreen());
           }),
-          _subDrawerItem('Topping Group', onTap: () {
+          _subDrawerItem('topping_group'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Topping Group screen
             // Get.to(() => ToppingGroupScreen());
           }),
-          _subDrawerItem('Group Item', onTap: () {
+          _subDrawerItem('group'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Group Item screen
             // Get.to(() => GroupItemScreen());
           }),
-          _subDrawerItem('Product Groups', onTap: () {
+          _subDrawerItem('product_group'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Product Groups screen
             // Get.to(() => ProductGroupsScreen());

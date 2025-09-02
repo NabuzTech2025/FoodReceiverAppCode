@@ -20,38 +20,178 @@ class _CustomAppBarState extends State<CustomAppBar> {
   TextEditingController searchControllerTodo = TextEditingController();
   FocusNode searchFocusNode = FocusNode();
   bool _showClearButton = false;
+  bool _isSearchActive = false;
 
   @override
   void initState() {
     super.initState();
-    // ✅ Real-time search listener add करें
     searchControllerTodo.addListener(_onSearchTextChanged);
   }
 
   @override
   void dispose() {
-    // ✅ Listener remove करना जरूरी है memory leak से बचने के लिए
+    searchFocusNode.unfocus();
     searchControllerTodo.removeListener(_onSearchTextChanged);
     searchControllerTodo.dispose();
     searchFocusNode.dispose();
     super.dispose();
   }
 
-  // ✅ Real-time search function
   void _onSearchTextChanged() {
     final searchText = searchControllerTodo.text;
     print("🔍 Search text changed: '$searchText'");
 
-    // ✅ Update clear button visibility
     setState(() {
       _showClearButton = searchText.isNotEmpty;
     });
 
-    // Real-time filtering
-    app.appController.filterSearchResultsTodo(searchText);
+    if (app.appController.selectedTabIndex == 0) {
+      app.appController.filterSearchResultsTodo(searchText);
+    } else if (app.appController.selectedTabIndex == 1) {
+      app.appController.filterSearchResultsReservation(searchText);
+    }
   }
 
-  @override
+  void _activateSearch() {
+    setState(() {
+      _isSearchActive = true;
+    });
+    // Small delay to ensure widget is built before requesting focus
+    Future.delayed(Duration(milliseconds: 50), () {
+      if (mounted) {
+        FocusScope.of(context).requestFocus(searchFocusNode);
+      }
+    });
+  }
+
+  void _deactivateSearch() {
+    setState(() {
+      _isSearchActive = false;
+    });
+    searchFocusNode.unfocus();
+  }
+
+  void _handleSearchTap() {
+    if (!searchFocusNode.hasFocus) {
+      FocusScope.of(context).requestFocus(searchFocusNode);
+    }
+  }
+  Widget _buildSearchBox() {
+    if (!_isSearchActive) {
+      // ✅ Inactive state - Show container that looks like TextField
+      return GestureDetector(
+        onTap: _activateSearch,
+        child: Container(
+          height: 40,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.search, color: Colors.green, size: 20),
+              SizedBox(width: 8),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    searchControllerTodo.text.isEmpty
+                        ? 'search_item'.tr
+                        : searchControllerTodo.text,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: searchControllerTodo.text.isEmpty
+                          ? Colors.grey[600]
+                          : Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+              if (searchControllerTodo.text.isNotEmpty)
+                GestureDetector(
+                  onTap: () {
+                    searchControllerTodo.clear();
+                    if (app.appController.selectedTabIndex == 0) {
+                      app.appController.clearSearch();
+                    } else if (app.appController.selectedTabIndex == 1) {
+                      app.appController.clearReservationSearch();
+                    }
+                  },
+                  child: Icon(Icons.clear, color: Colors.grey, size: 18),
+                ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      // ✅ Active state - Show actual TextField
+      return Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.search, color: Colors.green, size: 20),
+            SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                controller: searchControllerTodo,
+                focusNode: searchFocusNode,
+                autofocus: false,
+                style: TextStyle(fontSize: 14),
+                textInputAction: TextInputAction.search,
+                textAlignVertical: TextAlignVertical.center,
+                decoration: InputDecoration(
+                  hintText: 'search_item'.tr,
+                  hintStyle: TextStyle(fontSize: 14),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                  isCollapsed: true,
+                ),
+                onSubmitted: (value) {
+                  if (app.appController.selectedTabIndex == 0) {
+                    app.appController.filterSearchResultsTodo(value);
+                  } else if (app.appController.selectedTabIndex == 1) {
+                    app.appController.filterSearchResultsReservation(value);
+                  }
+                  _deactivateSearch();
+                },
+                onEditingComplete: () {
+                  _deactivateSearch();
+                },
+              ),
+            ),
+            if (_showClearButton)
+              GestureDetector(
+                onTap: () {
+                  searchControllerTodo.clear();
+                  if (app.appController.selectedTabIndex == 0) {
+                    app.appController.clearSearch();
+                  } else if (app.appController.selectedTabIndex == 1) {
+                    app.appController.clearReservationSearch();
+                  }
+                },
+                child: Icon(Icons.clear, color: Colors.grey, size: 18),
+              ),
+            // ✅ Done button to close search
+            SizedBox(width: 8),
+            GestureDetector(
+              onTap: _deactivateSearch,
+              child: Icon(Icons.keyboard_hide, color: Colors.grey, size: 18),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+
+@override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Container(
@@ -67,70 +207,11 @@ class _CustomAppBarState extends State<CustomAppBar> {
               //SvgPicture.asset('assets/images/drawer.svg'),
             ),
             const SizedBox(width: 8),
-
-            // Search box ko conditionally show karne ke liye Obx use karenge
             Obx(() {
-              // Sirf Order screen (index 0) par search box show karenge
-              if (app.appController.selectedTabIndex == 0) {
+              if (app.appController.selectedTabIndex == 0 || app.appController.selectedTabIndex == 1){
                 return Expanded(
-                  child: Container(
-                    height: 40,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.search, color: Colors.green, size: 20),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: TextField(
-                            controller: searchControllerTodo,
-                            focusNode: searchFocusNode,
-                            autofocus: false,
-                            enableInteractiveSelection: true,
-                            style: TextStyle(fontSize: 14),
-                            decoration: InputDecoration(
-                              hintText: 'search_item'.tr,
-                              hintStyle: TextStyle(fontSize: 14),
-                              border: InputBorder.none,
-                              isDense: true,
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                            onTap: () {
-                              searchFocusNode.requestFocus();
-                            },
-                            onSubmitted: (value) {
-                              app.appController.filterSearchResultsTodo(value);
-                              searchFocusNode.unfocus();
-                            },
-                            onEditingComplete: () {
-                              searchFocusNode.unfocus();
-                            },
-                          ),
-                        ),
-                        // ✅ Clear search button (simple approach)
-                        if (_showClearButton)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 4.0),
-                            child: GestureDetector(
-                              onTap: () {
-                                searchControllerTodo.clear();
-                                searchFocusNode.unfocus();
-                                // Clear will automatically trigger the listener
-                              },
-                              child: Icon(
-                                Icons.clear,
-                                color: Colors.grey,
-                                size: 18,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                );
+                  child: _buildSearchBox()
+                ) ;
               } else {
                 // Report screen aur Settings screen par search box hide kar denge
                 return Expanded(child: SizedBox.shrink());

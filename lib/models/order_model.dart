@@ -18,7 +18,8 @@ class Order {
   int? orderType;
   int? orderStatus;
   int? approvalStatus;
-  DateTime? deliveryTime;
+  String? deliveryTime;
+  //DateTime? deliveryTime;
   int? storeId;
   bool? isActive;
   int? id;
@@ -119,7 +120,7 @@ class Order {
         "order_type": orderType,
         "order_status": orderStatus,
         "approval_status": approvalStatus,
-        "delivery_time": deliveryTime?.toIso8601String(),
+        "delivery_time": deliveryTime,
         "store_id": storeId,
         "isActive": isActive,
         "id": id,

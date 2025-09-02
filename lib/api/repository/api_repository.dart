@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:food_app/models/Store.dart';
 import 'package:food_app/models/add_tax_response_mode.dart';
 import 'package:food_app/models/driver/driver_register_model.dart';
+import 'package:food_app/models/reservation/get_user_reservation_details.dart';
 import 'package:food_app/models/today_report.dart';
 import 'package:get/get.dart' hide FormData;
 
@@ -17,9 +18,11 @@ import '../../models/PrinterSetting.dart';
 import '../../models/StoreDetail.dart';
 import '../../models/StoreSetting.dart';
 import '../../models/UserMe.dart';
+import '../../models/add_new_product_category_response_model.dart';
 import '../../models/add_new_store_timing_response_model.dart';
 import '../../models/discount_change_response_model.dart';
 import '../../models/driver/get_deliver_driver_response_model.dart';
+import '../../models/edit_existing_product_category_response_model.dart';
 import '../../models/edit_tax_response_model.dart';
 import '../../models/get_added_tax_response_model.dart';
 import '../../models/get_discount_percentage_response_model.dart';
@@ -28,6 +31,9 @@ import '../../models/get_store_timing_response_model.dart';
 import '../../models/order_history_response_model.dart';
 import '../../models/order_model.dart';
 import '../../models/print_order_without_ip.dart';
+import '../../models/reservation/accept_decline_reservation_response_model.dart';
+import '../../models/reservation/get_history_reservation.dart';
+import '../../models/reservation/get_reservation_table_full_details.dart';
 import '../api.dart';
 import '../api_end_points.dart';
 import '../api_params.dart';
@@ -1143,13 +1149,20 @@ class CallService extends GetConnect {
       );
       if (res.statusCode == 200 || res.statusCode == 204) {
         return true;
+      } else if (res.statusCode == 400) {
+        String errorBody = res.body.toString();
+        print('Delete API Error: ${res.statusCode} - $errorBody');
+        throw Exception('400_ERROR: $errorBody');
       } else {
         print('Delete API Error: ${res.statusCode} - ${res.body}');
-        return false;
+        return false; // Return false instead of throwing exception for other errors
       }
     } catch (e) {
+      if (e.toString().contains('400_ERROR')) {
+        throw e; // Re-throw 400 errors
+      }
       print('Delete API Exception: $e');
-      return false;
+      return false; // Return false for network/other errors
     }
   }
 
@@ -1171,6 +1184,335 @@ class CallService extends GetConnect {
       return jsonList.map((json) => GetProductCategoryList.fromJson(json)).toList();
     } else {
       throw Exception('Failed to load Product Category: ${res.statusCode}');
+    }
+  }
+
+  //For adding the new product Category
+  Future<AddNewProductCategoryResponseModel> addNewProductCategory(dynamic body,) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+
+      // Validate access token
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await post(
+        'categories/', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("Add Store Tax response is ${res.statusCode}");
+      print("Add Store Tax Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("Add New Product Category Response is : ${res.statusCode.toString()}");
+        return AddNewProductCategoryResponseModel.fromJson(res.body);
+      } else if (res.statusCode == 400) {
+        // Bad request - invalid data
+        print("Bad Request: ${res.body}");
+        throw Exception('Invalid request data: ${res.body}');
+      } else if (res.statusCode == 401) {
+        // Unauthorized - token might be expired
+        print("Unauthorized: Token might be expired");
+        throw Exception('Authentication failed. Please login again.');
+      } else if (res.statusCode == 403) {
+        // Forbidden - insufficient permissions
+        print("Forbidden: Insufficient permissions");
+        throw Exception('You do not have permission to perform this action.');
+      } else if (res.statusCode == 404) {
+        // Not found - store doesn't exist
+        print("Store not found");
+        throw Exception('Store with ID not found.');
+      } else if (res.statusCode == 500) {
+        // Server error
+        print("Internal Server Error: ${res.body}");
+        throw Exception('Server error occurred. Please try again later.');
+      } else {
+        // Other errors
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("Adding error: $e");
+
+      // Re-throw the exception with more context
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Deleting The Product Categories
+  Future<bool> deleteProductCategory(int productId) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      httpClient.baseUrl = Api.baseUrl;
+      var res = await delete("categories/$productId",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer $accessToken",
+        },
+      );
+      if (res.statusCode == 200 || res.statusCode == 204) {
+        return true;
+      } else {
+        print('Delete API Error: ${res.statusCode} - ${res.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Delete API Exception: $e');
+      return false;
+    }
+  }
+
+  // For Editing the existing product category
+  Future<EditExistingProductCategoryResponseModel> editProductCategory(dynamic body,String productId) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+
+      // Validate access token
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await put(
+        'categories/$productId', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("EDIT Product category response is ${res.statusCode}");
+      print("EDIT  Product category Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("EDIT Product category Response is : ${res.statusCode.toString()}");
+        return EditExistingProductCategoryResponseModel.fromJson(res.body);
+      } else if (res.statusCode == 400) {
+        // Bad request - invalid data
+        print("Bad Request: ${res.body}");
+        throw Exception('Invalid request data: ${res.body}');
+      } else if (res.statusCode == 401) {
+        // Unauthorized - token might be expired
+        print("Unauthorized: Token might be expired");
+        throw Exception('Authentication failed. Please login again.');
+      } else if (res.statusCode == 403) {
+        // Forbidden - insufficient permissions
+        print("Forbidden: Insufficient permissions");
+        throw Exception('You do not have permission to perform this action.');
+      } else if (res.statusCode == 404) {
+        // Not found - store doesn't exist
+        print("Store not found");
+        throw Exception('Store with ID not found.');
+      } else if (res.statusCode == 500) {
+        // Server error
+        print("Internal Server Error: ${res.body}");
+        throw Exception('Server error occurred. Please try again later.');
+      } else {
+        // Other errors
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("EDIT error: $e");
+
+      // Re-throw the exception with more context
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  // For Getting Reservation Details
+  Future<List<GetUserReservationDetailsResponseModel>> getReservationDetailsList() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $accessToken");
+
+    httpClient.baseUrl = Api.baseUrl;
+    var res = await get('reservations/', headers: {
+      'accept': 'application/json',
+      'Authorization': "Bearer $accessToken",
+    });
+
+    print("API Response Status Code: ${res.statusCode}");
+    print("API Response Body: ${res.body}");
+
+    if (res.statusCode == 200) {
+      List<GetUserReservationDetailsResponseModel> reservations = [];
+      var jsonData = res.body;
+
+      if (jsonData is List) {
+        for (var item in jsonData) {
+          reservations.add(GetUserReservationDetailsResponseModel.fromJson(item));
+        }
+      }
+      return reservations;
+    } else {
+      throw Exception("Failed to load reservation details. Status code: ${res.statusCode}");
+    }
+  }
+
+  // For Getting New Reservation
+  Future<GetUserReservationDetailsResponseModel> getNewReservationData(String bearer, int id) async {
+    String url = Api.baseUrl + ApiEndPoints.getReservation + id.toString();
+    try {
+      final response = await apiUtils.get(
+
+        url: url,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $bearer',
+            'Accept': 'application/json',
+          },
+        ),
+      );
+
+      if (response != null && response.statusCode == 200) {
+        // Ensure the response data is a map
+        final jsonData = response.data;
+        print("🚀 API Order Response: ${response.data}");
+
+        return GetUserReservationDetailsResponseModel.fromJson(jsonData); // ✅ Parse single order object
+      } else {
+        return GetUserReservationDetailsResponseModel.withError(
+          code: response?.statusCode ?? 500,
+          mess: "Unexpected response format",
+        );
+      }
+    } catch (e) {
+      return GetUserReservationDetailsResponseModel.withError(
+        code: 500,
+        mess: e.toString(),
+      );
+    }
+  }
+
+  //for accepting and declining the reservation
+  Future<GetOrderStatusResponseModel> acceptDeclineReservation(dynamic body,String reservationId) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+
+      var res = await put('reservations/$reservationId', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("Reservation response is ${res.statusCode}");
+      print("Reservation response is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("Reservation Response is : ${res.statusCode.toString()}");
+        return GetOrderStatusResponseModel.fromJson(res.body);
+      } else if (res.statusCode == 400) {
+        // Bad request - invalid data
+        print("Bad Request: ${res.body}");
+        throw Exception('Invalid request data: ${res.body}');
+      } else if (res.statusCode == 401) {
+        // Unauthorized - token might be expired
+        print("Unauthorized: Token might be expired");
+        throw Exception('Authentication failed. Please login again.');
+      } else if (res.statusCode == 403) {
+        // Forbidden - insufficient permissions
+        print("Forbidden: Insufficient permissions");
+        throw Exception('You do not have permission to perform this action.');
+      } else if (res.statusCode == 404) {
+        // Not found - store doesn't exist
+        print("Store not found");
+        throw Exception('Store with ID not found.');
+      } else if (res.statusCode == 500) {
+        // Server error
+        print("Internal Server Error: ${res.body}");
+        throw Exception('Server error occurred. Please try again later.');
+      } else {
+        // Other errors
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("Status error: $e");
+
+      // Re-throw the exception with more context
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Reservation table Full details
+  Future<GetOrderDetailsResponseModel> getReservationFullDetails(String reservationId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $accessToken");
+    httpClient.baseUrl = Api.baseUrl;
+    var res = await get('reservations/$reservationId', headers: {
+      'accept': 'application/json',
+      'Authorization': "Bearer $accessToken",
+    });
+    if (res.statusCode == 200) {
+      print("Reservation Details response is :${res.statusCode.toString()}");
+      return GetOrderDetailsResponseModel.fromJson(res.body);
+    } else {
+      throw Exception(Error());
+    }
+  }
+
+  Future<List<GetHistoryReservationResponseModel>> reservationHistory(dynamic body) async {
+    httpClient.baseUrl = Api.baseUrl;
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $accessToken");
+
+    var res = await post(
+      'reservations/store/filter',
+      body,
+      headers: {
+        'accept': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+    );
+
+    print("response is ${res.statusCode}");
+
+    if (res.statusCode == 200) {
+      print("order History Response is : ${res.statusCode.toString()}");
+      print("Order History Response Body is : ${res.body}");
+
+      // Parse the response body as a list
+      List<dynamic> jsonList = res.body;
+      List<GetHistoryReservationResponseModel> reservation = [];
+
+      for (var json in jsonList) {
+        reservation.add(GetHistoryReservationResponseModel.fromJson(json));
+      }
+
+      return reservation;
+    } else {
+      throw Exception("Failed to load order history");
     }
   }
 
