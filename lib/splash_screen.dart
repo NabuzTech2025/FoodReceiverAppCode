@@ -37,8 +37,30 @@ class _SplashScreenState extends State<SplashScreen> {
     if (savedLangCode != null && supportedLocales.contains(savedLangCode)) {
       changeLanguage(savedLangCode);
     }
+
     Timer(const Duration(seconds: 4), () {
-      Get.off(() => sessionID != null ? HomeScreen() : LoginScreen());
+      if (sessionID != null) {
+        // Check if we have a stored tab preference from notification
+        String? notificationTab = _prefs.getString('notification_initial_tab');
+
+        if (notificationTab != null) {
+          // Clear the stored preference
+          _prefs.remove('notification_initial_tab');
+          // Navigate with the tab preference
+          Get.off(() => HomeScreen(), arguments: {'initialTab': int.parse(notificationTab)});
+        } else {
+          // Check if we have navigation arguments from Get.arguments
+          final arguments = Get.arguments;
+          if (arguments != null && arguments['initialTab'] != null) {
+            Get.off(() => HomeScreen(), arguments: arguments);
+          } else {
+            // Normal navigation to default tab
+            Get.off(() => HomeScreen());
+          }
+        }
+      } else {
+        Get.off(() => LoginScreen());
+      }
     });
   }
 
@@ -51,9 +73,9 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child:
+        child:  
         Lottie.asset(
-            'assets/animations/Pizza.json',
+            'assets/animations/burger.json',
             width: 350,
             height: 350,
             repeat: true, )

@@ -4,6 +4,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:food_app/main.dart';
 import 'package:food_app/ui/PrinterSettingsScreen.dart';
 import 'package:food_app/ui/table%20Book/reservation.dart';
 import 'package:get/get.dart';
@@ -44,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _pageController = PageController(initialPage: 0);
     _setupFCMListeners();
     _loadInitialData();
+    _setupLocalNotificationTap(); // Add this line
 
     final arguments = Get.arguments;
     if (arguments != null && arguments['initialTab'] != null) {
@@ -53,6 +56,22 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
     super.initState();
+  }
+  void _setupLocalNotificationTap() {
+    // Listen for local notification taps when app is in foreground
+    flutterLocalNotificationsPlugin.initialize(
+      InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        iOS: DarwinInitializationSettings(),
+      ),
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        String? payload = response.payload;
+        if (payload != null) {
+          int tabIndex = int.parse(payload);
+          _openTab(tabIndex); // Navigate to appropriate tab
+        }
+      },
+    );
   }
   Future<void> _loadInitialData() async {
     await Future.wait([
@@ -73,9 +92,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final title = message.notification?.title ?? '';
 
+      // केवल data refresh करें, auto navigation नहीं करें
       if (title.contains("New Order")) {
-        print("inside the order");
-
         final body = message.notification?.body ?? '';
         RegExp regex = RegExp(r'#(\d+)');
         Match? match = regex.firstMatch(body);
@@ -93,18 +111,35 @@ class _HomeScreenState extends State<HomeScreen> {
             _lastProcessedTime = now;
 
             print("Order number: $orderNumber - calling API");
-            getOrdersInForegrund(context,orderNumber);
-          } else {
-            print("Duplicate order received too soon. Skipping API call for order: $orderNumber");
+            getOrdersInForegrund(context, orderNumber);
+            // Remove _openTab(0); - no auto navigation
           }
-        } else {
-          print("No order number found");
+        }
+      } else if (title.contains("New Reservation") || title.contains("Reservation")) {
+        final body = message.notification?.body ?? ''; // Add this line
+        RegExp regex = RegExp(r'#(\d+)');
+        Match? match = regex.firstMatch(body);
+
+        if (match != null) {
+          int reservationNumber = int.parse(match.group(1)!);
+          print("Reservation number: $reservationNumber - refreshing data");
+          getReservationsInBackground();
         }
       }
     });
 
+    // यह notification tap पर ही चलेगा
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      getOrdersInBackground();
+      final title = message.notification?.title ?? '';
+
+      if (title.contains("New Order")) {
+        _openTab(0);
+        getOrdersInBackground();
+      } else if (title.contains("Reservation")) {
+        _openTab(1);
+        getReservationsInBackground();
+      }
+
       print('Notification Screen tapped (app opened): ${message.notification?.title}');
     });
   }
@@ -125,13 +160,60 @@ class _HomeScreenState extends State<HomeScreen> {
         appBar: CustomAppBar(),
         resizeToAvoidBottomInset: true,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-
+        // Add conditional floating action button
+        floatingActionButton: Obx(() {
+          print("Current selected tab index: ${app.appController.selectedTabIndex}");
+          if (app.appController.selectedTabIndex == 1) {
+            print("Should show floating button");
+            return floatingButton(context);
+          }
+          print("Should hide floating button");
+          return SizedBox.shrink();
+        }),
         bottomNavigationBar: _buildBottomBar(),
         body: _buildBody(),
       ),
     );
   }
-
+  Widget floatingButton(BuildContext context) {
+    return Container(
+      height: 55,
+      width: 55,
+      decoration: BoxDecoration(
+        color: Colors.orange,
+        borderRadius: BorderRadius.circular(27.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 5,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(27.5),
+          onTap: () {
+            if (app.appController.selectedTabIndex == 1) {
+              app.appController.triggerAddReservation.value = !app.appController.triggerAddReservation.value;
+            }
+          },
+          child: Center(
+            child: AnimatedRotation(
+              turns: 0.0,
+              duration: Duration(milliseconds: 200),
+              child: Icon(
+                Icons.add,
+                size: 30,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
   @override
   void dispose() {
     super.dispose();
@@ -150,7 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
               //ic_project_home.png
               ItemBottomBar(
                 selected: app.appController.selectedTabIndex == 0,
-                icon: "assets/images/ic_order.png",
+                icon: "assets/images/ic_order.png",iconHeight: 20,iconWidth: 20,
                 name: 'order'.tr,
                 showBadge  : app.appController.getPendingOrder > 0,
                 badgeValue : app.appController.getPendingOrder,
@@ -160,7 +242,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ItemBottomBar(
                 selected: app.appController.selectedTabIndex == 1,
-                icon: "assets/images/reservationIcon.png",
+                icon: "assets/images/reservationIcon.png",iconHeight: 25,iconWidth: 30,
                 name: 'reserv'.tr,
                 showBadge: app.appController.getPendingReservations > 0,
                 badgeValue: app.appController.getPendingReservations,
@@ -170,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ItemBottomBar(
                 selected: app.appController.selectedTabIndex == 2,
-                icon: "assets/images/ic_reports.png",
+                icon: "assets/images/ic_reports.png",iconHeight: 20,iconWidth: 20,
                 name: 'reports'.tr,
                 onPressed: () {
                   _openTab(2);
@@ -178,7 +260,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ItemBottomBar(
                 selected: app.appController.selectedTabIndex == 3,
-                icon: "assets/images/ic_setting.png",
+                icon: "assets/images/ic_setting.png",iconHeight: 20,iconWidth: 20,
                 name: 'setting'.tr,
                 onPressed: () {
                   _openTab(3);
@@ -228,37 +310,5 @@ class _HomeScreenState extends State<HomeScreen> {
 
   }
 
-  Widget floatingButton(BuildContext context) {
-    return Container(
-      height: 55,
-      width: 55,
-      decoration: BoxDecoration(
-        color: Colors.yellow[600],
-        borderRadius: BorderRadius.circular(50), // Adjust for roundness
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 5,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () {
-            // BottomDialog().showBottomDialog(context)
-          },
-          child: Center(
-            child: Icon(
-              Icons.add,
-              size: 40,
-              color: Colors.white,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+
 }

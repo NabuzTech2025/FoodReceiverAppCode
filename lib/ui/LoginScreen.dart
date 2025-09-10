@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -36,10 +38,10 @@ class _LoginScreenState extends State<LoginScreen>
   String? token;
   String? userName;
   String? password;
-  String selectedEnvironment = 'Prod'; // Default
+  String selectedEnvironment = 'Prod';
   // At the top of your _LoginScreenState class
   final supportedLocales = ['en', 'de', 'hi', 'ch'];
-
+  Timer? _loginTimer;
   String getValidatedLocale() {
     final currentLocale = Get.locale?.languageCode ?? 'en';
     return supportedLocales.contains(currentLocale) ? currentLocale : 'en';
@@ -65,6 +67,11 @@ class _LoginScreenState extends State<LoginScreen>
       _EmailController.text = userName!;
       _PasswordController.text = password!;
     }
+  }
+  @override
+  void dispose() {
+    _loginTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -261,7 +268,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   Future<void> postloginData(String email, String password, String deviceToken) async {
     try {
-      // Show loader
+
       Get.dialog(
         Center(
             child: Lottie.asset(
@@ -274,40 +281,37 @@ class _LoginScreenState extends State<LoginScreen>
         barrierDismissible: false,
       );
 
+      _loginTimer = Timer(Duration(seconds: 7), () {
+        if (Get.isDialogOpen ?? false) {
+          Get.back();
+          showSnackbar("Login Timeout", "Login request timed out. Please try again.");
+        }
+      });
+
       final result = await ApiRepo().loginApi(email, password, deviceToken);
+
+      // Cancel timer since we got a response
+      _loginTimer?.cancel();
+
       Log.loga(title, "LoginData :: result >>>>> ${result?.toJson()}");
 
       if (result != null && result.access_token != null && result.access_token!.isNotEmpty) {
         print("🔐 Login successful, clearing old data and saving new token...");
-
-        // ✅ STEP 1: Complete data cleanup
         await _forceCompleteCleanup();
-
-        // ✅ STEP 2: Wait for cleanup to complete
         await Future.delayed(Duration(milliseconds: 50));
-
-        // ✅ STEP 3: Create completely fresh SharedPreferences instance
         SharedPreferences freshPrefs = await SharedPreferences.getInstance();
-
-        // ✅ STEP 4: Set new values with verification
         print("💾 Saving bearer token...");
         await freshPrefs.setString(valueShared_BEARER_KEY, result.access_token!);
         await Future.delayed(Duration(milliseconds: 50));
-
         print("💾 Saving username...");
         await freshPrefs.setString(valueShared_USERNAME_KEY, _EmailController.text.toString());
         await Future.delayed(Duration(milliseconds: 50));
-
         print("💾 Saving password...");
         await freshPrefs.setString(valueShared_PASSWORD_KEY, _PasswordController.text.toString());
         await Future.delayed(Duration(milliseconds: 50));
-
-        // ✅ STEP 6: Force commit and reload multiple times
         await freshPrefs.reload();
         await Future.delayed(Duration(milliseconds: 100));
         await freshPrefs.reload();
-
-        // ✅ STEP 7: Comprehensive verification
         String? verifyToken = freshPrefs.getString(valueShared_BEARER_KEY);
         String? verifyStore = freshPrefs.getString(valueShared_STORE_KEY);
         String? verifyUsername = freshPrefs.getString(valueShared_USERNAME_KEY);
@@ -321,18 +325,10 @@ class _LoginScreenState extends State<LoginScreen>
           print("✅ Token verification: PASSED");
           print("👤 Role ID: ${result.role_id}");
           print("🆔 Token Length: ${result.access_token?.length}");
-
-          // ✅ STEP 8: Update class instance
           sharedPreferences = freshPrefs;
-
-          // ✅ STEP 9: Force background handler to refresh token cache
           await _forceBackgroundHandlerTokenRefresh();
-
-          // ✅ STEP 10: Test background handler access
           await SettingsSync.syncSettingsAfterLogin();
-
-          // ✅ STEP 11: Navigate to home screen और loader को बंद करना
-          Get.back(); // Close loader just before navigation
+          Get.back();
           Get.to(() => HomeScreen());
         } else {
           print("❌ Token verification failed!");
@@ -340,26 +336,22 @@ class _LoginScreenState extends State<LoginScreen>
           showSnackbar("Error", "Failed to save login credentials");
         }
       } else {
-        // ✅ Handle login failure cases with specific error messages
-        Get.back(); // Close loader on login failure
+        Get.back();
         showSnackbar("Login Failed", "Invalid email or password");
       }
     } catch (e) {
+      // Cancel timer since we got an error response
+      _loginTimer?.cancel();
+
       Log.loga(title, "Login Api:: e >>>>> $e");
       Get.back();
 
       String errorMessage = "";
-
-      // Check for specific network/connection errors
       String errorString = e.toString().toLowerCase();
-
-      // First check if it's a DioException with 401 status
       if (errorString.contains("dioexception") && errorString.contains("401")) {
         // Extract the actual error message from the response
         if (errorString.contains("invalid username or password") ||
             errorString.contains("invalid credentials")) {
-          // Since we can't distinguish between email and password from this generic message,
-          // we'll show "Invalid email or password" for 401 errors
           errorMessage = "Invalid email or password";
         } else if (errorString.contains("email")) {
           errorMessage = "Invalid email";
@@ -380,7 +372,6 @@ class _LoginScreenState extends State<LoginScreen>
           errorString.contains("network error")) {
         errorMessage = "No internet connection";
       }
-      // Check for other DioException errors
       else if (errorString.contains("dioexception") || errorString.contains("dioerror")) {
         if (errorString.contains("400")) {
           // Bad request - usually email format issues
@@ -395,14 +386,13 @@ class _LoginScreenState extends State<LoginScreen>
           errorMessage = "No internet connection";
         }
       } else {
-        // For any other unknown errors
         errorMessage = "No internet connection";
       }
 
       showSnackbar("Login Error", errorMessage);
     }
   }
-  // Add this method to sync settings after login
+
   Future<void> syncSettingsAfterLogin() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -436,7 +426,6 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-// ✅ Complete cleanup function
   Future<void> _forceCompleteCleanup() async {
     try {
       print("🧹 Starting complete cleanup...");
@@ -471,7 +460,6 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-// ✅ Force background handler to refresh token cache
   Future<void> _forceBackgroundHandlerTokenRefresh() async {
     try {
       print("🔄 Forcing background handler token refresh...");
@@ -507,20 +495,6 @@ class _LoginScreenState extends State<LoginScreen>
     await sharedPreferences.setString(valueShared_LANGUAGE, langCode);
   }
 
-  // Future<void> enviroment(String value) async {
-  //   if (value == "Prod") {
-  //     sharedPreferences.setString(valueShared_BASEURL, "https://magskr.com/");
-  //   } else if (value == "Test") {
-  //     sharedPreferences.setString(valueShared_BASEURL, "https://magskr.de/");
-  //   } else {
-  //     sharedPreferences.setString(valueShared_BASEURL, "https://magskr.com/");
-  //   }
-  //   setState(() {
-  //     selectedEnvironment = value;
-  //   });
-  //   await Api.init();
-  // }
-// ✅ Updated environment method in LoginScreen.dart
   Future<void> enviroment(String value) async {
     String newBaseUrl;
 
@@ -594,7 +568,6 @@ class _LoginScreenState extends State<LoginScreen>
       },
     );
   }
-
 
 }
 

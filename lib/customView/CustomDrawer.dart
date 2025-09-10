@@ -499,11 +499,14 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   _drawerItem('order'.tr, onTap: () {
                     _navigateToHomeScreenTab(0);
                   }),
-                  _drawerItem('reports'.tr, onTap: () {
+                  _drawerItem('reserv'.tr, onTap: () {
                     _navigateToHomeScreenTab(1);
                   }),
-                  _drawerItem('setting'.tr, onTap: () {
+                  _drawerItem('reports'.tr, onTap: () {
                     _navigateToHomeScreenTab(2);
+                  }),
+                  _drawerItem('setting'.tr, onTap: () {
+                    _navigateToHomeScreenTab(3);
                   }),
 
                   // Expandable Product section
@@ -538,7 +541,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 ),
                 Padding(
                   padding: EdgeInsets.only(left: 15.0),
-                  child: Text('${'version'.tr}:1.9.0', style: TextStyle(
+                  child: Text('${'version'.tr}:1.11.0', style: TextStyle(
                       fontWeight: FontWeight.w300,
                       fontSize: 15
                   ),),

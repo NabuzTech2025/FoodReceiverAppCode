@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:food_app/models/Store.dart';
 import 'package:food_app/models/add_tax_response_mode.dart';
 import 'package:food_app/models/driver/driver_register_model.dart';
+import 'package:food_app/models/reservation/edit_reservation_details_response_model.dart';
 import 'package:food_app/models/reservation/get_user_reservation_details.dart';
 import 'package:food_app/models/today_report.dart';
 import 'package:get/get.dart' hide FormData;
@@ -32,6 +33,7 @@ import '../../models/order_history_response_model.dart';
 import '../../models/order_model.dart';
 import '../../models/print_order_without_ip.dart';
 import '../../models/reservation/accept_decline_reservation_response_model.dart';
+import '../../models/reservation/add_new_reservation_response_model.dart';
 import '../../models/reservation/get_history_reservation.dart';
 import '../../models/reservation/get_reservation_table_full_details.dart';
 import '../api.dart';
@@ -1070,7 +1072,7 @@ class CallService extends GetConnect {
     }
   }
 
-  //For Adding New Tax To store
+  //For editing New Tax To store
   Future<editTaxResponseModel> editStoreTaxes(dynamic body,String taxId) async {
     try {
       httpClient.baseUrl = Api.baseUrl;
@@ -1481,6 +1483,7 @@ class CallService extends GetConnect {
     }
   }
 
+  // for Getting reservation History
   Future<List<GetHistoryReservationResponseModel>> reservationHistory(dynamic body) async {
     httpClient.baseUrl = Api.baseUrl;
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -1513,6 +1516,134 @@ class CallService extends GetConnect {
       return reservation;
     } else {
       throw Exception("Failed to load order history");
+    }
+  }
+
+  //For Editing reservation details
+  Future<EditReservationDetailsResponseModel> editReservationDetails(dynamic body,String reservationId) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+
+      // Validate access token
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await put(
+        'reservations/$reservationId', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("EDIT Store Tax response is ${res.statusCode}");
+      print("EDIT Store Tax Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("EDIT Reservation Response is : ${res.statusCode.toString()}");
+        return EditReservationDetailsResponseModel.fromJson(res.body);
+      } else if (res.statusCode == 400) {
+        // Bad request - invalid data
+        print("Bad Request: ${res.body}");
+        throw Exception('Invalid request data: ${res.body}');
+      } else if (res.statusCode == 401) {
+        // Unauthorized - token might be expired
+        print("Unauthorized: Token might be expired");
+        throw Exception('Authentication failed. Please login again.');
+      } else if (res.statusCode == 403) {
+        // Forbidden - insufficient permissions
+        print("Forbidden: Insufficient permissions");
+        throw Exception('You do not have permission to perform this action.');
+      } else if (res.statusCode == 404) {
+        // Not found - store doesn't exist
+        print("Store not found");
+        throw Exception('Store with ID not found.');
+      } else if (res.statusCode == 500) {
+        // Server error
+        print("Internal Server Error: ${res.body}");
+        throw Exception('Server error occurred. Please try again later.');
+      } else {
+        // Other errors
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("EDIT error: $e");
+
+      // Re-throw the exception with more context
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Adding New Reservation
+  Future<AddNewReservationResponseModel> addReservation(dynamic body,) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+
+      // Validate access token
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await post(
+        'reservations/guest', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("Add Reservation response is ${res.statusCode}");
+      print("Add Reservation Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("Add Reservation Response is : ${res.statusCode.toString()}");
+        return AddNewReservationResponseModel.fromJson(res.body);
+      } else if (res.statusCode == 400) {
+        // Bad request - invalid data
+        print("Bad Request: ${res.body}");
+        throw Exception('Invalid request data: ${res.body}');
+      } else if (res.statusCode == 401) {
+        // Unauthorized - token might be expired
+        print("Unauthorized: Token might be expired");
+        throw Exception('Authentication failed. Please login again.');
+      } else if (res.statusCode == 403) {
+        // Forbidden - insufficient permissions
+        print("Forbidden: Insufficient permissions");
+        throw Exception('You do not have permission to perform this action.');
+      } else if (res.statusCode == 404) {
+        // Not found - store doesn't exist
+        print("Store not found");
+        throw Exception('Store with ID not found.');
+      } else if (res.statusCode == 500) {
+        // Server error
+        print("Internal Server Error: ${res.body}");
+        throw Exception('Server error occurred. Please try again later.');
+      } else {
+        // Other errors
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("Adding error: $e");
+
+      // Re-throw the exception with more context
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
     }
   }
 

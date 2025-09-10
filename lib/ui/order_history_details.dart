@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:food_app/models/order_history_response_model.dart';
 import 'package:get/get.dart';
@@ -31,13 +33,18 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
   String? bearerKey;
   String? storeName;
   String? storeid;
+  Timer? _orderTimer;
   @override
   void initState() {
     super.initState();
     // Initialize any required data here
     _initializeData();
   }
-
+  @override
+  void dispose() {
+    _orderTimer?.cancel();
+    super.dispose();
+  }
   void _initializeData() async {
     // Initialize shared preferences and other data
     sharedPreferences = await SharedPreferences.getInstance();
@@ -92,7 +99,20 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
       ),
     );
   }
+  String formatDateTime(String? dateTimeString) {
+    if (dateTimeString == null || dateTimeString.isEmpty) {
+      return '';
+    }
 
+    try {
+      DateTime dateTime = DateTime.parse(dateTimeString);
+      String date = DateFormat('dd-MM-yyyy').format(dateTime);
+      String time = DateFormat('HH:mm').format(dateTime);
+      return '$date  $time';
+    } catch (e) {
+      return dateTimeString;
+    }
+  }
   @override
   Widget build(BuildContext context) {
     // Use widget.historyOrder instead of historyOrder
@@ -205,11 +225,20 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                     SizedBox(height: 2),
                     Center(
                       child: Text(
-                        '${'date'.tr}: ${historyOrder.createdAt ?? ''}',
+                        '${'date'.tr}: ${formatDateTime(historyOrder.createdAt ?? '')}',
                         style: TextStyle(
                             fontWeight: FontWeight.w500, fontSize: 13),
                       ),
                     ),
+                    SizedBox(height: 2),
+                    if (historyOrder.deliveryTime != null && historyOrder.deliveryTime!.isNotEmpty)
+                      Center(
+                        child: Text(
+                          '${'delivery_time'.tr}: ${formatDateTime(historyOrder.deliveryTime ?? '')}',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w500, fontSize: 13),
+                        ),
+                      ),
                     SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
                     SizedBox(height: 2),
@@ -402,7 +431,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                     ),
                     SizedBox(height: 2),
                     Text(
-                      "${'paid'.tr}: ${historyOrder.createdAt ?? ''}",
+                      "${'paid'.tr}: ${formatDateTime(historyOrder.createdAt ?? '')}",
                       style:
                       TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
@@ -726,9 +755,14 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
         ),
         barrierDismissible: false,
       );
-
+      _orderTimer = Timer(Duration(seconds: 7), () {
+        if (Get.isDialogOpen ?? false) {
+          Get.back();
+          showSnackbar("order Timeout", "get Details request timed out. Please try again.");
+        }
+      });
       printOrderWithoutIp model = await CallService().printWithoutIp(map);
-
+      _orderTimer?.cancel();
       setState(() {
         isLoading = false;
       });
@@ -744,6 +778,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
       print("✅ DEBUG - Print without IP successful");
 
     } catch (e) {
+      _orderTimer?.cancel();
       setState(() {
         isLoading = false;
       });

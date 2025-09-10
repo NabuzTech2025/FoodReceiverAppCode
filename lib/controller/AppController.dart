@@ -42,81 +42,6 @@ class AppController extends GetxController {
 
   List<Order> get orderList => _ordersList.value;
 
-  // Future<void> setOrders(List<Order>? listOrders) async {
-  //   if (listOrders == null) {
-  //     print("⚠️ setOrders called with null list");
-  //     return;
-  //   }
-  //
-  //   if (listOrders.isEmpty) {
-  //     print("📋 API returned empty order list");
-  //     // Don't clear existing orders, just log and return
-  //     return;
-  //   }
-  //
-  //   print("📦 Setting orders - Received: ${listOrders.length} orders");
-  //
-  //   // Check if this is a full refresh (contains orders we already have)
-  //   bool isFullRefresh = false;
-  //   if (_ordersList.isNotEmpty && listOrders.length > 1) {
-  //     // If we have existing orders and API returns multiple orders,
-  //     // check if any existing order ID exists in the new list
-  //     Set<int> newOrderIds = listOrders.where((o) => o.id != null).map((o) => o.id!).toSet();
-  //     Set<int> existingOrderIds = _ordersList.where((o) => o.id != null).map((o) => o.id!).toSet();
-  //
-  //     // If there's overlap, this is likely a full refresh
-  //     isFullRefresh = newOrderIds.intersection(existingOrderIds).isNotEmpty;
-  //     print("🔄 Is full refresh: $isFullRefresh");
-  //   }
-  //
-  //   if (isFullRefresh) {
-  //     // This is a full refresh - replace all orders
-  //     print("🔄 Full refresh detected - replacing all orders");
-  //     _ordersList.clear();
-  //     _ordersList.assignAll(listOrders);
-  //
-  //     // Sort by ID descending (newest first)
-  //     _ordersList.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
-  //
-  //     // Update search results with all orders
-  //     searchResultOrder.clear();
-  //     searchResultOrder.assignAll(_ordersList);
-  //   } else {
-  //     // This is an incremental update - only add new orders
-  //     print("➕ Incremental update - adding new orders only");
-  //     Set<int> existingIds = _ordersList.map((order) => order.id ?? 0).toSet();
-  //
-  //     List<Order> newOrders = listOrders.where((order) =>
-  //     order.id != null && !existingIds.contains(order.id!)
-  //     ).toList();
-  //
-  //     if (newOrders.isNotEmpty) {
-  //       // Add new orders at the beginning
-  //       _ordersList.insertAll(0, newOrders);
-  //
-  //       // Sort to maintain order
-  //       _ordersList.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
-  //
-  //       // Add new orders to search results too
-  //       searchResultOrder.insertAll(0, newOrders);
-  //       searchResultOrder.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
-  //
-  //       print("✅ Added ${newOrders.length} new orders");
-  //     } else {
-  //       print("ℹ️ No new orders to add");
-  //     }
-  //   }
-  //
-  //   // Refresh observables
-  //   _ordersList.refresh();
-  //   searchResultOrder.refresh();
-  //
-  //   // Update pending count
-  //   int pendingCount = _ordersList.where((o) => o.approvalStatus == 1).length;
-  //   onSetPendingOrder(pendingCount);
-  //
-  //   print("✅ Orders updated - Total: ${_ordersList.length}, Search results: ${searchResultOrder.length}");
-  // }
   var searchResultOrder = <Order>[].obs;
 
   Future<void> forceSetAllOrders(List<Order> orders) async {
@@ -633,4 +558,5 @@ class AppController extends GetxController {
   int getFilteredReservationsCount(String? selectedDate) {
     return getFilteredReservations(selectedDate).length;
   }
+  var triggerAddReservation = false.obs;
 }

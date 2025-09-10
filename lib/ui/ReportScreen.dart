@@ -50,13 +50,12 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
   bool _isLiveDataActive = false;
   DateTime? _lastUpdateTime;
   Timer? _liveDataTimer;
-
+  Timer? _orderTimer;
   bool isLoading= false;
 
   @override
   void initState() {
     super.initState();
-    // Initialize displayedMonth and displayedYear to current month/year
     final now = DateTime.now();
     displayedMonth = now.month;
     displayedYear = now.year;
@@ -66,14 +65,10 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     )..repeat(reverse: true);
 
     _animation = Tween<double>(begin: 0.3, end: 1.0).animate(_controller);
-
-    // Existing refresh trigger listener
     ever(app.appController.reportRefreshTrigger, (_) {
       print("ReportScreen: Refresh triggered!");
       _refreshReportData();
     });
-
-    // Add this new listener for tab changes - use selectedTabIndexRx
     ever<int>(app.appController.selectedTabIndexRx, (int tabIndex) {
       if (tabIndex == 2) { // Report screen tab index
         print("ReportScreen: Tab switched to reports, refreshing...");
@@ -82,7 +77,6 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         });
       }
     });
-
     initVar();
     _startLiveDataUpdates();
   }
@@ -90,6 +84,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
   @override
   void dispose() {
     _controller.dispose();
+    _orderTimer?.cancel();
     super.dispose();
   }
 
@@ -99,7 +94,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
 
     print("Bearer Key: $bearerKey"); // Debug print
 
-    await getReports(bearerKey);
+    getReports(bearerKey);
 
     getCurrentDateReport();
 
@@ -203,7 +198,14 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
             )),
         barrierDismissible: false,
       );
+      _orderTimer = Timer(Duration(seconds: 7), () {
+        if (Get.isDialogOpen ?? false) {
+          Get.back();
+          showSnackbar("Report Timeout", "Get Report request timed out. Please try again.");
+        }
+      });
       final result = await ApiRepo().reportGetApi(bearerKey!);
+      _orderTimer?.cancel();
       Get.back();
       if (result != null) {
         setState(() {
@@ -214,11 +216,13 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         showSnackbar("Error", " error");
       }
     } catch (e) {
+      _orderTimer?.cancel();
       Get.back();
       Log.loga(title, "Login Api:: e >>>>> $e");
       showSnackbar("Api Error", "An error occurred: $e");
     }
   }
+
   void _resetCalendarToCurrentMonth() {
     final now = DateTime.now();
     setState(() {
@@ -256,8 +260,6 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         _setEmptyValues();
         return;
       }
-
-      // âœ… Update state with received data (even if it's all zeros)
       if (mounted) {
         setState(() {
           totalSales = '${formatAmount(model.totalSales ?? 0.0)}';
@@ -313,24 +315,16 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
 
       print('âœ… State updated successfully');
       print('ðŸ“Š UI Variables - totalSales: $totalSales, totalOrder: $totalOrder');
-
-      // âœ… Show user-friendly message if all values are zero
       bool hasData = (model.totalSales ?? 0) > 0 || (model.totalOrders ?? 0) > 0;
       if (!hasData) {
         print("No sales data available for today yet");
-        // Optionally show a subtle indicator in UI
       }
 
     } catch (e, stackTrace) {
       print(' Error in getLiveSaleReport: $e');
       print('Stack trace: $stackTrace');
-
-      // âœ… Set empty values instead of crashing
       _setEmptyValues();
-
-      // âœ… Don't show error to user for 204 responses
       if (!e.toString().contains('204')) {
-        // Only show actual errors, not "no data" scenarios
         showSnackbar("Info", "Unable to load live sales data");
       }
     }
@@ -369,10 +363,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     print("ðŸ”„ Refreshing report data...");
 
     try {
-      // âœ… Add this line at the beginning
       _resetCalendarToCurrentMonth();
-
-      await getReports(bearerKey);
+      getReports(bearerKey);
       getCurrentDateReport();
       await getLiveSaleReport();
 
@@ -387,7 +379,6 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     String localeToUse = locale == 'de' ? 'de_DE' : 'en_US';
     return NumberFormat('#,##0.0#', localeToUse).format(amount);
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -517,7 +508,6 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
       ),
     );
   }
-
 
   Map<int, DailySalesReport> _getReportsForMonth(int month, int year) {
     final Map<int, DailySalesReport> map = {};
@@ -1542,8 +1532,6 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     setState(() {
       isLoading = true;
     });
-
-    // Dynamic target date - calendar se selected date ya current date
     String targetDate;
     if (_selectedDate != null) {
       // Calendar se selected date use à¤•à¤°à¥‡à¤‚
@@ -1552,8 +1540,6 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
       // Current date use à¤•à¤°à¥‡à¤‚
       targetDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
     }
-
-    // SharedPreferences se store ID get à¤•à¤°à¥‡à¤‚
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? storeIdString = prefs.getString(valueShared_STORE_KEY);
     int storeId;
@@ -1568,7 +1554,6 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     var map = {
       "store_id": storeId,
       "target_date": targetDate,
-      // "limit": 10, // More orders fetch à¤•à¤°à¥‡à¤‚
       "offset": 0
     };
 
@@ -1576,33 +1561,36 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     print("Store ID from SharedPreferences: $storeId");
 
     try {
-      // API call à¤•à¤°à¥‡à¤‚
+      Get.dialog(
+        Center(
+            child: Lottie.asset(
+              'assets/animations/burger.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            )),
+        barrierDismissible: false,
+      );
       List<orderHistoryResponseModel> orders = await CallService().orderHistory(map);
-
       print('Number of orders received: ${orders.length}');
       if (orders.isNotEmpty) {
         print('First order note: ${orders.first.note}');
         print('First order total amount: ${orders.first.invoice?.totalAmount}');
       }
-
       setState(() {
         isLoading = false;
       });
-
       Get.back();
       app.appController.setHistoryOrders(orders);
       Get.to(() => OrderHistory(
         orders: orders,
         targetDate: targetDate,
       ));
-
     } catch (e) {
       setState(() {
         isLoading = false;
       });
-
       Get.back();
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('An error occurred during Getting History: $e'),
@@ -1611,7 +1599,6 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
           behavior: SnackBarBehavior.floating,
         ),
       );
-
       print('Getting History error: $e');
     }
   }

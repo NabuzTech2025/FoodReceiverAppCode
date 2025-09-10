@@ -372,6 +372,11 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       print("🚫 Background - Non-order notification ignored: '$title'");
     }
   }
+  if (title.contains('New Order')) {
+    Get.offAllNamed('/home', arguments: {'initialTab': 0});
+  } else if (title.contains('Reservation')) {
+    Get.offAllNamed('/home', arguments: {'initialTab': 1});
+  }
 }
 
 Future<void> _initializeLocalNotificationsForBackground() async {
@@ -936,58 +941,66 @@ Future<void> _requestIOSPermissions() async {
     );
   }
 }
-
 void _registerForegroundListeners() {
   FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-    print("🔥 Raw message received: ${message.toMap()}");
-    // Add this debug line
+    print("📥 Raw message received: ${message.toMap()}");
 
-    // // Try both notification and data fields
-    // String title = '';
-    // String body = '';
-    //
-    // // Method 1: Check notification field
-    // if (message.notification != null) {
-    //   title = message.notification?.title ?? '';
-    //   body = message.notification?.body ?? '';
-    // }
-    //
-    // // Method 2: Check data field if notification is empty
-    // if (title.isEmpty && message.data.isNotEmpty) {
-    //   title = message.data['title'] ?? message.data['Title'] ?? '';
-    //   body = message.data['body'] ?? message.data['Body'] ?? message.data['message'] ?? '';
-    // }
-    //
-    // print("📬 Processed - Title: '$title', Body: '$body'");
-    //
-    // if (title.contains('New Order') && body.isNotEmpty) {
-    //   // Check if app is in foreground to avoid double notifications
-    //   if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
-    //     await _showOrderNotification(title, body);
-    //   }
-    // }
-  // });
-  //
-  // FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-  //   callOrderApiFromNotification();
-  // });
-  //
-  // _fcm.getInitialMessage().then((message) {
-  //   if (message != null) {
-  //     callOrderApiFromNotification();
-  //   }
-  // });
+    // हमेशा notification show करें (foreground में)
     if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
       String title = message.notification?.title ?? message.data['title'] ?? '';
       String body = message.notification?.body ?? message.data['body'] ?? '';
 
-      if (title.contains('New Order') && body.isNotEmpty) {
+      if ((title.contains('New Order') || title.contains('Reservation')) && body.isNotEmpty) {
         await _showOrderNotification(title, body);
       }
     }
   });
-}
 
+  // main.dart में
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    String title = message.notification?.title ?? message.data['title'] ?? '';
+
+    // Check if user is logged in
+    SharedPreferences.getInstance().then((prefs) {
+      final sessionID = prefs.getString(valueShared_BEARER_KEY);
+
+      if (sessionID != null) {
+        // User is logged in, go directly to home with specific tab
+        if (title.contains('New Order')) {
+          Get.offAllNamed('/home', arguments: {'initialTab': 0});
+        } else if (title.contains('Reservation')) {
+          Get.offAllNamed('/home', arguments: {'initialTab': 1});
+        }
+      } else {
+        // User not logged in, go to splash/login
+        Get.offAllNamed('/splash');
+      }
+    });
+
+    callOrderApiFromNotification();
+  });
+
+  _fcm.getInitialMessage().then((message) async {
+    if (message != null) {
+      String title = message.notification?.title ?? message.data['title'] ?? '';
+
+      // Check if user is logged in
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final sessionID = prefs.getString(valueShared_BEARER_KEY);
+
+      if (sessionID != null) {
+        // Store the tab preference for splash screen to pick up
+        if (title.contains('New Order')) {
+          await prefs.setString('notification_initial_tab', '0');
+        } else if (title.contains('Reservation')) {
+          await prefs.setString('notification_initial_tab', '1');
+        }
+      }
+
+      callOrderApiFromNotification();
+    }
+  });
+}
 void checkBatteryOptimization() async {
   bool isIgnored = await isIgnoringBatteryOptimizations();
   if (!isIgnored) {
@@ -1037,7 +1050,14 @@ Future<void> _initializeLocalNotifications() async {
   // Initialise plugin ----------------------------------------------------
   await flutterLocalNotificationsPlugin.initialize(
     initSettings,
-    onDidReceiveNotificationResponse: (_) => callOrderApiFromNotification(),
+    onDidReceiveNotificationResponse: (NotificationResponse response) {
+      String? payload = response.payload;
+      if (payload != null) {
+        int tabIndex = int.parse(payload);
+        Get.offAllNamed('/home', arguments: {'initialTab': tabIndex});
+      }
+      callOrderApiFromNotification();
+    },
   );
 
   // Android notification channel (high importance) ----------------------
@@ -1067,6 +1087,7 @@ const String silentChannelId = 'order_channel_silent';
 
 Future<void> _showOrderNotification(String title, String body) async {
   print("Showing notification");
+  String payload = title.contains('New Order') ? '0' : '1';
 
   final androidDetails = AndroidNotificationDetails(
     orderChannelId,
@@ -1105,6 +1126,7 @@ Future<void> _showOrderNotification(String title, String body) async {
       title,
       body,
       platformDetails,
+      payload: payload,
     );
     // REMOVE the silent channel update - it's causing the slide sound issue
     print("Notification shown with onlyAlertOnce");

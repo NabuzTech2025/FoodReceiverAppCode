@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:food_app/api/repository/api_repository.dart';
@@ -34,14 +36,17 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
   bool isPrint = false;
   bool isAutoAccept = false;
   bool isLoading = false;
-
+  Timer? _orderTimer;
   @override
   void initState() {
     super.initState();
     initVar();
   }
-
-// Replace the initVar() method in OrderDetailEnglish.dart:
+  @override
+  void dispose() {
+    _orderTimer?.cancel();
+    super.dispose();
+  }
   Future<void> initVar() async {
     updatedOrder = widget.order;
     sharedPreferences = await SharedPreferences.getInstance();
@@ -72,6 +77,12 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
             )),
         barrierDismissible: false,
       );
+      _orderTimer = Timer(Duration(seconds: 7), () {
+        if (Get.isDialogOpen ?? false) {
+          Get.back();
+          showSnackbar("order Timeout", "get Details request timed out. Please try again.");
+        }
+      });
 
       final prefs = await SharedPreferences.getInstance();
       bool _autoOrderPrint = prefs.getBool('auto_order_print') ?? false;
@@ -80,9 +91,10 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
       // ✅ NEW: Add timeout wrapper around API call
       final result = await Future.any([
         ApiRepo().orderAcceptDecline(bearerKey, jsonData, updatedOrder.id ?? 0),
-        Future.delayed(Duration(seconds: 10)).then((_) => null) // 10 second timeout
-      ]);
 
+    Future.delayed(Duration(seconds: 10)).then((_) => null)
+      ]);
+      _orderTimer?.cancel();
       Get.back();
 
       // ✅ NEW: Check if result is null due to timeout
@@ -137,6 +149,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
       }
 
     } catch (e) {
+      _orderTimer?.cancel();
       Get.back();
 
       // ✅ NEW: Different error message for timeout vs other errors
@@ -162,8 +175,6 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
       });
     }
   }
-
-// Update the getStoredta() method to be more reliable:
 
   Future<String?> getStoredta(String bearerKey) async {
     try {
@@ -209,7 +220,6 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     }
   }
 
-// Alternative approach - get store name from SharedPreferences if available:
   Future<String?> getStoreNameFallback() async {
     try {
       // Try to get from previous session
@@ -227,7 +237,6 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     }
   }
 
-
   String formatAmount(double? amount) {
     if (amount == null) return "0";
 
@@ -236,6 +245,20 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     return NumberFormat('#,##0.00#', localeToUse).format(amount);
   }
 
+  String formatDateTime(String? dateTimeString) {
+    if (dateTimeString == null || dateTimeString.isEmpty) {
+      return '';
+    }
+
+    try {
+      DateTime dateTime = DateTime.parse(dateTimeString);
+      String date = DateFormat('dd-MM-yyyy').format(dateTime);
+      String time = DateFormat('HH:mm').format(dateTime);
+      return '$date  $time';
+    } catch (e) {
+      return dateTimeString;
+    }
+  }
   @override
   Widget build(BuildContext context) {
     if (updatedOrder == null) {
@@ -357,11 +380,20 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                     SizedBox(height: 2),
                     Center(
                       child: Text(
-                        '${'date'.tr}: ${updatedOrder.createdAt ?? ''}',
+                        '${'date'.tr}: ${formatDateTime(updatedOrder.createdAt)}',
                         style: TextStyle(
                             fontWeight: FontWeight.w500, fontSize: 13),
                       ),
                     ),
+                    SizedBox(height: 2),
+                    if (updatedOrder.deliveryTime != null && updatedOrder.deliveryTime!.isNotEmpty)
+                      Center(
+                        child: Text(
+                          '${'delivery_time'.tr}: ${formatDateTime(updatedOrder.deliveryTime)}',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w500, fontSize: 13),
+                        ),
+                      ),
                     SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
                     SizedBox(height: 2),
@@ -567,7 +599,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                     ),
                     SizedBox(height: 2),
                     Text(
-                      "${'paid'.tr}: ${updatedOrder.createdAt ?? ''}",
+                      "${'paid'.tr}: ${formatDateTime(updatedOrder.createdAt ?? '')}",
                       style:
                           TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),

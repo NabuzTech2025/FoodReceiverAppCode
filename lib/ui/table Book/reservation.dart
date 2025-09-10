@@ -4,9 +4,12 @@ import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../api/Socket/socket_service.dart';
 import '../../api/repository/api_repository.dart';
 import '../../constants/constant.dart';
+import '../../models/reservation/add_new_reservation_response_model.dart';
 import '../../models/reservation/get_user_reservation_details.dart';
 import '../../utils/global.dart';
 import '../../utils/log_util.dart';
@@ -15,6 +18,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../LoginScreen.dart';
+import '../OrderScreen.dart';
 import 'ReservationBottomDialogSheet.dart';
 
 class Reservation extends StatefulWidget {
@@ -30,7 +34,8 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
   bool hasInternet = true;
   Timer? _internetCheckTimer;
   bool _isDialogShowing = false;
-
+  Timer? _reservationTimer;
+  final SocketService _socketService = SocketService();
   Color getStatusColor(String? status) {
     if (status == null) return Colors.grey;
 
@@ -60,7 +65,8 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
         return Icons.help;
     }
   }
-
+  String? storeId;
+  SharedPreferences? sharedPreferences;
   bool isLoading = false;
   void _startInternetMonitoring() {
     _internetCheckTimer?.cancel();
@@ -90,11 +96,240 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       return null;
     }
   }
+  // Add this method to OrderScreen.dart _OrderScreenState class
+  // Initialize SharedPreferences
+  Future<void> _initializeSharedPreferences() async {
+    try {
+      sharedPreferences = await SharedPreferences.getInstance();
+      storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
+    } catch (e) {
+      print('Error initializing SharedPreferences: $e');
+    }
+  }
+  Future<void> _offlineLogout() async {
+    try {
+      Get.dialog(
+        Center(
+            child: Lottie.asset(
+              'assets/animations/burger.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            )
+        ),
+        barrierDismissible: false,
+      );
+
+      print("🚪 Starting offline logout process...");
+
+      // ✅ STEP 1: Save IP data before clearing everything (same as online logout)
+      await _preserveUserIPDataOffline();
+
+      // ✅ STEP 2: Force complete logout cleanup (without clearing IP data)
+      await _forceCompleteLogoutCleanupOffline();
+
+      // ✅ STEP 3: Clear app controller
+      app.appController.clearOnLogout();
+
+      // ✅ STEP 4: Disconnect socket
+      await _disconnectSocketOffline();
+
+      // ✅ STEP 5: Close loader
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+
+      // ✅ STEP 6: Navigate to login with complete reset
+      Get.offAll(() => LoginScreen());
+
+      print("✅ Offline logout completed successfully");
+
+    } catch (e) {
+      print("❌ Error in offline logout: $e");
+      // Close loader if error occurs
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+      // Still navigate to login even if error occurs
+      Get.offAll(() => LoginScreen());
+    }
+  }
+
+// ✅ Preserve IP data for offline logout
+  Future<void> _preserveUserIPDataOffline() async {
+    try {
+      print("💾 Preserving IP data for current user (offline)...");
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? currentStoreId = prefs.getString(valueShared_STORE_KEY);
+
+      if (currentStoreId != null && currentStoreId.isNotEmpty) {
+        // Save current IP data with store ID prefix
+        String userPrefix = "user_${currentStoreId}_";
+
+        // Preserve local printer IPs
+        for (int i = 0; i < 5; i++) {
+          String? currentIP = prefs.getString('printer_ip_$i');
+          if (currentIP != null && currentIP.isNotEmpty) {
+            await prefs.setString('${userPrefix}printer_ip_$i', currentIP);
+            print("💾 Saved ${userPrefix}printer_ip_$i: $currentIP");
+          }
+        }
+
+        // Preserve remote printer IPs
+        for (int i = 0; i < 5; i++) {
+          String? currentRemoteIP = prefs.getString('printer_ip_remote_$i');
+          if (currentRemoteIP != null && currentRemoteIP.isNotEmpty) {
+            await prefs.setString('${userPrefix}printer_ip_remote_$i', currentRemoteIP);
+            print("💾 Saved ${userPrefix}printer_ip_remote_$i: $currentRemoteIP");
+          }
+        }
+
+        // Preserve selected indices
+        int? selectedIndex = prefs.getInt('selected_ip_index');
+        if (selectedIndex != null) {
+          await prefs.setInt('${userPrefix}selected_ip_index', selectedIndex);
+        }
+
+        int? selectedRemoteIndex = prefs.getInt('selected_ip_remote_index');
+        if (selectedRemoteIndex != null) {
+          await prefs.setInt('${userPrefix}selected_ip_remote_index', selectedRemoteIndex);
+        }
+
+        // Preserve toggle settings
+        bool? autoOrderAccept = prefs.getBool('auto_order_accept');
+        if (autoOrderAccept != null) {
+          await prefs.setBool('${userPrefix}auto_order_accept', autoOrderAccept);
+        }
+
+        bool? autoOrderPrint = prefs.getBool('auto_order_print');
+        if (autoOrderPrint != null) {
+          await prefs.setBool('${userPrefix}auto_order_print', autoOrderPrint);
+        }
+
+        bool? autoRemoteAccept = prefs.getBool('auto_order_remote_accept');
+        if (autoRemoteAccept != null) {
+          await prefs.setBool('${userPrefix}auto_order_remote_accept', autoRemoteAccept);
+        }
+
+        bool? autoRemotePrint = prefs.getBool('auto_order_remote_print');
+        if (autoRemotePrint != null) {
+          await prefs.setBool('${userPrefix}auto_order_remote_print', autoRemotePrint);
+        }
+
+        print("✅ IP data preserved for store: $currentStoreId (offline)");
+      } else {
+        print("⚠️ No store ID found, cannot preserve IP data (offline)");
+      }
+    } catch (e) {
+      print("❌ Error preserving IP data (offline): $e");
+    }
+  }
+
+// ✅ Complete offline logout cleanup WITHOUT clearing IP data
+  Future<void> _forceCompleteLogoutCleanupOffline() async {
+    try {
+      print("🧹 Starting complete offline logout cleanup...");
+
+      // ✅ Multiple cleanup attempts to ensure complete removal
+      for (int attempt = 0; attempt < 3; attempt++) {
+        print("🔥 Cleanup attempt ${attempt + 1}/3 (offline)");
+
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+
+        // Clear only authentication-related data (NOT IP data)
+        List<String> keysToRemove = [
+          valueShared_BEARER_KEY,
+          valueShared_STORE_KEY,
+          // ✅ Clear backup IP keys that are created by PrinterSettingsScreen
+          'printer_ip_backup',
+          'printer_ip_0_backup',
+          'last_save_timestamp',
+          // ✅ Clear current session IP data (will be restored from user-prefixed data on next login)
+          'printer_ip_0',
+          'printer_ip_remote_0',
+          'selected_ip_index',
+          'selected_ip_remote_index',
+          // ✅ Clear current session auto settings (will be restored from user-prefixed data)
+          'auto_order_accept',
+          'auto_order_print',
+          'auto_order_remote_accept',
+          'auto_order_remote_print',
+          // ✅ Clear cached data
+          'cached_sales_date',
+          'cached_order_date',
+          'cached_store_id',
+          'cached_store_name',
+          'store_name',
+          valueShared_STORE_NAME,
+        ];
+
+        for (String key in keysToRemove) {
+          await prefs.remove(key);
+          await Future.delayed(Duration(milliseconds: 20));
+          print("🗑️ Removed: $key");
+        }
+
+        // ✅ Also clear all printer IP keys (0-4) to ensure complete cleanup
+        for (int i = 0; i < 5; i++) {
+          await prefs.remove('printer_ip_$i');
+          await prefs.remove('printer_ip_remote_$i');
+        }
+
+        // ✅ Clear sales cache data
+        await SalesCacheHelper.clearSalesData();
+
+        // ✅ Force multiple reloads to ensure changes are committed
+        await prefs.reload();
+        await Future.delayed(Duration(milliseconds: 100));
+        await prefs.reload();
+        await Future.delayed(Duration(milliseconds: 100));
+
+        // ✅ Verify cleanup for this attempt
+        String? testToken = prefs.getString(valueShared_BEARER_KEY);
+        String? testStoreKey = prefs.getString(valueShared_STORE_KEY);
+        if (testToken == null && testStoreKey == null) {
+          print("✅ Offline cleanup attempt ${attempt + 1}: SUCCESS");
+        } else {
+          print("⚠️ Offline cleanup attempt ${attempt + 1}: Data still exists, retrying...");
+        }
+      }
+
+      // ✅ Final verification
+      SharedPreferences finalPrefs = await SharedPreferences.getInstance();
+      await finalPrefs.reload();
+      String? finalToken = finalPrefs.getString(valueShared_BEARER_KEY);
+      String? finalStoreKey = finalPrefs.getString(valueShared_STORE_KEY);
+
+      if (finalToken == null && finalStoreKey == null) {
+        print("✅ Complete offline logout cleanup SUCCESS - All auth data removed");
+      } else {
+        print("❌ Offline logout cleanup FAILED - Auth data still exists");
+      }
+
+    } catch (e) {
+      print("❌ Error in complete offline logout cleanup: $e");
+    }
+  }
+
+// ✅ Disconnect socket for offline logout
+  Future<void> _disconnectSocketOffline() async {
+    try {
+      print("🔌 Disconnecting socket (offline)...");
+      _socketService.disconnect();
+      await Future.delayed(Duration(milliseconds: 100));
+      print("✅ Socket disconnected (offline)");
+    } catch (e) {
+      print("⚠️ Error disconnecting socket (offline): $e");
+    }
+  }
+
+// ✅ Update the _showLogoutDialog method in OrderScreen.dart
   void _showLogoutDialog() {
     if (_isDialogShowing || !mounted) return;
 
     _isDialogShowing = true;
-    print("📱 Showing logout dialog from reservation screen");
+    print("📱 Showing logout dialog");
 
     showDialog(
       context: context,
@@ -110,13 +345,14 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                 Text("Connection Error"),
               ],
             ),
-            content: Text("Please check your Internet. Please logout and login again to continue."),
+            content: Text("Cannot connect to server. Please logout and login again to continue."),
             actions: [
               ElevatedButton(
                 onPressed: () {
                   _isDialogShowing = false;
                   Navigator.of(context).pop();
-                  logutAPi(valueShared_BEARER_KEY);
+                  // ✅ Call offline logout instead of API logout
+                  _offlineLogout();
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 child: Text("Logout", style: TextStyle(color: Colors.white)),
@@ -129,12 +365,16 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       _isDialogShowing = false;
     });
   }
-
   @override
   void initState() {
     super.initState();
+    _initializeSharedPreferences();
     WidgetsBinding.instance.addObserver(this);
-
+    ever(app.appController.triggerAddReservation, (_) {
+      if (mounted) {
+        showAddReservationForm();
+      }
+    });
     // ✅ Start internet monitoring
     _startInternetMonitoring();
 
@@ -143,38 +383,18 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
     });
   }
 
-  Future<void> logutAPi(String? bearerKey) async {
+  String formatDateTime(String? dateTimeString) {
+    if (dateTimeString == null || dateTimeString.isEmpty) {
+      return '';
+    }
+
     try {
-      Get.dialog(
-        Center(
-            child: Lottie.asset(
-              'assets/animations/burger.json',
-              width: 150,
-              height: 150,
-              repeat: true,
-            )
-        ),
-        barrierDismissible: false,
-      );
-      print("🚪 Starting logout process...");
-
-      final result = await ApiRepo().logoutAPi(bearerKey);
-      if (result != null) {
-        print("✅ Logout API successful");
-        // ✅ STEP 5: Close drawer
-        Navigator.of(context).pop();
-
-        // ✅ STEP 6: Navigate to login with complete reset
-        Get.offAll(() => LoginScreen());
-
-        print("✅ Logout completed successfully");
-
-      } else {
-        showSnackbar("Error", "Failed to logout");
-      }
+      DateTime dateTime = DateTime.parse(dateTimeString);
+      String date = DateFormat('dd-MM-yyyy').format(dateTime);
+      String time = DateFormat('HH:mm').format(dateTime);
+      return '$date  $time';
     } catch (e) {
-      Log.loga(title, "Logout Api:: e >>>>> $e");
-      showSnackbar("Api Error", "An error occurred: $e");
+      return dateTimeString;
     }
   }
 
@@ -189,7 +409,8 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _internetCheckTimer?.cancel(); // ✅ Cancel internet timer
+    _internetCheckTimer?.cancel();
+    _reservationTimer?.cancel();
     super.dispose();
   }
 
@@ -326,11 +547,9 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
 
                       return GestureDetector(
                         onTap: () async {
-                          // Navigate to ReservationDetails with callback
                           await Get.to(
                                 () => ReservationDetails(reserv.id.toString()),
                           )?.then((result) async {
-                            // This callback executes when returning from ReservationDetails
                             print("Returned from ReservationDetails, refreshing reservations");
                             await getReservationDetails();
                           });
@@ -363,7 +582,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                                       ),
                                       SizedBox(width: 10),
                                       Text(
-                                        '${reserv.reservedFor.toString()}',
+                                        '${formatDateTime(reserv.reservedFor.toString())}',
                                         style: TextStyle(
                                             fontSize: 13,
                                             fontFamily: 'Mulish',
@@ -495,6 +714,12 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
           )),
       barrierDismissible: false,
     );
+    _reservationTimer = Timer(Duration(seconds: 7), () {
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+        showSnackbar("order Timeout", "get Details request timed out. Please try again.");
+      }
+    });
 
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
@@ -517,7 +742,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       }
       List<GetUserReservationDetailsResponseModel> reservations =
       await CallService().getReservationDetailsList();
-
+      _reservationTimer?.cancel();
       if (Get.isDialogOpen == true) {
         Get.back(); // Close dialog
       }
@@ -533,6 +758,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
 
       print('✅ Loaded ${reservations.length} reservations into controller');
     } catch (e) {
+      _reservationTimer?.cancel();
       // ✅ Always close loader in catch block
       if (Get.isDialogOpen == true) {
         Get.back();
@@ -564,7 +790,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       }
     }
   }
-  // Update the openCalendarScreen method
+
   void openCalendarScreen() async {
     if (app.appController.reservationsList.isEmpty) {
       await getReservationDetails();
@@ -615,4 +841,647 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
   Future<void> getReservationsInBackground() async {
     await getReservationDetails();
   }
+  TextInputType _getKeyboardType(String label) {
+    switch (label) {
+      case 'Phone Number':
+        return TextInputType.phone;
+      case 'Guest Count':
+        return TextInputType.number;
+      case 'Email Address':
+        return TextInputType.emailAddress;
+      default:
+        return TextInputType.text;
+    }
+  }
+  void showAddReservationForm() {
+    Get.bottomSheet(
+      _buildAddReservationBottomSheet(),
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
+      enterBottomSheetDuration: Duration(milliseconds: 400),
+      exitBottomSheetDuration: Duration(milliseconds: 300),
+    );
+  }
+
+  Widget _buildAddReservationBottomSheet() {
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController phoneController = TextEditingController();
+    final TextEditingController emailController = TextEditingController();
+    final TextEditingController guestController = TextEditingController(text: "2");
+    final TextEditingController reservationController = TextEditingController();
+    final TextEditingController noteController = TextEditingController();
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children:[
+        Container(
+        height: Get.height * 0.85,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(35),
+            topRight: Radius.circular(35),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 10,
+              offset: Offset(0, -5),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              margin: EdgeInsets.only(top: 12),
+              width: 50,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Container(
+               width: double.infinity,
+               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+               margin: EdgeInsets.all(8),
+              child: Center(
+                child: Text(
+                  'Add New Reservation',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Mulish',
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: 10),
+                physics: BouncingScrollPhysics(),
+                child: Column(
+                  children: [
+                    _buildAddReservationField('Customer Name', nameController, Icons.person),
+                    _buildAddReservationField('Phone Number', phoneController, Icons.phone),
+                    _buildAddReservationField('Email Address', emailController, Icons.email),
+                    _buildAddReservationField('Guest Count', guestController, Icons.group),
+                    _buildAddReservationField('Reservation Date', reservationController, Icons.calendar_today, isDateField: true),
+                    _buildAddReservationField('Special Note', noteController, Icons.note, maxLines: 3),
+
+                    SizedBox(height: 15),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => Get.back(),
+                            child: Text('Cancel',style: TextStyle(
+                              fontFamily: 'Mulish',fontWeight: FontWeight.w700,fontSize: 16,),),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[300],
+                              foregroundColor: Colors.black87,
+                              minimumSize: Size(0, 50),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 15),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              _createNewReservation(
+                                nameController.text,
+                                phoneController.text,
+                                emailController.text,
+                                guestController.text,
+                                reservationController.text,
+                                noteController.text,
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xff0C831F),
+                              foregroundColor: Colors.white,
+                              minimumSize: Size(0, 50),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                            child: const Center(child: Text('Book',style: TextStyle(
+                              fontFamily: 'Mulish',fontWeight: FontWeight.w700,fontSize: 16,
+                            ),)),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+        Positioned(
+          top: -60,
+          right: 0,
+          left: 0,
+          child: Center(
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 6,
+                    )
+                  ],
+                ),
+                child: const Icon(Icons.close, size: 20, color: Colors.black),
+              ),
+            ),
+          ),
+        ),
+      ]
+    );
+  }
+
+  Widget _buildAddReservationField(String label, TextEditingController controller,
+      IconData icon, {int maxLines = 1, bool isDateField = false}) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+
+          Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+                fontFamily: 'Mulish',
+              ),
+            ),
+          ),
+
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!, width: 1),
+            ),
+            child: TextFormField(
+              controller: controller,
+              maxLines: maxLines,
+              readOnly: isDateField,
+              keyboardType: _getKeyboardType(label),
+              onTap: isDateField ? () => _selectNewReservationDateTime(controller) : null,
+              style: TextStyle(
+                fontFamily: 'Mulish',
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+              decoration: InputDecoration(
+                hintText: _getHintText(label),
+                hintStyle: TextStyle(
+                  color: Colors.grey[500],
+                  fontFamily: 'Mulish',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+                prefixIcon: Container(
+                  padding: EdgeInsets.all(8),
+                  child: Icon(
+                    icon,
+                    color: Colors.grey[600],
+                    size: 18,
+                  ),
+                ),
+                suffixIcon: isDateField
+                    ? Icon(Icons.keyboard_arrow_down,
+                    color: Colors.grey[600],
+                    size: 24)
+                    : null,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.orange.shade600, width: 2),
+                ),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: maxLines > 1 ? 16 : 18,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getHintText(String label) {
+    switch (label) {
+      case 'Customer Name':
+        return 'Name';
+      case 'Phone Number':
+        return 'Contact Number';
+      case 'Email Address':
+        return 'Email...';
+      case 'Guest Count':
+        return 'Guest Count';
+      case 'Reservation Date':
+        return 'DD/MM/YYYY  HH:MM';
+      case 'Add Note':
+        return 'Type Note...';
+      default:
+        return '';
+    }
+  }
+
+  Future<void> _selectNewReservationDateTime(TextEditingController controller) async {
+    DateTime? selectedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Colors.orange.shade600,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (selectedDate != null) {
+      await _selectNewTimeSlot(selectedDate, controller);
+    }
+  }
+
+  Future<void> _selectNewTimeSlot(DateTime selectedDate, TextEditingController controller) async {
+    // Get day of week (1 = Monday, 7 = Sunday)
+    int weekday = selectedDate.weekday;
+
+    List<TimeSlot> timeSlots = [];
+
+    // Generate time slots based on restaurant opening hours
+    if (weekday >= 2 && weekday <= 5) {
+      // Tuesday - Friday: 11:00 - 22:45
+      timeSlots = _generateTimeSlots(11, 0, 22, 45);
+    } else if (weekday == 6) {
+      // Saturday: 12:00 - 22:45
+      timeSlots = _generateTimeSlots(12, 0, 22, 45);
+    } else if (weekday == 7 || weekday == 1) {
+      // Sunday/Monday (Public Holidays): 11:00 - 22:45
+      timeSlots = _generateTimeSlots(11, 0, 22, 45);
+    }
+
+    // Filter time slots based on current time if selected date is today
+    List<TimeSlot> availableSlots = timeSlots;
+    bool isToday = selectedDate.day == DateTime.now().day &&
+        selectedDate.month == DateTime.now().month &&
+        selectedDate.year == DateTime.now().year;
+
+    if (isToday) {
+      DateTime currentTime = DateTime.now();
+
+      availableSlots = timeSlots.where((slot) {
+        List<String> timeParts = slot.time.split(':');
+        int slotHour = int.parse(timeParts[0]);
+        int slotMinute = int.parse(timeParts[1]);
+
+        DateTime slotDateTime = DateTime(
+          selectedDate.year,
+          selectedDate.month,
+          selectedDate.day,
+          slotHour,
+          slotMinute,
+        );
+
+        return slotDateTime.isAfter(currentTime);
+      }).toList();
+
+      if (availableSlots.isEmpty) {
+        Get.snackbar(
+          'Restaurant Closed',
+          'No available time slots for today. Restaurant might be closed or all slots are past.',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: Duration(seconds: 1),
+        );
+        return;
+      }
+    }
+
+    // Show day info
+    String dayInfo = _getDayInfo(weekday);
+
+    // Show time slot picker
+    await Get.bottomSheet(
+      Container(
+        height: Get.height * 0.7,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.orange.shade600, Colors.orange.shade800], // Blue se Orange
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.access_time, color: Colors.white),
+                      SizedBox(width: 10),
+                      Text(
+                        'Select Time Slot',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Mulish',
+                        ),
+                      ),
+                      Spacer(),
+                      IconButton(
+                        icon: Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Get.back(),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    dayInfo,
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Date Display
+            Container(
+              padding: EdgeInsets.all(16),
+              child:Text(
+                'Date: ${DateFormat('dd-MM-yyyy (EEEE)').format(selectedDate)}',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'Mulish',
+                  color: Colors.orange.shade800, // Blue se Orange
+                ),
+              ),
+            ),
+
+            // Time Slots Grid
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: GridView.builder(
+                  physics: BouncingScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 2.2,
+                  ),
+                  itemCount: availableSlots.length,
+                  itemBuilder: (context, index) {
+                    TimeSlot slot = availableSlots[index];
+                    return GestureDetector(
+                      onTap: () {
+                        List<String> timeParts = slot.time.split(':');
+                        DateTime finalDateTime = DateTime(
+                          selectedDate.year,
+                          selectedDate.month,
+                          selectedDate.day,
+                          int.parse(timeParts[0]),
+                          int.parse(timeParts[1]),
+                        );
+
+                        String formattedDateTime = DateFormat('yyyy-MM-dd HH:mm:ss').format(finalDateTime);
+                        controller.text = formattedDateTime;
+
+                        Get.back(); // Close time picker
+                        Get.snackbar(
+                          'Time Selected',
+                          'Reservation time updated to ${slot.displayTime}',
+                          backgroundColor: Colors.green,
+                          colorText: Colors.white,
+                          snackPosition: SnackPosition.BOTTOM,
+                          duration: Duration(seconds: 1),
+                        );
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.green.shade100, Colors.green.shade200],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.green.shade300),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.green.withOpacity(0.2),
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            slot.displayTime,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.green.shade800,
+                              fontFamily: 'Mulish',
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            SizedBox(height: 20),
+          ],
+        ),
+      ),
+      isDismissible: true,
+      enableDrag: true,
+    );
+  }
+
+  List<TimeSlot> _generateTimeSlots(int startHour, int startMinute, int endHour, int endMinute) {
+    List<TimeSlot> slots = [];
+    DateTime startTime = DateTime(2023, 1, 1, startHour, startMinute);
+    DateTime endTime = DateTime(2023, 1, 1, endHour, endMinute);
+
+    // Generate slots every 30 minutes
+    DateTime currentSlot = startTime;
+
+    while (currentSlot.isBefore(endTime) || currentSlot.isAtSameMomentAs(endTime)) {
+      String time24 = '${currentSlot.hour.toString().padLeft(2, '0')}:${currentSlot.minute.toString().padLeft(2, '0')}';
+      String time12 = DateFormat('h:mm a').format(currentSlot);
+
+      slots.add(TimeSlot(time24, time12));
+      currentSlot = currentSlot.add(Duration(minutes: 20));
+    }
+
+    return slots;
+  }
+
+  String _getDayInfo(int weekday) {
+    switch (weekday) {
+      case 2:
+      case 3:
+      case 4:
+      case 5:
+        return 'Tuesday - Friday: 11:00 AM - 10:45 PM';
+      case 6:
+        return 'Saturday: 12:00 PM - 10:45 PM';
+      case 7:
+      case 1:
+        return 'Sunday/Monday: 11:00 AM - 10:45 PM';
+      default:
+        return '';
+    }
+  }
+
+  Future<void> _createNewReservation(String name, String phone, String email, String guestCount, String reservationDate, String note) async {
+    if (sharedPreferences == null) {
+      Get.snackbar('Error', 'SharedPreferences not initialized');
+      return;
+    }
+
+    storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
+    if (storeId == null) {
+      Get.snackbar('Error', 'Store ID not found');
+      return;
+    }
+
+    // Validate inputs
+    if (name.isEmpty || phone.isEmpty || reservationDate.isEmpty) {
+      Get.snackbar(
+        'Error',
+        'Please fill in all required fields',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      Get.dialog(
+        Center(
+            child: Lottie.asset(
+              'assets/animations/burger.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            )
+        ),
+        barrierDismissible: false,
+      );
+
+      var map =
+      {
+        "store_id": storeId,
+        "user_id": 0,
+        "guest_count": int.tryParse(guestCount),
+        "reserved_for": reservationDate,
+        "status": "booked",
+        "table_number": 0,
+        "customer_name": name,
+        "customer_email":email,
+        "customer_phone": phone,
+        "note": note,
+        "isActive": true
+      };
+
+      print("Create Reservation Map: $map");
+      AddNewReservationResponseModel model = await CallService().addReservation(map);
+      setState(() {
+        isLoading = false;
+      });
+
+      Get.back();
+      Get.back();
+
+      await getReservationDetails();
+
+      Get.snackbar(
+        'Success',
+        'Reservation created successfully',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        duration: Duration(seconds: 1),
+      );
+
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      Get.back(); // Close loading dialog
+      print('Create reservation error: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to create reservation: ${e.toString()}',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        duration: Duration(seconds: 1),
+      );
+    }
+  }
+
 }

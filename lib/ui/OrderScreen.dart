@@ -58,11 +58,9 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     }
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   late SharedPreferences sharedPreferences;
   String? bearerKey;
-  //final SocketService socketService = SocketService();
-  final AudioPlayer _audioPlayer = AudioPlayer();
+
   String dateSeleted = "";
   late UserMe userMe;
   String? storeName;
@@ -97,6 +95,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   bool hasInternet = true;
   Timer? _internetCheckTimer;
   bool _isDialogShowing = false;
+
   @override
   void initState() {
     super.initState();
@@ -120,7 +119,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       initVar();
     });
   }
-
 
   Future<void> _checkAndClearOldData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -163,10 +161,11 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _initVarTimeoutTimer?.cancel();
-    _internetCheckTimer?.cancel(); // ✅ Cancel internet check timer
+    _internetCheckTimer?.cancel();
     _blinkController.dispose();
     _socketService.disconnect();
     _noOrderTimer?.cancel();
+
     super.dispose();
   }
 
@@ -182,14 +181,47 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     print("Callingapp When refresh resumed 3333");
     _initVarTimeoutTimer?.cancel();
 
+    // Close any existing dialogs first
+    if (Get.isDialogOpen ?? false) {
+      try {
+        Get.back();
+        print("Closed existing dialog in initVar");
+      } catch (e) {
+        print("Error closing existing dialog: $e");
+      }
+    }
+
     setState(() {
       isLoading = true;
     });
 
+    Timer? timeoutTimer;
+
     try {
-      setState(() {
-        hasInternet = true; // ✅ Set internet status to true
+      // Set 10 second timeout for entire initVar process
+      timeoutTimer = Timer(Duration(seconds: 10), () {
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+            _isInitialLoading = false;
+          });
+          print("initVar timeout reached - forcing loader close");
+        }
       });
+
+      setState(() {
+        hasInternet = true;
+      });
+
+      if (_isDialogShowing) {
+        try {
+          Navigator.of(context).pop();
+          _isDialogShowing = false;
+          print("✅ Logout dialog closed in initVar");
+        } catch (e) {
+          print("Error closing dialog in initVar: $e");
+        }
+      }
 
       sharedPreferences = await SharedPreferences.getInstance();
       bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
@@ -207,21 +239,23 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       final storeID = sharedPreferences.getString(valueShared_STORE_KEY);
       print("🆔 DEBUG - initVar storeID: '$storeID'");
 
-      if (storeID != null && storeID.isNotEmpty) {
-        print("✅ Using existing store ID: $storeID");
+      if (storeID != null && storeID.isNotEmpty && !_isErrorCode(storeID)) {
+        print("✅ Using existing valid store ID: $storeID");
 
         await getStoredta(bearerKey!);
         await _restoreUserSpecificData(storeID);
-
-        // Call without showing individual loaders
         await getOrdersWithoutLoader(bearerKey, storeID);
 
         if (bearerKey != null && bearerKey!.isNotEmpty) {
-          print("🔌 Initializing socket with store ID: $storeID");
+          print("📌 Initializing socket with store ID: $storeID");
           _initializeSocket();
         }
       } else {
-        print("⚠ No store ID found, getting user data first");
+        print("⚠️ Invalid or no store ID found, getting user data first");
+        if (storeID != null && _isErrorCode(storeID)) {
+          await sharedPreferences.remove(valueShared_STORE_KEY);
+          print("🗑️ Cleared error code store ID: $storeID");
+        }
         await getStoreUserMeDataWithoutLoader(bearerKey);
       }
 
@@ -229,15 +263,291 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       _loadCachedSalesData();
       _startNoOrderTimer();
       await getLiveSaleReportWithoutLoader();
-      _initVarTimeoutTimer?.cancel();
 
-    }catch (e) {
+    } catch (e) {
       print("Error in initVar: $e");
     } finally {
-      setState(() {
-        isLoading = false;
-        _isInitialLoading = false;
+      // Always close loader and cancel timeout
+      timeoutTimer?.cancel();
+      _initVarTimeoutTimer?.cancel();
+
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          _isInitialLoading = false;
+        });
+      }
+      print("initVar completed - loader closed");
+    }
+  }
+
+  bool _isErrorCode(String? value) {
+    if (value == null || value.isEmpty) return false;
+
+    int? code = int.tryParse(value);
+    if (code == null) return false;
+
+    // Common HTTP error codes
+    List<int> errorCodes = [400, 401, 403, 404, 500, 502, 503, 504];
+    return errorCodes.contains(code);
+  }
+
+  Future<void> _offlineLogout() async {
+    bool loaderShown = false;
+    Timer? timeoutTimer;
+
+    try {
+      // Close any existing loader first
+      if (Get.isDialogOpen ?? false) {
+        try {
+          Get.back();
+          print("Closed existing dialog before logout");
+        } catch (e) {
+          print("Error closing existing dialog: $e");
+        }
+      }
+
+      // Show loader
+      Get.dialog(
+        Center(
+            child: Lottie.asset(
+              'assets/animations/burger.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            )
+        ),
+        barrierDismissible: false,
+      );
+      loaderShown = true;
+
+      // Set timeout for logout process - maximum 8 seconds
+      timeoutTimer = Timer(Duration(seconds: 8), () {
+        if (loaderShown && (Get.isDialogOpen ?? false)) {
+          try {
+            Get.back();
+            loaderShown = false;
+            print("⏰ Forced logout loader close due to timeout");
+          } catch (e) {
+            print("Error force closing logout loader: $e");
+          }
+        }
+        // Force navigate to login even if timeout
+        Get.offAll(() => LoginScreen());
       });
+
+      print("🚪 Starting offline logout process...");
+
+      // STEP 1: Save IP data before clearing everything
+      await _preserveUserIPDataOffline();
+
+      // STEP 2: Force complete logout cleanup
+      await _forceCompleteLogoutCleanupOffline();
+
+      // STEP 3: Clear app controller
+      app.appController.clearOnLogout();
+
+      // STEP 4: Disconnect socket
+      await _disconnectSocketOffline();
+
+      // Close loader before navigation
+      if (loaderShown && (Get.isDialogOpen ?? false)) {
+        Get.back();
+        loaderShown = false;
+        print("✅ Logout loader closed before navigation");
+      }
+
+      // STEP 5: Navigate to login with complete reset
+      Get.offAll(() => LoginScreen());
+
+      print("✅ Offline logout completed successfully");
+
+    } catch (e) {
+      print("❌ Error in offline logout: $e");
+    } finally {
+      // Always cancel timeout
+      timeoutTimer?.cancel();
+
+      // Ensure loader is closed
+      if (loaderShown && (Get.isDialogOpen ?? false)) {
+        try {
+          Get.back();
+          print("✅ Logout loader closed in finally block");
+        } catch (e) {
+          print("Error closing logout loader in finally: $e");
+        }
+      }
+
+      // Ensure navigation happens even if there's an error
+      if (!Get.currentRoute.contains('LoginScreen')) {
+        Get.offAll(() => LoginScreen());
+      }
+    }
+  }
+
+  Future<void> _preserveUserIPDataOffline() async {
+    try {
+      print("💾 Preserving IP data for current user (offline)...");
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? currentStoreId = prefs.getString(valueShared_STORE_KEY);
+
+      if (currentStoreId != null && currentStoreId.isNotEmpty) {
+        // Save current IP data with store ID prefix
+        String userPrefix = "user_${currentStoreId}_";
+
+        // Preserve local printer IPs
+        for (int i = 0; i < 5; i++) {
+          String? currentIP = prefs.getString('printer_ip_$i');
+          if (currentIP != null && currentIP.isNotEmpty) {
+            await prefs.setString('${userPrefix}printer_ip_$i', currentIP);
+            print("💾 Saved ${userPrefix}printer_ip_$i: $currentIP");
+          }
+        }
+
+        // Preserve remote printer IPs
+        for (int i = 0; i < 5; i++) {
+          String? currentRemoteIP = prefs.getString('printer_ip_remote_$i');
+          if (currentRemoteIP != null && currentRemoteIP.isNotEmpty) {
+            await prefs.setString('${userPrefix}printer_ip_remote_$i', currentRemoteIP);
+            print("💾 Saved ${userPrefix}printer_ip_remote_$i: $currentRemoteIP");
+          }
+        }
+
+        // Preserve selected indices
+        int? selectedIndex = prefs.getInt('selected_ip_index');
+        if (selectedIndex != null) {
+          await prefs.setInt('${userPrefix}selected_ip_index', selectedIndex);
+        }
+
+        int? selectedRemoteIndex = prefs.getInt('selected_ip_remote_index');
+        if (selectedRemoteIndex != null) {
+          await prefs.setInt('${userPrefix}selected_ip_remote_index', selectedRemoteIndex);
+        }
+
+        // Preserve toggle settings
+        bool? autoOrderAccept = prefs.getBool('auto_order_accept');
+        if (autoOrderAccept != null) {
+          await prefs.setBool('${userPrefix}auto_order_accept', autoOrderAccept);
+        }
+
+        bool? autoOrderPrint = prefs.getBool('auto_order_print');
+        if (autoOrderPrint != null) {
+          await prefs.setBool('${userPrefix}auto_order_print', autoOrderPrint);
+        }
+
+        bool? autoRemoteAccept = prefs.getBool('auto_order_remote_accept');
+        if (autoRemoteAccept != null) {
+          await prefs.setBool('${userPrefix}auto_order_remote_accept', autoRemoteAccept);
+        }
+
+        bool? autoRemotePrint = prefs.getBool('auto_order_remote_print');
+        if (autoRemotePrint != null) {
+          await prefs.setBool('${userPrefix}auto_order_remote_print', autoRemotePrint);
+        }
+
+        print("✅ IP data preserved for store: $currentStoreId (offline)");
+      } else {
+        print("⚠️ No store ID found, cannot preserve IP data (offline)");
+      }
+    } catch (e) {
+      print("❌ Error preserving IP data (offline): $e");
+    }
+  }
+
+  Future<void> _forceCompleteLogoutCleanupOffline() async {
+    try {
+      print("🧹 Starting complete offline logout cleanup...");
+
+      // ✅ Multiple cleanup attempts to ensure complete removal
+      for (int attempt = 0; attempt < 3; attempt++) {
+        print("🔥 Cleanup attempt ${attempt + 1}/3 (offline)");
+
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+
+        // Clear only authentication-related data (NOT IP data)
+        List<String> keysToRemove = [
+          valueShared_BEARER_KEY,
+          valueShared_STORE_KEY,
+          // ✅ Clear backup IP keys that are created by PrinterSettingsScreen
+          'printer_ip_backup',
+          'printer_ip_0_backup',
+          'last_save_timestamp',
+          // ✅ Clear current session IP data (will be restored from user-prefixed data on next login)
+          'printer_ip_0',
+          'printer_ip_remote_0',
+          'selected_ip_index',
+          'selected_ip_remote_index',
+          // ✅ Clear current session auto settings (will be restored from user-prefixed data)
+          'auto_order_accept',
+          'auto_order_print',
+          'auto_order_remote_accept',
+          'auto_order_remote_print',
+          // ✅ Clear cached data
+          'cached_sales_date',
+          'cached_order_date',
+          'cached_store_id',
+          'cached_store_name',
+          'store_name',
+          valueShared_STORE_NAME,
+        ];
+
+        for (String key in keysToRemove) {
+          await prefs.remove(key);
+          await Future.delayed(Duration(milliseconds: 20));
+          print("🗑️ Removed: $key");
+        }
+
+        // ✅ Also clear all printer IP keys (0-4) to ensure complete cleanup
+        for (int i = 0; i < 5; i++) {
+          await prefs.remove('printer_ip_$i');
+          await prefs.remove('printer_ip_remote_$i');
+        }
+
+        // ✅ Clear sales cache data
+        await SalesCacheHelper.clearSalesData();
+
+        // ✅ Force multiple reloads to ensure changes are committed
+        await prefs.reload();
+        await Future.delayed(Duration(milliseconds: 100));
+        await prefs.reload();
+        await Future.delayed(Duration(milliseconds: 100));
+
+        // ✅ Verify cleanup for this attempt
+        String? testToken = prefs.getString(valueShared_BEARER_KEY);
+        String? testStoreKey = prefs.getString(valueShared_STORE_KEY);
+        if (testToken == null && testStoreKey == null) {
+          print("✅ Offline cleanup attempt ${attempt + 1}: SUCCESS");
+        } else {
+          print("⚠️ Offline cleanup attempt ${attempt + 1}: Data still exists, retrying...");
+        }
+      }
+
+      // ✅ Final verification
+      SharedPreferences finalPrefs = await SharedPreferences.getInstance();
+      await finalPrefs.reload();
+      String? finalToken = finalPrefs.getString(valueShared_BEARER_KEY);
+      String? finalStoreKey = finalPrefs.getString(valueShared_STORE_KEY);
+
+      if (finalToken == null && finalStoreKey == null) {
+        print("✅ Complete offline logout cleanup SUCCESS - All auth data removed");
+      } else {
+        print("❌ Offline logout cleanup FAILED - Auth data still exists");
+      }
+
+    } catch (e) {
+      print("❌ Error in complete offline logout cleanup: $e");
+    }
+  }
+
+  Future<void> _disconnectSocketOffline() async {
+    try {
+      print("🔌 Disconnecting socket (offline)...");
+      _socketService.disconnect();
+      await Future.delayed(Duration(milliseconds: 100));
+      print("✅ Socket disconnected (offline)");
+    } catch (e) {
+      print("⚠️ Error disconnecting socket (offline): $e");
     }
   }
 
@@ -263,12 +573,12 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
             ),
             content: Text("Cannot connect to server. Please logout and login again to continue."),
             actions: [
-
               ElevatedButton(
                 onPressed: () {
                   _isDialogShowing = false;
                   Navigator.of(context).pop();
-                  logutAPi(bearerKey);
+                  // ✅ Call offline logout instead of API logout
+                  _offlineLogout();
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 child: Text("Logout", style: TextStyle(color: Colors.white)),
@@ -280,84 +590,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     ).then((_) {
       _isDialogShowing = false;
     });
-  }
-  Future<void> logutAPi(String? bearerKey) async {
-    try {
-      Get.dialog(
-        Center(
-            child: Lottie.asset(
-              'assets/animations/burger.json',
-              width: 150,
-              height: 150,
-              repeat: true,
-            )
-        ),
-        barrierDismissible: false,
-      );
-      print("🚪 Starting logout process...");
-
-      final result = await ApiRepo().logoutAPi(bearerKey);
-      if (result != null) {
-        print("✅ Logout API successful");
-        Get.offAll(() => LoginScreen());
-
-        print("✅ Logout completed successfully");
-
-      } else {
-        showSnackbar("Error", "Failed to logout");
-      }
-    } catch (e) {
-      Log.loga(title, "Logout Api:: e >>>>> $e");
-      showSnackbar("Api Error", "An error occurred: $e");
-    }
-  }
-  Future<void> getOrdersWithoutLoader(String? bearerKey, String? id) async {
-    try {
-      DateTime formatted = DateTime.now();
-      String date = DateFormat('yyyy-MM-dd').format(formatted);
-
-      final Map<String, dynamic> data = {
-        "store_id": id,
-        "target_date": date,
-        "limit": 0,
-        "offset": 0,
-      };
-
-      final result = await ApiRepo().orderGetApiFilter(bearerKey!, data);
-
-      // If we reach here, API was successful
-      setState(() {
-        hasInternet = true;
-      });
-
-      if (result.isNotEmpty && result.first.code == null) {
-        setState(() {
-          app.appController.setOrders(result);
-        });
-        if (result.isNotEmpty) {
-          _stopNoOrderTimer();
-        }
-      } else {
-        _startNoOrderTimer();
-      }
-    } catch (e) {
-      print("❌ Error in getOrders: $e");
-
-      if (e.toString().contains('SocketException') ||
-          e.toString().contains('Failed host lookup')) {
-
-        print("🌐 Network error in getOrders, setting hasInternet = false");
-        setState(() {
-          hasInternet = false;
-        });
-
-        Future.delayed(Duration(milliseconds: 500), () {
-          _showLogoutDialog();
-        });
-      } else {
-        showSnackbar("Api Error", "An error occurred: $e");
-      }
-    }
   }
 
   void _startInternetMonitoring() {
@@ -371,6 +603,18 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         setState(() {
           hasInternet = true;
         });
+
+        // ✅ NEW: Force close logout dialog if it's showing
+        if (_isDialogShowing) {
+          try {
+            Navigator.of(context).pop(); // Use Navigator instead of Get.back()
+            _isDialogShowing = false;
+            print("✅ Logout dialog closed - Internet restored");
+          } catch (e) {
+            print("Error closing dialog: $e");
+          }
+        }
+
         print("Internet restored, refreshing data...");
         initVar(); // Refresh data
       }
@@ -395,7 +639,15 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       setState(() {
         hasInternet = true; // Set internet to true on success
       });
-
+      if (_isDialogShowing) {
+        try {
+          Navigator.of(context).pop();
+          _isDialogShowing = false;
+          print("✅ Logout dialog closed - API successful");
+        } catch (e) {
+          print("Error closing dialog after API: $e");
+        }
+      }
       if (model.code != null && model.code != 200) {
         print("⚠️ API returned code: ${model.code}, message: ${model.mess}");
         _setEmptyValues();
@@ -444,34 +696,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       }
 
       _setEmptyValues();
-    }
-  }
-
-  Future<void> getStoreUserMeDataWithoutLoader(String? bearerKey) async {
-    try {
-      final result = await ApiRepo().getUserMe(bearerKey);
-      if (result != null) {
-        setState(() {
-          userMe = result;
-        });
-
-        await sharedPreferences.setString(valueShared_STORE_KEY, userMe.store_id.toString());
-        print("âœ… Store ID saved from API: ${userMe.store_id}");
-
-        await getStoredta(bearerKey!);
-        await _restoreUserSpecificData(userMe.store_id.toString());
-        await getOrdersWithoutLoader(bearerKey, userMe.store_id.toString());
-
-        if (bearerKey != null && bearerKey!.isNotEmpty) {
-          print("ðŸ”Œ Initializing socket after getting user data");
-          _initializeSocket();
-        }
-      } else {
-        showSnackbar("Error", "Failed to get user data");
-      }
-    } catch (e) {
-      Log.loga(title, "getUserMe Api:: e >>>>> $e");
-      showSnackbar("Api Error", "An error occurred: $e");
     }
   }
 
@@ -571,71 +795,241 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     }
   }
 
-  Future<void> getStoreUserMeData(String? bearerKey) async {
-    try {
-      final result = await ApiRepo().getUserMe(bearerKey);
-      if (result != null) {
-        setState(() {
-          userMe = result;
-        });
-
-        await sharedPreferences.setString(valueShared_STORE_KEY, userMe.store_id.toString());
-        print("âœ… Store ID saved from API: ${userMe.store_id}");
-
-        // âœ… Store data à¤­à¥€ fetch à¤•à¤°à¥‡à¤‚
-        await getStoredta(bearerKey!);
-
-        // âœ… NEW: Restore user-specific data after getting store ID
-        await _restoreUserSpecificData(userMe.store_id.toString());
-
-        getOrders(bearerKey, true, false, userMe.store_id.toString());
-
-        if (bearerKey != null && bearerKey!.isNotEmpty) {
-          print("ðŸ”Œ Initializing socket after getting user data");
-          _initializeSocket();
-        }
-      } else {
-        showSnackbar("Error", "Failed to get user data");
-      }
-    } catch (e) {
-      Log.loga(title, "getUserMe Api:: e >>>>> $e");
-      showSnackbar("Api Error", "An error occurred: $e");
-    }
-  }
-
   Future<String?> getStoredta(String bearerKey) async {
     try {
       String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
 
-      if (storeID == null) {
-        print("âŒ DEBUG - Store ID is null, cannot fetch store data");
+      if (storeID == null || storeID.isEmpty) {
+        print("❌ DEBUG - Store ID is null or empty, cannot fetch store data");
         return null;
       }
 
+      print("🔄 Fetching store data for ID: $storeID");
       final result = await ApiRepo().getStoreData(bearerKey, storeID);
+      print("✅ API call completed successfully");
+      setState(() {
+        hasInternet = true; // Set internet to true on success
+      });
+      if (_isDialogShowing) {
+        try {
+          Navigator.of(context).pop();
+          _isDialogShowing = false;
+          print("✅ Logout dialog closed - API successful");
+        } catch (e) {
+          print("Error closing dialog after API: $e");
+        }
+      }
+      // ✅ Check if result is an error response by checking for 'code' property
+      if (result.code != null) {
+        print("❌ API returned error - Code: ${result.code}, Message: ${result.mess}");
 
-      if (result != null) {
-        Store store = result;
-        String fetchedStoreName = store.name?.toString() ?? "Unknown Store";
-        String fetchedStoreId = store.code?.toString() ?? storeID;
+        // Handle network errors specifically
+        if (result.code == 500 || result.code! >= 500) {
+          print("🌐 Server error detected, setting hasInternet = false");
+          setState(() {
+            hasInternet = false;
+          });
+          Future.delayed(Duration(milliseconds: 500), () {
+            _showLogoutDialog();
+          });
+        }
+        return null;
+      }
+
+      // ✅ If no error code, this is valid store data
+      if (result.name != null && result.name!.isNotEmpty) {
+        String fetchedStoreName = result.name!;
+        // ✅ Keep using original store ID, don't use result.code for store ID
+        String fetchedStoreId = storeID; // Use original store ID from SharedPreferences
 
         setState(() {
           storeName = fetchedStoreName;
           dynamicStoreId = fetchedStoreId;
         });
 
-        // âœ… Store name à¤•à¥‹ SharedPreferences à¤®à¥‡à¤‚ save à¤•à¤°à¥‡à¤‚
+        // ✅ Save store name to SharedPreferences
         await sharedPreferences.setString('store_name', fetchedStoreName);
-        await sharedPreferences.setString(valueShared_STORE_NAME, fetchedStoreName); // Backup key
-        await sharedPreferences.setString(valueShared_STORE_KEY, fetchedStoreId);
+        await sharedPreferences.setString(valueShared_STORE_NAME, fetchedStoreName);
+        // ✅ Don't overwrite store ID - keep the original one
 
-        print("âœ… DEBUG - Store name saved: '$fetchedStoreName'");
-        print("âœ… DEBUG - Store ID saved: '$fetchedStoreId'");
+        print("✅ DEBUG - Store name saved: '$fetchedStoreName'");
+        print("✅ DEBUG - Using original Store ID: '$fetchedStoreId'");
         return storeName;
+      } else {
+        print("⚠️ Invalid store data received - name is null or empty");
+        return null;
       }
     } catch (e) {
-      print("âŒ DEBUG - Exception in getStoredta: $e");
+      print("❌ DEBUG - Exception in getStoredta: $e");
+
+      // ✅ Handle network exceptions
+      if (e.toString().contains('SocketException') || e.toString().contains('Failed host lookup')) {
+        print("🌐 Network exception in getStoredta, setting hasInternet = false");
+        setState(() {
+          hasInternet = false;
+        });
+        Future.delayed(Duration(milliseconds: 500), () {
+          _showLogoutDialog();
+        });
+      }
+
       return null;
+    }
+  }
+
+  Future<void> getStoreUserMeDataWithoutLoader(String? bearerKey) async {
+    try {
+      print("🔄 Fetching user data...");
+      final result = await ApiRepo().getUserMe(bearerKey);
+      print("✅ API call completed successfully");
+      setState(() {
+        hasInternet = true; // Set internet to true on success
+      });
+      if (_isDialogShowing) {
+        try {
+          Navigator.of(context).pop();
+          _isDialogShowing = false;
+          print("✅ Logout dialog closed - API successful");
+        } catch (e) {
+          print("Error closing dialog after API: $e");
+        }
+      }
+      // ✅ Check if result is an error response by checking for 'code' property
+      if (result.code != null) {
+        print("❌ getUserMe API returned error - Code: ${result.code}, Message: ${result.mess}");
+
+        // Handle network/server errors specifically
+        if (result.code == 500 || result.code! >= 500) {
+          print("🌐 Server error in getUserMe, setting hasInternet = false");
+          setState(() {
+            hasInternet = false;
+          });
+          Future.delayed(Duration(milliseconds: 500), () {
+            _showLogoutDialog();
+          });
+          return;
+        } else {
+          showSnackbar("Error", result.mess ?? "Failed to get user data");
+          return;
+        }
+      }
+
+      // ✅ If no error code, validate the actual user data
+      if (result.store_id != null && result.store_id! > 0) {
+        setState(() {
+          userMe = result;
+        });
+
+        String newStoreId = result.store_id.toString();
+        await sharedPreferences.setString(valueShared_STORE_KEY, newStoreId);
+        print("✅ Store ID saved from UserMe API: $newStoreId");
+
+        await getStoredta(bearerKey!);
+        await _restoreUserSpecificData(newStoreId);
+        await getOrdersWithoutLoader(bearerKey, newStoreId);
+
+        if (bearerKey != null && bearerKey!.isNotEmpty) {
+          print("🔌 Initializing socket after getting user data");
+          _initializeSocket();
+        }
+      } else {
+        print("❌ Invalid store_id in user data: ${result.store_id}");
+        showSnackbar("Error", "Invalid user data received");
+      }
+    } catch (e) {
+      print("❌ Exception in getUserMe: $e");
+      Log.loga(title, "getUserMe Api:: e >>>>> $e");
+
+      // ✅ Handle network errors properly
+      if (e.toString().contains('SocketException') || e.toString().contains('Failed host lookup')) {
+        print("🌐 Network exception in getUserMe, setting hasInternet = false");
+        setState(() {
+          hasInternet = false;
+        });
+
+        Future.delayed(Duration(milliseconds: 500), () {
+          _showLogoutDialog();
+        });
+      } else {
+        showSnackbar("Api Error", "An error occurred: $e");
+      }
+    }
+  }
+
+  Future<void> getOrdersWithoutLoader(String? bearerKey, String? id) async {
+    try {
+      DateTime formatted = DateTime.now();
+      String date = DateFormat('yyyy-MM-dd').format(formatted);
+
+      final Map<String, dynamic> data = {
+        "store_id": id,
+        "target_date": date,
+        "limit": 0,
+        "offset": 0,
+      };
+
+      final result = await ApiRepo().orderGetApiFilter(bearerKey!, data);
+
+      // If we reach here, API was successful
+      setState(() {
+        hasInternet = true;
+      });
+      if (_isDialogShowing) {
+        try {
+          Navigator.of(context).pop();
+          _isDialogShowing = false;
+          print("✅ Logout dialog closed - API successful");
+        } catch (e) {
+          print("Error closing dialog after API: $e");
+        }
+      }
+      // ✅ Check if result contains error responses
+      if (result.isNotEmpty) {
+        // Check first item for error
+        final firstItem = result.first;
+        if (firstItem.code != null) {
+          print("❌ Orders API returned error - Code: ${firstItem.code}");
+          if (firstItem.code == 500 || firstItem.code! >= 500) {
+            setState(() {
+              hasInternet = false;
+            });
+            Future.delayed(Duration(milliseconds: 500), () {
+              _showLogoutDialog();
+            });
+          }
+          _startNoOrderTimer();
+          return;
+        }
+
+        // Valid orders received
+        setState(() {
+          app.appController.setOrders(result);
+        });
+        _stopNoOrderTimer();
+      } else {
+        // No orders but API was successful
+        setState(() {
+          app.appController.setOrders([]);
+        });
+        _startNoOrderTimer();
+      }
+    } catch (e) {
+      print("❌ Error in getOrdersWithoutLoader: $e");
+
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('Failed host lookup')) {
+
+        print("🌐 Network error in getOrders, setting hasInternet = false");
+        setState(() {
+          hasInternet = false;
+        });
+
+        Future.delayed(Duration(milliseconds: 500), () {
+          _showLogoutDialog();
+        });
+      } else {
+        showSnackbar("Api Error", "An error occurred: $e");
+      }
     }
   }
 
@@ -777,40 +1171,78 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     bool loaderShown = false;
 
     try {
-      print("ðŸ“„ Starting getLiveSaleReport...");
+      print("🔥 Starting getLiveSaleReport...");
 
       if (bearerKey == null || bearerKey!.isEmpty) {
-        print("âŒ Bearer token is null or empty");
+        print("❌ Bearer token is null or empty");
         _setEmptyValues();
         return;
       }
 
-      print("âœ… Bearer token available: ${bearerKey!.substring(0, 20)}...");
+      // Close any existing loaders first
+      if (Get.isDialogOpen ?? false) {
+        try {
+          Get.back();
+          print("Closed existing loader before starting new one");
+        } catch (e) {
+          print("Error closing existing loader: $e");
+        }
+      }
 
-      // Call the API with timeout
+      // Show loader
+      Get.dialog(
+        Center(
+            child: Lottie.asset(
+              'assets/animations/burger.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            )
+        ),
+        barrierDismissible: false,
+      );
+      loaderShown = true;
+
+      // Set timeout timer for loader - force close after 8 seconds
+      timeoutTimer = Timer(Duration(seconds: 8), () {
+        if (loaderShown && (Get.isDialogOpen ?? false)) {
+          try {
+            Get.back();
+            loaderShown = false;
+            print("⏰ Forced loader close due to timeout");
+          } catch (e) {
+            print("Error force closing loader: $e");
+          }
+        }
+        _setEmptyValues();
+      });
+
+      print("✅ Bearer token available: ${bearerKey!.substring(0, 20)}...");
+
       GetTodayReport model = await CallService().getLiveSaleData().timeout(
-        Duration(seconds: 4), // API timeout slightly less than loader timeout
+        Duration(seconds: 6),
         onTimeout: () {
-          print("â° API call timeout");
-          throw TimeoutException('API call timeout', Duration(seconds: 4));
+          print("⏰ API call timeout");
+          throw TimeoutException('API call timeout', Duration(seconds: 6));
         },
       );
 
       if (loaderShown && (Get.isDialogOpen ?? false)) {
         Get.back();
         loaderShown = false;
+        print("✅ Loader closed after API success");
       }
 
-      print("âœ… API call completed successfully");
+      print("✅ API call completed successfully");
 
       // Check if model has error code
       if (model.code != null && model.code != 200) {
-        print("âš ï¸ API returned code: ${model.code}, message: ${model.mess}");
+        print("⚠️ API returned code: ${model.code}, message: ${model.mess}");
         _setEmptyValues();
         return;
       }
 
-      // âœ… Update state with received data from API
+      // Update state with received data from API
       setState(() {
         delivery = '${model.orderTypes?.delivery ?? 0}';
         pickUp = '${model.orderTypes?.pickup ?? 0}';
@@ -832,34 +1264,34 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         _lastUpdateTime = DateTime.now();
       });
 
-      print('âœ… State updated successfully');
-      print('âœ… Accepted Value Is $accepted');
-      print('âœ… declined Value Is $declined');
-      print('âœ… pending Value is $pending');
+      print('✅ State updated successfully');
 
     } on TimeoutException catch (e) {
-      print('â° Timeout error in getLiveSaleReport: $e');
+      print('⏰ Timeout error in getLiveSaleReport: $e');
       _setEmptyValues();
-      // Don't show snackbar as timeout timer already handles it
 
     } catch (e, stackTrace) {
-      print('âŒ Error in getLiveSaleReport: $e');
-      print('ðŸ“‹ Stack trace: $stackTrace');
+      print('❌ Error in getLiveSaleReport: $e');
+      print('📋 Stack trace: $stackTrace');
 
-      // âœ… Set empty values instead of crashing
       _setEmptyValues();
 
-      // âœ… Don't show error to user for 204 responses or timeout
+
       if (!e.toString().contains('204') && !e.toString().contains('timeout')) {
         showSnackbar("Info", "Unable to load live sales data");
       }
     } finally {
-      // Cancel timeout timer
+
       timeoutTimer?.cancel();
 
-      // Ensure loader is closed
+
       if (loaderShown && (Get.isDialogOpen ?? false)) {
-        Get.back();
+        try {
+          Get.back();
+          print("✅ Loader closed in finally block");
+        } catch (e) {
+          print("Error closing loader in finally: $e");
+        }
       }
     }
   }
@@ -897,7 +1329,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     if (isFromSocket) {
       SalesCacheHelper.saveSalesData(salesData);
 
-      // Mark that we have socket data
       _hasSocketData = true;
     }
 
@@ -1016,7 +1447,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     }
   }
 
-  Future<void> _handleRefresh() async {                               // âœ¨ NEW
+  Future<void> _handleRefresh() async {
     final storeID = sharedPreferences.getString(valueShared_STORE_KEY);
     await getOrders(bearerKey, false, false, storeID);
   }
@@ -1027,11 +1458,50 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   }
 
   Future<void> getOrders(String? bearerKey, bool orderType, bool isBellRunning, String? id) async {
+    bool loaderShown = false;
+    Timer? timeoutTimer;
+
     try {
       DateTime formatted = DateTime.now();
       String date = DateFormat('yyyy-MM-dd').format(formatted);
 
       if (orderType) {
+        // Close any existing loader first
+        if (Get.isDialogOpen ?? false) {
+          try {
+            Get.back();
+            print("Closed existing loader before showing new one");
+          } catch (e) {
+            print("Error closing existing loader: $e");
+          }
+        }
+
+        // Show loader
+        Get.dialog(
+          Center(
+              child: Lottie.asset(
+                'assets/animations/burger.json',
+                width: 150,
+                height: 150,
+                repeat: true,
+              )
+          ),
+          barrierDismissible: false,
+        );
+        loaderShown = true;
+
+        // Set timeout for loader - force close after 8 seconds
+        timeoutTimer = Timer(Duration(seconds: 8), () {
+          if (loaderShown && (Get.isDialogOpen ?? false)) {
+            try {
+              Get.back();
+              loaderShown = false;
+              print("⏰ Forced getOrders loader close due to timeout");
+            } catch (e) {
+              print("Error force closing getOrders loader: $e");
+            }
+          }
+        });
       }
 
       final Map<String, dynamic> data = {
@@ -1041,33 +1511,56 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         "offset": 0,
       };
 
-      final result = await ApiRepo().orderGetApiFilter(bearerKey!, data);
+      // API call with timeout
+      final result = await ApiRepo().orderGetApiFilter(bearerKey!, data).timeout(
+        Duration(seconds: 6),
+        onTimeout: () {
+          print("⏰ getOrders API timeout");
+          throw TimeoutException('getOrders API timeout', Duration(seconds: 6));
+        },
+      );
 
-      if (orderType) Get.back(); // close loader
+      // Close loader immediately after API response
+      if (loaderShown && (Get.isDialogOpen ?? false)) {
+        Get.back();
+        loaderShown = false;
+        print("✅ getOrders loader closed after API response");
+      }
 
       if (result.isNotEmpty && result.first.code == null) {
         setState(() {
           app.appController.setOrders(result);
         });
-        if (result.isNotEmpty && result.first.code == null) {
-          setState(() {
-            app.appController.setOrders(result);
-          });
-          // Stop timer if orders found
-          if (result.isNotEmpty) {
-            _stopNoOrderTimer();
-          }
-        } else {
-          // Restart timer if no orders
-          _startNoOrderTimer();
+
+        // Stop timer if orders found
+        if (result.isNotEmpty) {
+          _stopNoOrderTimer();
         }
       } else {
-
+        // Restart timer if no orders
+        _startNoOrderTimer();
       }
+
+    } on TimeoutException catch (e) {
+      print("⏰ Timeout in getOrders: $e");
+
     } catch (e) {
-      if (orderType) Get.back();
-      Log.loga(title, "Login Api:: e >>>>> $e");
+      print("❌ Error in getOrders: $e");
+      Log.loga(title, "getOrders Api:: e >>>>> $e");
       showSnackbar("Api Error", "An error occurred: $e");
+    } finally {
+      // Always cancel timeout timer
+      timeoutTimer?.cancel();
+
+      // Always close loader if it was shown
+      if (loaderShown && (Get.isDialogOpen ?? false)) {
+        try {
+          Get.back();
+          print("✅ getOrders loader closed in finally block");
+        } catch (e) {
+          print("Error closing getOrders loader in finally: $e");
+        }
+      }
     }
   }
 
@@ -1136,6 +1629,16 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     return _liveApiData['totalOrders'] ?? 0;
   }
 
+  String _extractTime(String deliveryTime) {
+    try {
+      // Parse the ISO string and extract time
+      DateTime dateTime = DateTime.parse(deliveryTime);
+      return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return deliveryTime; // Return original if parsing fails
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -1175,8 +1678,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                   ),
                 );
               }
-
-              // Your existing Padding widget with ListView
               return Padding(
               padding: const EdgeInsets.all(10),
         child: Column(
@@ -1427,23 +1928,45 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                       ),
                                                     ),
                                                     SizedBox(width: 6),
-                                                    Container(
-                                                      width: MediaQuery.of(context).size.width*0.6,
-                                                      child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          Text(
-                                                            order.orderType == 2
-                                                                ? 'pickup'.tr
-                                                                : (order.shipping_address?.zip?.toString() ?? guestAddress),
-                                                            style: const TextStyle(
-                                                                fontWeight: FontWeight.w700,
-                                                                fontSize: 13,
-                                                                fontFamily: "Mulish-Regular"
-                                                            ),
+                                                    Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Container(
+                                                          width: MediaQuery.of(context).size.width*0.6,
+                                                          child: Row(crossAxisAlignment: CrossAxisAlignment.start,
+                                                            children: [
+                                                              Container(
+                                                                width: MediaQuery.of(context).size.width * (order.orderType == 2 ? 0.18 : 0.3),
+                                                                child: Text(
+                                                                  order.orderType == 2
+                                                                      ? 'pickup'.tr
+                                                                      : (order.shipping_address?.zip?.toString() ?? guestAddress),
+                                                                  style: const TextStyle(
+                                                                      fontWeight: FontWeight.w700,
+                                                                      fontSize: 13,
+                                                                      fontFamily: "Mulish-Regular"
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              if (order.deliveryTime != null && order.deliveryTime!.isNotEmpty)
+                                                                Container(
+                                                                  width: MediaQuery.of(context).size.width*0.3,
+                                                                  child: Text(
+                                                                    '${'time'.tr}: ${_extractTime(order.deliveryTime!)}',
+                                                                    style: const TextStyle(
+                                                                        fontWeight: FontWeight.w700,
+                                                                        fontSize: 13,
+                                                                        fontFamily: "Mulish-Regular"
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                            ],
                                                           ),
-                                                          Visibility(
-                                                            visible: order.shipping_address != null || order.guestShippingJson != null,
+                                                        ),
+                                                        Visibility(
+                                                          visible: order.shipping_address != null || order.guestShippingJson != null,
+                                                          child: Container(
+                                                            width: MediaQuery.of(context).size.width*0.5,
                                                             child: Text(
                                                               order.orderType == 1
                                                                   ? (order.shipping_address != null
@@ -1460,8 +1983,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                               ),
                                                             ),
                                                           ),
-                                                        ],
-                                                      ),
+                                                        ),
+                                                      ],
                                                     )
                                                   ],
                                                 ),
@@ -1611,7 +2134,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
   @override
   bool get wantKeepAlive => true;
-
 
   Future<void> getNewOrder(int orderID) async {
     try {

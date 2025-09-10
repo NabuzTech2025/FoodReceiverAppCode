@@ -164,7 +164,15 @@ class _OrderHistoryState extends State<OrderHistory> {
       }).toList();
     }
   }
-
+  String _extractTime(String deliveryTime) {
+    try {
+      // Parse the ISO string and extract time
+      DateTime dateTime = DateTime.parse(deliveryTime);
+      return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return deliveryTime; // Return original if parsing fails
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -181,7 +189,7 @@ class _OrderHistoryState extends State<OrderHistory> {
           children: [
             IconButton(
               icon: Icon(Icons.arrow_back, color: Colors.black),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Get.back()
             ),
           ],
         ),
@@ -368,31 +376,56 @@ class _OrderHistoryState extends State<OrderHistory> {
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            order.orderType == 2
-                                                ? 'pickup'.tr
-                                                : (order.shippingAddress?.zip?.toString() ?? order.guestShippingJson?.zip?.toString()??''),
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 13,
-                                                fontFamily: "Mulish-Regular"
+                                          Container(
+                                            width: MediaQuery.of(context).size.width*0.6,
+                                            child: Row(crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Container(
+                                                  width:  MediaQuery.of(context).size.width * (order.orderType == 2 ? 0.18 : 0.3),
+                                                  child: Text(
+                                                    order.orderType == 2
+                                                        ? 'pickup'.tr
+                                                        : (order.shippingAddress?.zip?.toString() ?? order.guestShippingJson?.zip?.toString()??''),
+                                                    style: const TextStyle(
+                                                        fontWeight: FontWeight.w700,
+                                                        fontSize: 13,
+                                                        fontFamily: "Mulish-Regular"
+                                                    ),
+                                                  ),
+                                                ),
+                                                if (order.deliveryTime != null && order.deliveryTime!.isNotEmpty)
+                                                  Container(
+                                                    width: MediaQuery.of(context).size.width*0.3,
+                                                    child: Text(
+                                                      '${'time'.tr}: ${_extractTime(order.deliveryTime!)}',
+                                                      style: const TextStyle(
+                                                          fontWeight: FontWeight.w700,
+                                                          fontSize: 13,
+                                                          fontFamily: "Mulish-Regular"
+                                                      ),
+                                                    ),
+                                                  ),
+                                              ],
                                             ),
                                           ),
                                           Visibility(
                                             visible: order.shippingAddress != null || order.guestShippingJson != null,
-                                            child: Text(
-                                              order.orderType == 1
-                                                  ? (order.shippingAddress != null
-                                                  ? '${order.shippingAddress!.line1!}, ${order.shippingAddress!.city!}'
-                                                  : '${order.guestShippingJson?.line1 ?? ''}, '
-                                                  '${order.guestShippingJson?.city ?? ''}')
-                                                  : '',
-                                              style: const TextStyle(
-                                                  fontWeight: FontWeight.w500,
-                                                  fontSize: 11,
-                                                  letterSpacing: 0,
-                                                  height: 0,
-                                                  fontFamily: "Mulish"
+                                            child: Container(
+                                              width: MediaQuery.of(context).size.width*0.5,
+                                              child: Text(
+                                                order.orderType == 1
+                                                    ? (order.shippingAddress != null
+                                                    ? '${order.shippingAddress!.line1!}, ${order.shippingAddress!.city!}'
+                                                    : '${order.guestShippingJson?.line1 ?? ''}, '
+                                                    '${order.guestShippingJson?.city ?? ''}')
+                                                    : '',
+                                                style: const TextStyle(
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 11,
+                                                    letterSpacing: 0,
+                                                    height: 0,
+                                                    fontFamily: "Mulish"
+                                                ),
                                               ),
                                             ),
                                           ),
