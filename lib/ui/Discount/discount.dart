@@ -390,19 +390,19 @@ class _DiscountState extends State<Discount> {
 
   Future<void> _saveDiscounts() async {
     if (sharedPreferences == null) {
-      Get.snackbar('Error', 'SharedPreferences not initialized');
+      Get.snackbar('error'.tr, 'shared'.tr);
       return;
     }
 
     storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
     if (storeId == null) {
-      Get.snackbar('Error', 'Store ID not found');
+      Get.snackbar('error'.tr, 'storeId'.tr);
       return;
     }
 
     // Validation - check if at least one field has value
     if (_discountDeliveryController.text.isEmpty && _pickUpDiscountController.text.isEmpty) {
-      Get.snackbar('Error', 'Please enter at least one discount value');
+      Get.snackbar('error'.tr, 'at_least'.tr);
       return;
     }
 
@@ -462,7 +462,7 @@ class _DiscountState extends State<Discount> {
 
       await getPercentage(); // Refresh data
       Get.back(); // Close loading dialog
-      Get.snackbar('Success', 'Discounts updated successfully');
+      Get.snackbar('success'.tr, 'discoun'.tr);
 
     } catch (e) {
       setState(() {
@@ -470,7 +470,7 @@ class _DiscountState extends State<Discount> {
       });
       Get.back();
       print('Save discount error: $e');
-      Get.snackbar('Error', 'Failed to update discounts: ${e.toString()}');
+      Get.snackbar('error'.tr, '${'failed_discoun'.tr}: ${e.toString()}');
     }
   }
 

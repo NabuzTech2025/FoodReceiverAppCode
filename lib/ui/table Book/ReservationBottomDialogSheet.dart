@@ -410,7 +410,7 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('An error occurred during Getting Reservation History: $e'),
+          content: Text('${'gett_history'.tr}: $e'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,

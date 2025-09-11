@@ -248,8 +248,8 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       _unfocusAllTextFields();
 
       Get.snackbar(
-        'Success',
-        'Settings synced successfully',
+        'success'.tr,
+        'settings'.tr,
         backgroundColor: Colors.green,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -266,8 +266,8 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       }
       _unfocusAllTextFields();
       Get.snackbar(
-        'Error',
-        'Failed to save settings: $e',
+        'error'.tr,
+        '${'failed_save'.tr}: $e',
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -287,8 +287,8 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
       if (_validateIP(ip) != null) {
         print("❌ IP validation failed, not saving");
         Get.snackbar(
-            'Invalid IP',
-            'Enter valid Local IP',
+            'invalid'.tr,
+            'valid_local'.tr,
             backgroundColor: Colors.red,
             colorText: Colors.white,
             snackPosition: SnackPosition.BOTTOM,
@@ -351,7 +351,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
 
         if (saveSuccessful) {
           Get.snackbar(
-              'Success',
+              'success'.tr,
               'Local IP Saved Successfully',
               backgroundColor: Colors.green,
               colorText: Colors.white,
@@ -807,14 +807,14 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>
 
     // Basic IP validation
     final parts = ip.split('.');
-    if (parts.length != 4) return 'IP must have 4 parts';
+    if (parts.length != 4) return 'ip_must'.tr;
 
     for (String part in parts) {
-      if (part.isEmpty) return 'Empty part in IP';
+      if (part.isEmpty) return 'empty'.tr;
 
       int? num = int.tryParse(part);
-      if (num == null) return 'Invalid number in IP';
-      if (num < 0 || num > 255) return 'Number must be 0-255';
+      if (num == null) return 'invalid_number'.tr;
+      if (num < 0 || num > 255) return 'number'.tr;
     }
 
     return null; // Valid IP

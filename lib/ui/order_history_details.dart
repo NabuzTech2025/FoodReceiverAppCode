@@ -768,8 +768,8 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
       });
       Get.back();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Print Details Sent Successfully'),
+         SnackBar(
+          content: Text('print'.tr),
           backgroundColor: Colors.green,
           duration: Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
@@ -789,8 +789,8 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
 
       // Handle error case
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('An error occurred during Sending Details.'),
+         SnackBar(
+          content: Text('sending'.tr),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,

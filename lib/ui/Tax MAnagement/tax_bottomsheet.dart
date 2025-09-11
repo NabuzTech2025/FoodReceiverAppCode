@@ -72,24 +72,24 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
   void _onSave() {
     // Validate inputs
     if (_taxNameController.text.trim().isEmpty) {
-      Get.snackbar('Error', 'Please enter tax name');
+      Get.snackbar('error'.tr, 'enter_tax'.tr);
       return;
     }
 
     if (_taxPercentageController.text.trim().isEmpty) {
-      Get.snackbar('Error', 'Please enter tax percentage');
+      Get.snackbar('error'.tr, 'enter_percentage'.tr);
       return;
     }
 
     // Validate percentage
     double? percentage = double.tryParse(_taxPercentageController.text.trim());
     if (percentage == null) {
-      Get.snackbar('Error', 'Please enter a valid percentage');
+      Get.snackbar('error'.tr, 'valid_percentage'.tr);
       return;
     }
 
     if (percentage < 0 || percentage > 100) {
-      Get.snackbar('Error', 'Tax percentage must be between 0 and 100');
+      Get.snackbar('error'.tr, 'tax_percentage'.tr);
       return;
     }
 
@@ -103,13 +103,13 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
 
   Future<void> _saveTax() async {
     if (sharedPreferences == null) {
-      Get.snackbar('Error', 'SharedPreferences not initialized');
+      Get.snackbar('error'.tr, 'shared'.tr);
       return;
     }
 
     storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
     if (storeId == null) {
-      Get.snackbar('Error', 'Store ID not found');
+      Get.snackbar('error'.tr, 'storeId'.tr);
       return;
     }
 
@@ -157,7 +157,7 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
       }
 
       // Then show success message
-      Get.snackbar('Success', 'Tax added successfully');
+      Get.snackbar('success'.tr, 'tax_add'.tr);
 
     } catch (e) {
       setState(() {
@@ -165,23 +165,23 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
       });
       Get.back();
       print('Adding error: $e');
-      Get.snackbar('Error', 'Failed to add tax: ${e.toString()}');
+      Get.snackbar('error'.tr, '${'failed_tax_add'.tr}: ${e.toString()}');
     }
   }
   Future<void> _editSavedTax() async {
     if (sharedPreferences == null) {
-      Get.snackbar('Error', 'SharedPreferences not initialized');
+      Get.snackbar('error'.tr, 'shared'.tr);
       return;
     }
 
     storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
     if (storeId == null) {
-      Get.snackbar('Error', 'Store ID not found');
+      Get.snackbar('error'.tr, 'storeId'.tr);
       return;
     }
 
     if (widget.editTaxId == null) {
-      Get.snackbar('Error', 'Tax ID not found');
+      Get.snackbar('error', 'tax_id'.tr);
       return;
     }
 
@@ -229,7 +229,7 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
       }
 
       // Then show success message
-      Get.snackbar('Success', 'Tax updated successfully');
+      Get.snackbar('success'.tr, 'tax_upd'.tr);
 
     } catch (e) {
       setState(() {
@@ -237,7 +237,7 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
       });
       Get.back();
       print('Edit error: $e');
-      Get.snackbar('Error', 'Failed to update tax: ${e.toString()}');
+      Get.snackbar('error'.tr, '${'tax_failed'.tr}: ${e.toString()}');
     }
   }
 

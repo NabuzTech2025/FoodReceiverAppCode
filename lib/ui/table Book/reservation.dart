@@ -429,7 +429,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       backgroundColor: const Color(0xFFF5F5F5),
       body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.all(10),
+          padding: EdgeInsets.all(6),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -503,14 +503,14 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                             return Text(
                               '${'total_reserv'.tr}: $filteredCount',
                               style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w800,
                                   fontFamily: "Mulish",
                                   color: Colors.black),
                             );
                           }),
                           IconButton(
-                              iconSize: 33,
+                              iconSize: 24,
                               icon: const Icon(Icons.refresh),
                               onPressed: () async {
                                 await getReservationsInBackground();
@@ -532,7 +532,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                     child: Column(
                       children: [
                         Lottie.asset('assets/animations/empty.json', height: 150, width: 150),
-                        Text('No reservations found')
+                        Text('no_reservation'.tr)
                       ],
                     ),
                   );
@@ -625,7 +625,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                                   Row(
                                     children: [
                                       Text(
-                                        'Order ID :',
+                                        '${'order_id'.tr} :',
                                         style: TextStyle(
                                             fontWeight: FontWeight.w700,
                                             fontSize: 13,
@@ -783,8 +783,8 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       } else {
         print('❌ Error getting reservation details: $e');
         Get.snackbar(
-          'Error',
-          'Failed to load reservation details',
+          'error'.tr,
+          'load'.tr,
           snackPosition: SnackPosition.BOTTOM,
         );
       }
@@ -908,7 +908,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                margin: EdgeInsets.all(8),
               child: Center(
                 child: Text(
-                  'Add New Reservation',
+                  'new_reservation'.tr,
                   style: TextStyle(
                     color: Colors.black,
                     fontSize: 18,
@@ -924,12 +924,12 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                 physics: BouncingScrollPhysics(),
                 child: Column(
                   children: [
-                    _buildAddReservationField('Customer Name', nameController, Icons.person),
-                    _buildAddReservationField('Phone Number', phoneController, Icons.phone),
-                    _buildAddReservationField('Email Address', emailController, Icons.email),
-                    _buildAddReservationField('Guest Count', guestController, Icons.group),
-                    _buildAddReservationField('Reservation Date', reservationController, Icons.calendar_today, isDateField: true),
-                    _buildAddReservationField('Special Note', noteController, Icons.note, maxLines: 3),
+                    _buildAddReservationField('customer_name'.tr, nameController, Icons.person),
+                    _buildAddReservationField('phone_number'.tr, phoneController, Icons.phone),
+                    _buildAddReservationField('email_address'.tr, emailController, Icons.email),
+                    _buildAddReservationField('guest_count'.tr, guestController, Icons.group),
+                    _buildAddReservationField('reservation_date'.tr, reservationController, Icons.calendar_today, isDateField: true),
+                    _buildAddReservationField('special_note'.tr, noteController, Icons.note, maxLines: 3),
 
                     SizedBox(height: 15),
                     Row(
@@ -937,7 +937,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () => Get.back(),
-                            child: Text('Cancel',style: TextStyle(
+                            child: Text('cancel'.tr,style: TextStyle(
                               fontFamily: 'Mulish',fontWeight: FontWeight.w700,fontSize: 16,),),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.grey[300],
@@ -971,7 +971,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                                 borderRadius: BorderRadius.circular(3),
                               ),
                             ),
-                            child: const Center(child: Text('Book',style: TextStyle(
+                            child:  Center(child: Text('book'.tr,style: TextStyle(
                               fontFamily: 'Mulish',fontWeight: FontWeight.w700,fontSize: 16,
                             ),)),
                           ),
@@ -1096,17 +1096,17 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
   String _getHintText(String label) {
     switch (label) {
       case 'Customer Name':
-        return 'Name';
+        return 'name'.tr;
       case 'Phone Number':
-        return 'Contact Number';
+        return 'contact_number'.tr;
       case 'Email Address':
-        return 'Email...';
+        return 'email'.tr;
       case 'Guest Count':
-        return 'Guest Count';
+        return 'guest_count'.tr;
       case 'Reservation Date':
-        return 'DD/MM/YYYY  HH:MM';
-      case 'Add Note':
-        return 'Type Note...';
+        return 'dd'.tr;
+      case 'Special Note':
+        return 'type_note'.tr;
       default:
         return '';
     }
@@ -1182,8 +1182,8 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
 
       if (availableSlots.isEmpty) {
         Get.snackbar(
-          'Restaurant Closed',
-          'No available time slots for today. Restaurant might be closed or all slots are past.',
+          'closed'.tr,
+          'slot'.tr,
           backgroundColor: Colors.red,
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
@@ -1230,7 +1230,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                       Icon(Icons.access_time, color: Colors.white),
                       SizedBox(width: 10),
                       Text(
-                        'Select Time Slot',
+                        'time_slot'.tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -1262,7 +1262,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
             Container(
               padding: EdgeInsets.all(16),
               child:Text(
-                'Date: ${DateFormat('dd-MM-yyyy (EEEE)').format(selectedDate)}',
+                '${'date'.tr}: ${DateFormat('dd-MM-yyyy (EEEE)').format(selectedDate)}',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -1303,8 +1303,8 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
 
                         Get.back(); // Close time picker
                         Get.snackbar(
-                          'Time Selected',
-                          'Reservation time updated to ${slot.displayTime}',
+                          'time_selected'.tr,
+                          '${'updated'.tr} ${slot.displayTime}',
                           backgroundColor: Colors.green,
                           colorText: Colors.white,
                           snackPosition: SnackPosition.BOTTOM,
@@ -1393,21 +1393,21 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
 
   Future<void> _createNewReservation(String name, String phone, String email, String guestCount, String reservationDate, String note) async {
     if (sharedPreferences == null) {
-      Get.snackbar('Error', 'SharedPreferences not initialized');
+      Get.snackbar('error'.tr, 'shared'.tr);
       return;
     }
 
     storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
     if (storeId == null) {
-      Get.snackbar('Error', 'Store ID not found');
+      Get.snackbar('error'.tr, 'storeId'.tr);
       return;
     }
 
     // Validate inputs
     if (name.isEmpty || phone.isEmpty || reservationDate.isEmpty) {
       Get.snackbar(
-        'Error',
-        'Please fill in all required fields',
+        'error'.tr,
+        'fill'.tr,
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -1459,8 +1459,8 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       await getReservationDetails();
 
       Get.snackbar(
-        'Success',
-        'Reservation created successfully',
+        'success'.tr,
+        'created'.tr,
         backgroundColor: Colors.green,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -1474,8 +1474,8 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       Get.back(); // Close loading dialog
       print('Create reservation error: $e');
       Get.snackbar(
-        'Error',
-        'Failed to create reservation: ${e.toString()}',
+        'error'.tr,
+        '${'create_reserv'.tr}: ${e.toString()}',
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,

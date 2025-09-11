@@ -106,7 +106,7 @@ class ItemBottomBar extends StatelessWidget {
         onTap: onPressed,
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 2),
           child: Stack(
             clipBehavior: Clip.none,
             children: [

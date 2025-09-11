@@ -30,8 +30,11 @@ class OrderScreenNew extends StatefulWidget {
   _OrderScreenState createState() => _OrderScreenState();
 }
 
-class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMixin, AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
-
+class _OrderScreenState extends State<OrderScreenNew>
+    with
+        TickerProviderStateMixin,
+        AutomaticKeepAliveClientMixin,
+        WidgetsBindingObserver {
   Color getStatusColor(int status) {
     switch (status) {
       case 1:
@@ -75,11 +78,24 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   DateTime? _lastUpdateTime;
   bool _showNoOrderText = false;
   Timer? _noOrderTimer;
-  String  salesDelivery = '0', totalSales = '0', totalOrder = '0',
-      totalTax = '0', cashTotal = '0', online = '0', net = '0', discount = '0',
-      deliveryFee = '0', cashMethod = '0', delivery = '0', pickUp = '0',
-      dineIn = '0', pending = '0', accepted = '0', declined = '0',
-      tax19 = '0', tax7 = '0';
+  String salesDelivery = '0',
+      totalSales = '0',
+      totalOrder = '0',
+      totalTax = '0',
+      cashTotal = '0',
+      online = '0',
+      net = '0',
+      discount = '0',
+      deliveryFee = '0',
+      cashMethod = '0',
+      delivery = '0',
+      pickUp = '0',
+      dineIn = '0',
+      pending = '0',
+      accepted = '0',
+      declined = '0',
+      tax19 = '0',
+      tax7 = '0';
   bool _hasSocketData = false;
   Map<String, int> _liveApiData = {
     'accepted': 0,
@@ -89,7 +105,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     'delivery': 0,
     'totalOrders': 0,
   };
-  bool isLoading=false;
+  bool isLoading = false;
   bool _isInitialLoading = true;
   Timer? _initVarTimeoutTimer;
   bool hasInternet = true;
@@ -124,7 +140,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     final prefs = await SharedPreferences.getInstance();
     final cachedDate = prefs.getString('cached_sales_date');
     final cachedOrderDate = prefs.getString('cached_order_date');
-    final cachedStoreId = prefs.getString('cached_store_id'); // âœ… NEW: Track store ID
+    final cachedStoreId =
+        prefs.getString('cached_store_id'); // âœ… NEW: Track store ID
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final currentStoreId = prefs.getString(valueShared_STORE_KEY);
 
@@ -263,7 +280,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       _loadCachedSalesData();
       _startNoOrderTimer();
       await getLiveSaleReportWithoutLoader();
-
     } catch (e) {
       print("Error in initVar: $e");
     } finally {
@@ -311,12 +327,11 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       Get.dialog(
         Center(
             child: Lottie.asset(
-              'assets/animations/burger.json',
-              width: 150,
-              height: 150,
-              repeat: true,
-            )
-        ),
+          'assets/animations/burger.json',
+          width: 150,
+          height: 150,
+          repeat: true,
+        )),
         barrierDismissible: false,
       );
       loaderShown = true;
@@ -361,7 +376,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       Get.offAll(() => LoginScreen());
 
       print("✅ Offline logout completed successfully");
-
     } catch (e) {
       print("❌ Error in offline logout: $e");
     } finally {
@@ -409,8 +423,10 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         for (int i = 0; i < 5; i++) {
           String? currentRemoteIP = prefs.getString('printer_ip_remote_$i');
           if (currentRemoteIP != null && currentRemoteIP.isNotEmpty) {
-            await prefs.setString('${userPrefix}printer_ip_remote_$i', currentRemoteIP);
-            print("💾 Saved ${userPrefix}printer_ip_remote_$i: $currentRemoteIP");
+            await prefs.setString(
+                '${userPrefix}printer_ip_remote_$i', currentRemoteIP);
+            print(
+                "💾 Saved ${userPrefix}printer_ip_remote_$i: $currentRemoteIP");
           }
         }
 
@@ -422,13 +438,15 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
         int? selectedRemoteIndex = prefs.getInt('selected_ip_remote_index');
         if (selectedRemoteIndex != null) {
-          await prefs.setInt('${userPrefix}selected_ip_remote_index', selectedRemoteIndex);
+          await prefs.setInt(
+              '${userPrefix}selected_ip_remote_index', selectedRemoteIndex);
         }
 
         // Preserve toggle settings
         bool? autoOrderAccept = prefs.getBool('auto_order_accept');
         if (autoOrderAccept != null) {
-          await prefs.setBool('${userPrefix}auto_order_accept', autoOrderAccept);
+          await prefs.setBool(
+              '${userPrefix}auto_order_accept', autoOrderAccept);
         }
 
         bool? autoOrderPrint = prefs.getBool('auto_order_print');
@@ -438,12 +456,14 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
         bool? autoRemoteAccept = prefs.getBool('auto_order_remote_accept');
         if (autoRemoteAccept != null) {
-          await prefs.setBool('${userPrefix}auto_order_remote_accept', autoRemoteAccept);
+          await prefs.setBool(
+              '${userPrefix}auto_order_remote_accept', autoRemoteAccept);
         }
 
         bool? autoRemotePrint = prefs.getBool('auto_order_remote_print');
         if (autoRemotePrint != null) {
-          await prefs.setBool('${userPrefix}auto_order_remote_print', autoRemotePrint);
+          await prefs.setBool(
+              '${userPrefix}auto_order_remote_print', autoRemotePrint);
         }
 
         print("✅ IP data preserved for store: $currentStoreId (offline)");
@@ -519,7 +539,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         if (testToken == null && testStoreKey == null) {
           print("✅ Offline cleanup attempt ${attempt + 1}: SUCCESS");
         } else {
-          print("⚠️ Offline cleanup attempt ${attempt + 1}: Data still exists, retrying...");
+          print(
+              "⚠️ Offline cleanup attempt ${attempt + 1}: Data still exists, retrying...");
         }
       }
 
@@ -530,11 +551,11 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       String? finalStoreKey = finalPrefs.getString(valueShared_STORE_KEY);
 
       if (finalToken == null && finalStoreKey == null) {
-        print("✅ Complete offline logout cleanup SUCCESS - All auth data removed");
+        print(
+            "✅ Complete offline logout cleanup SUCCESS - All auth data removed");
       } else {
         print("❌ Offline logout cleanup FAILED - Auth data still exists");
       }
-
     } catch (e) {
       print("❌ Error in complete offline logout cleanup: $e");
     }
@@ -571,7 +592,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                 Text("Connection Error"),
               ],
             ),
-            content: Text("Cannot connect to server. Please logout and login again to continue."),
+            content: Text(
+                "Cannot connect to server. Please logout and login again to continue."),
             actions: [
               ElevatedButton(
                 onPressed: () {
@@ -674,7 +696,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         _isLiveDataActive = true;
         _lastUpdateTime = DateTime.now();
       });
-
     } catch (e, stackTrace) {
       print('❌ Caught error in getLiveSaleReport: $e');
       print('📋 Stack trace: $stackTrace');
@@ -683,7 +704,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       if (e.toString().contains('SocketException') ||
           e.toString().contains('Failed host lookup') ||
           e.toString().contains('API call failed with status null')) {
-
         print("🌐 Network error detected, setting hasInternet = false");
         setState(() {
           hasInternet = false;
@@ -722,7 +742,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
         // Restore remote printer IPs
         for (int i = 0; i < 5; i++) {
-          String? savedRemoteIP = prefs.getString('${userPrefix}printer_ip_remote_$i');
+          String? savedRemoteIP =
+              prefs.getString('${userPrefix}printer_ip_remote_$i');
           if (savedRemoteIP != null && savedRemoteIP.isNotEmpty) {
             await prefs.setString('printer_ip_remote_$i', savedRemoteIP);
             print("ðŸ”„ Restored printer_ip_remote_$i: $savedRemoteIP");
@@ -735,7 +756,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
           await prefs.setInt('selected_ip_index', selectedIndex);
         }
 
-        int? selectedRemoteIndex = prefs.getInt('${userPrefix}selected_ip_remote_index');
+        int? selectedRemoteIndex =
+            prefs.getInt('${userPrefix}selected_ip_remote_index');
         if (selectedRemoteIndex != null) {
           await prefs.setInt('selected_ip_remote_index', selectedRemoteIndex);
         }
@@ -751,12 +773,14 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
           await prefs.setBool('auto_order_print', autoOrderPrint);
         }
 
-        bool? autoRemoteAccept = prefs.getBool('${userPrefix}auto_order_remote_accept');
+        bool? autoRemoteAccept =
+            prefs.getBool('${userPrefix}auto_order_remote_accept');
         if (autoRemoteAccept != null) {
           await prefs.setBool('auto_order_remote_accept', autoRemoteAccept);
         }
 
-        bool? autoRemotePrint = prefs.getBool('${userPrefix}auto_order_remote_print');
+        bool? autoRemotePrint =
+            prefs.getBool('${userPrefix}auto_order_remote_print');
         if (autoRemotePrint != null) {
           await prefs.setBool('auto_order_remote_print', autoRemotePrint);
         }
@@ -821,7 +845,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       }
       // ✅ Check if result is an error response by checking for 'code' property
       if (result.code != null) {
-        print("❌ API returned error - Code: ${result.code}, Message: ${result.mess}");
+        print(
+            "❌ API returned error - Code: ${result.code}, Message: ${result.mess}");
 
         // Handle network errors specifically
         if (result.code == 500 || result.code! >= 500) {
@@ -840,7 +865,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       if (result.name != null && result.name!.isNotEmpty) {
         String fetchedStoreName = result.name!;
         // ✅ Keep using original store ID, don't use result.code for store ID
-        String fetchedStoreId = storeID; // Use original store ID from SharedPreferences
+        String fetchedStoreId =
+            storeID; // Use original store ID from SharedPreferences
 
         setState(() {
           storeName = fetchedStoreName;
@@ -849,7 +875,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
         // ✅ Save store name to SharedPreferences
         await sharedPreferences.setString('store_name', fetchedStoreName);
-        await sharedPreferences.setString(valueShared_STORE_NAME, fetchedStoreName);
+        await sharedPreferences.setString(
+            valueShared_STORE_NAME, fetchedStoreName);
         // ✅ Don't overwrite store ID - keep the original one
 
         print("✅ DEBUG - Store name saved: '$fetchedStoreName'");
@@ -863,8 +890,10 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       print("❌ DEBUG - Exception in getStoredta: $e");
 
       // ✅ Handle network exceptions
-      if (e.toString().contains('SocketException') || e.toString().contains('Failed host lookup')) {
-        print("🌐 Network exception in getStoredta, setting hasInternet = false");
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('Failed host lookup')) {
+        print(
+            "🌐 Network exception in getStoredta, setting hasInternet = false");
         setState(() {
           hasInternet = false;
         });
@@ -896,7 +925,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       }
       // ✅ Check if result is an error response by checking for 'code' property
       if (result.code != null) {
-        print("❌ getUserMe API returned error - Code: ${result.code}, Message: ${result.mess}");
+        print(
+            "❌ getUserMe API returned error - Code: ${result.code}, Message: ${result.mess}");
 
         // Handle network/server errors specifically
         if (result.code == 500 || result.code! >= 500) {
@@ -909,7 +939,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
           });
           return;
         } else {
-          showSnackbar("Error", result.mess ?? "Failed to get user data");
+          showSnackbar("error".tr, result.mess ?? "failed".tr);
           return;
         }
       }
@@ -934,14 +964,15 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         }
       } else {
         print("❌ Invalid store_id in user data: ${result.store_id}");
-        showSnackbar("Error", "Invalid user data received");
+          showSnackbar("error".tr, "invalid_user".tr);
       }
     } catch (e) {
       print("❌ Exception in getUserMe: $e");
       Log.loga(title, "getUserMe Api:: e >>>>> $e");
 
       // ✅ Handle network errors properly
-      if (e.toString().contains('SocketException') || e.toString().contains('Failed host lookup')) {
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('Failed host lookup')) {
         print("🌐 Network exception in getUserMe, setting hasInternet = false");
         setState(() {
           hasInternet = false;
@@ -951,7 +982,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
           _showLogoutDialog();
         });
       } else {
-        showSnackbar("Api Error", "An error occurred: $e");
+        showSnackbar("api_error".tr, "${'an_error'.tr}: $e");
       }
     }
   }
@@ -1018,7 +1049,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
       if (e.toString().contains('SocketException') ||
           e.toString().contains('Failed host lookup')) {
-
         print("🌐 Network error in getOrders, setting hasInternet = false");
         setState(() {
           hasInternet = false;
@@ -1028,7 +1058,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
           _showLogoutDialog();
         });
       } else {
-        showSnackbar("Api Error", "An error occurred: $e");
+        showSnackbar("api_error".tr, "${'an_error'.tr}: $e");
       }
     }
   }
@@ -1057,7 +1087,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
           final result = await ApiRepo().getStoreData(bearerKey!, storeID);
           if (result != null) {
             // Cache store name for quick access by OrderDetail screen
-            await sharedPreferences.setString('cached_store_name', result.name.toString());
+            await sharedPreferences.setString(
+                'cached_store_name', result.name.toString());
             print("âœ… Store data pre-loaded and cached");
           }
         }
@@ -1099,7 +1130,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         print("âœ… Successfully parsed storeID: $dynamicStoreId");
       } else {
         print("âŒ Parse failed for storeID: '$storeID'");
-        print("âŒ CRITICAL: Cannot parse store ID, socket connection may fail!");
+        print(
+            "âŒ CRITICAL: Cannot parse store ID, socket connection may fail!");
         return;
       }
     } else {
@@ -1107,7 +1139,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       if (userMe != null && userMe.store_id != null) {
         dynamicStoreId = userMe.store_id!;
         print("âœ… Using userMe.store_id: $dynamicStoreId");
-        sharedPreferences.setString(valueShared_STORE_KEY, dynamicStoreId.toString());
+        sharedPreferences.setString(
+            valueShared_STORE_KEY, dynamicStoreId.toString());
       } else {
         print("âŒ No store ID available anywhere, cannot connect socket");
         return;
@@ -1121,8 +1154,10 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       print('ðŸ“Š Sales update received for store $dynamicStoreId: $data');
 
       // âœ… Verify this data is for current store
-      if (data['store_id'] != null && data['store_id'].toString() != dynamicStoreId.toString()) {
-        print('âš ï¸ Ignoring sales data for different store: ${data['store_id']}');
+      if (data['store_id'] != null &&
+          data['store_id'].toString() != dynamicStoreId.toString()) {
+        print(
+            'âš ï¸ Ignoring sales data for different store: ${data['store_id']}');
         return;
       }
 
@@ -1130,24 +1165,28 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     };
 
     _socketService.onConnected = () {
-      print('ðŸ”¥ Socket connected for store $dynamicStoreId - Live data active');
+      print(
+          'ðŸ”¥ Socket connected for store $dynamicStoreId - Live data active');
       setState(() => _isLiveDataActive = true);
     };
 
     _socketService.onDisconnected = () {
-      print('â„ï¸ Socket disconnected for store $dynamicStoreId - Live data inactive');
+      print(
+          'â„ï¸ Socket disconnected for store $dynamicStoreId - Live data inactive');
       if (mounted) {
         setState(() {
           _isLiveDataActive = false;
           _hasSocketData = false; // Reset socket data flag when disconnected
-        });}
+        });
+      }
     };
 
     _socketService.onNewOrder = (data) {
       print('ðŸ†• New order received for store $dynamicStoreId: $data');
 
       // âœ… Verify this order is for current store
-      if (data['store_id'] != null && data['store_id'].toString() != dynamicStoreId.toString()) {
+      if (data['store_id'] != null &&
+          data['store_id'].toString() != dynamicStoreId.toString()) {
         print('âš ï¸ Ignoring order for different store: ${data['store_id']}');
         return;
       }
@@ -1193,12 +1232,11 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       Get.dialog(
         Center(
             child: Lottie.asset(
-              'assets/animations/burger.json',
-              width: 150,
-              height: 150,
-              repeat: true,
-            )
-        ),
+          'assets/animations/burger.json',
+          width: 150,
+          height: 150,
+          repeat: true,
+        )),
         barrierDismissible: false,
       );
       loaderShown = true;
@@ -1223,7 +1261,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         Duration(seconds: 6),
         onTimeout: () {
           print("⏰ API call timeout");
-          throw TimeoutException('API call timeout', Duration(seconds: 6));
+          throw TimeoutException('api_time'.tr, Duration(seconds: 6));
         },
       );
 
@@ -1265,25 +1303,20 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       });
 
       print('✅ State updated successfully');
-
     } on TimeoutException catch (e) {
       print('⏰ Timeout error in getLiveSaleReport: $e');
       _setEmptyValues();
-
     } catch (e, stackTrace) {
       print('❌ Error in getLiveSaleReport: $e');
       print('📋 Stack trace: $stackTrace');
 
       _setEmptyValues();
 
-
       if (!e.toString().contains('204') && !e.toString().contains('timeout')) {
-        showSnackbar("Info", "Unable to load live sales data");
+        showSnackbar("info".tr, "unable".tr);
       }
     } finally {
-
       timeoutTimer?.cancel();
-
 
       if (loaderShown && (Get.isDialogOpen ?? false)) {
         try {
@@ -1304,7 +1337,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       pending = '0';
       accepted = '0';
       declined = '0';
-
     });
 
     print("ðŸ“Š Set empty/default values for UI");
@@ -1324,7 +1356,9 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     setState(() => _showNoOrderText = false);
   }
 
-  void _handleSalesUpdate(Map<String, dynamic> salesData, {bool isFromSocket = false}) {
+  void _handleSalesUpdate(Map<String, dynamic> salesData,
+      {bool isFromSocket = false})
+  {
     print('ðŸ”„ Updating sales data: $salesData');
     if (isFromSocket) {
       SalesCacheHelper.saveSalesData(salesData);
@@ -1355,7 +1389,9 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       _currentDateReport!.data = SalesData(
         netTotal: (salesData['net_total'] as num?)?.toDouble(),
         topItems: (salesData['top_items'] != null)
-            ? (salesData['top_items'] as List).map((item) => TopItem.fromJson(item)).toList()
+            ? (salesData['top_items'] as List)
+                .map((item) => TopItem.fromJson(item))
+                .toList()
             : _currentDateReport!.data?.topItems ?? [],
         totalTax: (salesData['total_tax'] as num?)?.toDouble(),
         cashTotal: (salesData['cash_total'] as num?)?.toDouble() ?? 0.0,
@@ -1381,7 +1417,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         approvalStatuses: salesData['approval_statuses'] != null
             ? Map<String, int>.from(salesData['approval_statuses'])
             : {},
-        totalSalesDelivery: (salesData['total_sales + delivery'] as num?)?.toDouble(),
+        totalSalesDelivery:
+            (salesData['total_sales + delivery'] as num?)?.toDouble(),
       );
 
       setState(() => reportsss = _currentDateReport!);
@@ -1457,7 +1494,9 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     await getOrders(bearerKey, true, false, storeID);
   }
 
-  Future<void> getOrders(String? bearerKey, bool orderType, bool isBellRunning, String? id) async {
+  Future<void> getOrders(
+      String? bearerKey, bool orderType, bool isBellRunning, String? id) async
+  {
     bool loaderShown = false;
     Timer? timeoutTimer;
 
@@ -1480,12 +1519,11 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         Get.dialog(
           Center(
               child: Lottie.asset(
-                'assets/animations/burger.json',
-                width: 150,
-                height: 150,
-                repeat: true,
-              )
-          ),
+            'assets/animations/burger.json',
+            width: 150,
+            height: 150,
+            repeat: true,
+          )),
           barrierDismissible: false,
         );
         loaderShown = true;
@@ -1512,11 +1550,12 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       };
 
       // API call with timeout
-      final result = await ApiRepo().orderGetApiFilter(bearerKey!, data).timeout(
+      final result =
+          await ApiRepo().orderGetApiFilter(bearerKey!, data).timeout(
         Duration(seconds: 6),
         onTimeout: () {
           print("⏰ getOrders API timeout");
-          throw TimeoutException('getOrders API timeout', Duration(seconds: 6));
+          throw TimeoutException('api_timeout'.tr, Duration(seconds: 6));
         },
       );
 
@@ -1540,14 +1579,12 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         // Restart timer if no orders
         _startNoOrderTimer();
       }
-
     } on TimeoutException catch (e) {
       print("⏰ Timeout in getOrders: $e");
-
     } catch (e) {
       print("❌ Error in getOrders: $e");
       Log.loga(title, "getOrders Api:: e >>>>> $e");
-      showSnackbar("Api Error", "An error occurred: $e");
+      showSnackbar("api_error".tr, "${'an_error'.tr}: $e");
     } finally {
       // Always cancel timeout timer
       timeoutTimer?.cancel();
@@ -1578,15 +1615,16 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         case "accepted":
           return approvalStatuses["accepted"] ??
               approvalStatuses["approve"] ??
-              approvalStatuses["2"] ?? 0;
+              approvalStatuses["2"] ??
+              0;
         case "declined":
           return approvalStatuses["declined"] ??
               approvalStatuses["decline"] ??
               approvalStatuses["rejected"] ??
-              approvalStatuses["3"] ?? 0;
+              approvalStatuses["3"] ??
+              0;
         case "pending":
-          return approvalStatuses["pending"] ??
-              approvalStatuses["1"] ?? 0;
+          return approvalStatuses["pending"] ?? approvalStatuses["1"] ?? 0;
         default:
           return 0;
       }
@@ -1603,13 +1641,12 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         case "pickup":
           return orderTypes["pickup"] ??
               orderTypes["pick_up"] ??
-              orderTypes["takeaway"] ?? 0;
+              orderTypes["takeaway"] ??
+              0;
         case "delivery":
-          return orderTypes["delivery"] ??
-              orderTypes["home_delivery"] ?? 0;
+          return orderTypes["delivery"] ?? orderTypes["home_delivery"] ?? 0;
         case "dine_in":
-          return orderTypes["dine_in"] ??
-              orderTypes["dinein"] ?? 0;
+          return orderTypes["dine_in"] ?? orderTypes["dinein"] ?? 0;
         default:
           return 0;
       }
@@ -1643,460 +1680,567 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      resizeToAvoidBottomInset: true,
-      backgroundColor: const Color(0xFFF5F5F5),
-        body: Builder(
-            builder: (context) {
-              print("🏗️ Building body - hasInternet: $hasInternet, isLoading: $isLoading");
+        resizeToAvoidBottomInset: true,
+        backgroundColor: const Color(0xFFF5F5F5),
+        body: Builder(builder: (context) {
+          print(
+              "🏗️ Building body - hasInternet: $hasInternet, isLoading: $isLoading");
 
-              if (isLoading) {
-                return Center(
-                    child: Lottie.asset(
-                      'assets/animations/burger.json',
-                      width: 150,
-                      height: 150,
-                      repeat: true,
-                    )
-                );
-              }
+          if (isLoading) {
+            return Center(
+                child: Lottie.asset(
+              'assets/animations/burger.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            ));
+          }
 
-              if (!hasInternet) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.wifi_off, size: 80, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text("No Internet Connection",
-                          style: TextStyle(fontSize: 18, color: Colors.grey)),
-                      SizedBox(height: 10),
-                      ElevatedButton(
-                        onPressed: () => _showLogoutDialog(),
-                        child: Text("Show Logout Dialog"),
-                      ),
-                    ],
+          if (!hasInternet) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.wifi_off, size: 80, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text("No Internet Connection",
+                      style: TextStyle(fontSize: 18, color: Colors.grey)),
+                  SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: () => _showLogoutDialog(),
+                    child: Text("Show Logout Dialog"),
                   ),
-                );
-              }
-              return Padding(
-              padding: const EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Column(
+                ],
+              ),
+            );
+          }
+          return Padding(
+            padding: const EdgeInsets.all(6),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Date + title
-                    GestureDetector(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Date + title
+                        GestureDetector(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('order'.tr,
+                                  style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold)),
+                              Text(
+                                dateSeleted.isEmpty
+                                    ? DateFormat('d MMMM, y')
+                                        .format(DateTime.now())
+                                    : dateSeleted,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Total Orders + Refresh button
+                        Row(
+                          children: [
+                            Text(
+                              '${'total_order'.tr}: ${_getTotalOrders()}',
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  fontFamily: "Mulish",
+                                  color: Colors.black),
+                            ),
+                            IconButton(
+                              iconSize: 30,
+                              icon: const Icon(Icons.refresh),
+                              onPressed: _manualRefresh,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
                         children: [
-                          Text('order'.tr,
-                              style: const TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold)),
-                          Text(
-                            dateSeleted.isEmpty
-                                ? DateFormat('d MMMM, y').format(DateTime.now())
-                                : dateSeleted,
-                            style: const TextStyle(fontSize: 16),
+                          // Accepted Orders
+                          _buildStatusContainer(
+                            '${'accepted'.tr} ${_getApprovalStatusCount("accepted")}',
+                            Colors.green.withOpacity(0.1),
+                          ),
+                          SizedBox(width: 8),
+
+                          // Declined Orders
+                          _buildStatusContainer(
+                            '${"decline".tr} ${_getApprovalStatusCount("declined")}',
+                            Colors.red.withOpacity(0.1),
+                          ),
+                          SizedBox(width: 8),
+
+                          // // Pending Orders
+                          // _buildStatusContainer(
+                          //   'Pending: ${_getApprovalStatusCount("pending")}',
+                          //   Colors.yellow.withOpacity(0.2),
+                          // ),
+                          //SizedBox(width: 8),
+
+                          // Pickup Orders
+                          _buildStatusContainer(
+                            '${"pickup".tr} ${_getOrderTypeCount("pickup")}',
+                            Colors.blue.withOpacity(0.1),
+                          ),
+                          SizedBox(width: 8),
+
+                          // Delivery Orders
+                          _buildStatusContainer(
+                            '${"delivery".tr} ${_getOrderTypeCount("delivery")}',
+                            Colors.purple.withOpacity(0.1),
                           ),
                         ],
                       ),
                     ),
-
-                    // Total Orders + Refresh button
-                    Row(
-                      children: [
-                        Text(
-                          '${'total_order'.tr}: ${_getTotalOrders()}',
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              fontFamily: "Mulish",
-                              color: Colors.black
-                          ),
-                        ),
-                        IconButton(
-                          iconSize: 33,
-                          icon: const Icon(Icons.refresh),
-                          onPressed: _manualRefresh,
-                        ),
-                      ],
-                    ),
                   ],
                 ),
-
-                const SizedBox(height: 10),
-
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      // Accepted Orders
-                      _buildStatusContainer(
-                        '${'accepted'.tr} ${_getApprovalStatusCount("accepted")}',
-                        Colors.green.withOpacity(0.1),
-                      ),
-                      SizedBox(width: 8),
-
-                      // Declined Orders
-                      _buildStatusContainer(
-                        '${"decline".tr} ${_getApprovalStatusCount("declined")}',
-                        Colors.red.withOpacity(0.1),
-                      ),
-                      SizedBox(width: 8),
-
-                      // // Pending Orders
-                      // _buildStatusContainer(
-                      //   'Pending: ${_getApprovalStatusCount("pending")}',
-                      //   Colors.yellow.withOpacity(0.2),
-                      // ),
-                      //SizedBox(width: 8),
-
-                      // Pickup Orders
-                      _buildStatusContainer(
-                        '${"pickup".tr} ${_getOrderTypeCount("pickup")}',
-                        Colors.blue.withOpacity(0.1),
-                      ),
-                      SizedBox(width: 8),
-
-                      // Delivery Orders
-                      _buildStatusContainer(
-                        '${"delivery".tr} ${_getOrderTypeCount("delivery")}',
-                        Colors.purple.withOpacity(0.1),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 15),
-            // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Orders list with pullâ€‘toâ€‘refresh â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            Expanded(
-              child: MediaQuery.removePadding(
-                context: context,
-                removeTop: false,
-                removeBottom: true,
-                child: RefreshIndicator(
-                    onRefresh: _handleRefresh,
-                    color: Colors.green,
-                    backgroundColor: Colors.white,
-                    displacement: 60,
-                    child: _isInitialLoading
-                        ? Container()
-                        : !hasInternet  // ✅ First check internet condition
-                        ? ListView(
-                      padding: EdgeInsets.zero,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        SizedBox(height: 100),
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.wifi_off, size: 80, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text(
-                              "No Internet Connection",
-                              style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w600),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              "Please check your connection",
-                              style: TextStyle(fontSize: 14, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      ],
-                    )
-                        : Obx(() {  // ✅ Then check orders condition
-                      if (app.appController.searchResultOrder.isEmpty) {
-                        return ListView(
-                          padding: EdgeInsets.zero,
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: [
-                            SizedBox(height: 100),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Lottie.asset(
-                                  'assets/animations/empty.json',
-                                  width: 150,
-                                  height: 150,
-                                ),
-                                Text(
-                                  'No orders found',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        );
-                      }
-                      return ListView.builder(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: EdgeInsets.zero,
-                          itemCount: app.appController.searchResultOrder.length,
-                          itemBuilder: (context, index) {
-                            final order = app.appController.searchResultOrder[index];
-                            DateTime startTime = DateTime.tryParse(order.createdAt ?? '') ?? DateTime.now();
-                            DateTime endTime = startTime.add(const Duration(minutes: 30));
-                            String formattedEnd = DateFormat('hh:mm a').format(endTime);
-                            DateTime dateTime = DateTime.parse(order.createdAt.toString());
-                            String time = DateFormat('hh:mm a').format(dateTime);
-                            String guestAddress=order.guestShippingJson?.zip?.toString()??'';
-                            String guestName=order.guestShippingJson?.customerName?.toString()??'';
-                            String guestPhone=order.guestShippingJson?.phone?.toString()??'';
-                            print('guest name is $guestName');
-                            print('guest name is $guestAddress');
-                            print('guest name is $guestPhone');
-                            return AnimatedBuilder(
-                              animation: _opacityAnimation,
-                              builder: (context, child) {
-                                final bool isPending = (order.approvalStatus ?? 0) == 1;
-                                Color getContainerColor() {
-                                  switch (order.approvalStatus) {
-                                    case 2: // Accepted
-                                      return Color(0xffEBFFF4);
-                                    case 3: // Declined
-                                      return Color(0xffFFEFEF);
-                                    case 1: // Pending
-                                      return Colors.white;
-                                    default:
-                                      return Colors.white;
-                                  }
-                                }
-                                return Opacity(
-                                  opacity: isPending ? _opacityAnimation.value : 1.0,
-                                  child: Container(
-                                    margin: EdgeInsets.only(bottom: 12),
-                                    decoration: BoxDecoration(
-                                      color: getContainerColor(),
-                                      borderRadius: BorderRadius.circular(7),
-                                      border: Border.all(
-                                        color: (order.approvalStatus == 2)
-                                            ? Color(0xffC3F2D9)
-                                            : (order.approvalStatus == 3)
-                                            ? Color(0xffFFD0D0)
-                                            : Colors.grey.withOpacity(0.2),
-                                        width: 1,
+                const SizedBox(height: 15),
+                // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Orders list with pullâ€‘toâ€‘refresh â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                Expanded(
+                  child: MediaQuery.removePadding(
+                    context: context,
+                    removeTop: false,
+                    removeBottom: true,
+                    child: RefreshIndicator(
+                        onRefresh: _handleRefresh,
+                        color: Colors.green,
+                        backgroundColor: Colors.white,
+                        displacement: 60,
+                        child: _isInitialLoading
+                            ? Container()
+                            : !hasInternet // ✅ First check internet condition
+                                ? ListView(
+                                    padding: EdgeInsets.zero,
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(),
+                                    children: [
+                                      SizedBox(height: 100),
+                                      Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.wifi_off,
+                                              size: 80, color: Colors.grey),
+                                          SizedBox(height: 16),
+                                          Text(
+                                            "no_internet".tr,
+                                            style: TextStyle(
+                                                fontSize: 18,
+                                                color: Colors.grey,
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                          SizedBox(height: 8),
+                                          Text(
+                                            "please".tr,
+                                            style: TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.grey),
+                                          ),
+                                        ],
                                       ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
-                                          spreadRadius: 0,
-                                          blurRadius: 4,
-                                          offset: Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Padding(
-                                      padding: EdgeInsets.all(8),
-                                      child: GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        onTap: () => Get.to(() => OrderDetailEnglish(order)),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            // top row
-                                            Row(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                Row(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    CircleAvatar(
-                                                      radius: 14,
-                                                      backgroundColor: Colors.green,
-                                                      child: SvgPicture.asset(
-                                                        order.orderType == 1
-                                                            ? 'assets/images/ic_delivery.svg'
-                                                            : order.orderType == 2
-                                                            ? 'assets/images/ic_pickup.svg'
-                                                            : 'assets/images/ic_pickup.svg',
-                                                        height: 14,
-                                                        width: 14,
-                                                        color: Colors.white,
-                                                      ),
+                                    ],
+                                  )
+                                : Obx(() {
+                                    // ✅ Then check orders condition
+                                    if (app.appController.searchResultOrder
+                                        .isEmpty) {
+                                      return ListView(
+                                        padding: EdgeInsets.zero,
+                                        physics:
+                                            const AlwaysScrollableScrollPhysics(),
+                                        children: [
+                                          SizedBox(height: 100),
+                                          Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Lottie.asset(
+                                                'assets/animations/empty.json',
+                                                width: 150,
+                                                height: 150,
+                                              ),
+                                              Text(
+                                                'no_order'.tr,
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      );
+                                    }
+                                    return ListView.builder(
+                                        physics:
+                                            const AlwaysScrollableScrollPhysics(),
+                                        padding: EdgeInsets.zero,
+                                        itemCount: app.appController
+                                            .searchResultOrder.length,
+                                        itemBuilder: (context, index) {
+                                          final order = app.appController
+                                              .searchResultOrder[index];
+                                          DateTime startTime =
+                                              DateTime.tryParse(
+                                                      order.createdAt ?? '') ??
+                                                  DateTime.now();
+                                          DateTime endTime = startTime
+                                              .add(const Duration(minutes: 30));
+                                          String formattedEnd =
+                                              DateFormat('hh:mm a')
+                                                  .format(endTime);
+                                          DateTime dateTime = DateTime.parse(
+                                              order.createdAt.toString());
+                                          String time = DateFormat('hh:mm a')
+                                              .format(dateTime);
+                                          String guestAddress = order
+                                                  .guestShippingJson?.zip
+                                                  ?.toString() ??
+                                              '';
+                                          String guestName = order
+                                                  .guestShippingJson
+                                                  ?.customerName
+                                                  ?.toString() ??
+                                              '';
+                                          String guestPhone = order
+                                                  .guestShippingJson?.phone
+                                                  ?.toString() ??
+                                              '';
+                                          print('guest name is $guestName');
+                                          print('guest name is $guestAddress');
+                                          print('guest name is $guestPhone');
+                                          return AnimatedBuilder(
+                                            animation: _opacityAnimation,
+                                            builder: (context, child) {
+                                              final bool isPending =
+                                                  (order.approvalStatus ?? 0) ==
+                                                      1;
+                                              Color getContainerColor() {
+                                                switch (order.approvalStatus) {
+                                                  case 2: // Accepted
+                                                    return Color(0xffEBFFF4);
+                                                  case 3: // Declined
+                                                    return Color(0xffFFEFEF);
+                                                  case 1: // Pending
+                                                    return Colors.white;
+                                                  default:
+                                                    return Colors.white;
+                                                }
+                                              }
+
+                                              return Opacity(
+                                                opacity: isPending
+                                                    ? _opacityAnimation.value
+                                                    : 1.0,
+                                                child: Container(
+                                                  margin: EdgeInsets.only(
+                                                      bottom: 12),
+                                                  decoration: BoxDecoration(
+                                                    color: getContainerColor(),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            7),
+                                                    border: Border.all(
+                                                      color: (order
+                                                                  .approvalStatus ==
+                                                              2)
+                                                          ? Color(0xffC3F2D9)
+                                                          : (order.approvalStatus ==
+                                                                  3)
+                                                              ? Color(
+                                                                  0xffFFD0D0)
+                                                              : Colors.grey
+                                                                  .withOpacity(
+                                                                      0.2),
+                                                      width: 1,
                                                     ),
-                                                    SizedBox(width: 6),
-                                                    Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      children: [
-                                                        Container(
-                                                          width: MediaQuery.of(context).size.width*0.6,
-                                                          child: Row(crossAxisAlignment: CrossAxisAlignment.start,
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black
+                                                            .withOpacity(0.1),
+                                                        spreadRadius: 0,
+                                                        blurRadius: 4,
+                                                        offset: Offset(0, 2),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: Padding(
+                                                    padding: EdgeInsets.all(8),
+                                                    child: GestureDetector(
+                                                      behavior: HitTestBehavior
+                                                          .opaque,
+                                                      onTap: () => Get.to(() =>
+                                                          OrderDetailEnglish(
+                                                              order)),
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          // top row
+                                                          Row(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .spaceBetween,
                                                             children: [
-                                                              Container(
-                                                                width: MediaQuery.of(context).size.width * (order.orderType == 2 ? 0.18 : 0.3),
-                                                                child: Text(
-                                                                  order.orderType == 2
-                                                                      ? 'pickup'.tr
-                                                                      : (order.shipping_address?.zip?.toString() ?? guestAddress),
-                                                                  style: const TextStyle(
-                                                                      fontWeight: FontWeight.w700,
-                                                                      fontSize: 13,
-                                                                      fontFamily: "Mulish-Regular"
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                              if (order.deliveryTime != null && order.deliveryTime!.isNotEmpty)
-                                                                Container(
-                                                                  width: MediaQuery.of(context).size.width*0.3,
-                                                                  child: Text(
-                                                                    '${'time'.tr}: ${_extractTime(order.deliveryTime!)}',
-                                                                    style: const TextStyle(
-                                                                        fontWeight: FontWeight.w700,
-                                                                        fontSize: 13,
-                                                                        fontFamily: "Mulish-Regular"
+                                                              Row(
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
+                                                                children: [
+                                                                  CircleAvatar(
+                                                                    radius: 14,
+                                                                    backgroundColor:
+                                                                        Colors
+                                                                            .green,
+                                                                    child: SvgPicture
+                                                                        .asset(
+                                                                      order.orderType ==
+                                                                              1
+                                                                          ? 'assets/images/ic_delivery.svg'
+                                                                          : order.orderType == 2
+                                                                              ? 'assets/images/ic_pickup.svg'
+                                                                              : 'assets/images/ic_pickup.svg',
+                                                                      height:
+                                                                          14,
+                                                                      width: 14,
+                                                                      color: Colors
+                                                                          .white,
                                                                     ),
                                                                   ),
-                                                                ),
+                                                                  SizedBox(
+                                                                      width: 6),
+                                                                  Column(
+                                                                    crossAxisAlignment:
+                                                                        CrossAxisAlignment
+                                                                            .start,
+                                                                    children: [
+                                                                      Container(
+                                                                        width: MediaQuery.of(context).size.width *
+                                                                            0.6,
+                                                                        child:
+                                                                            Row(
+                                                                          crossAxisAlignment:
+                                                                              CrossAxisAlignment.start,
+                                                                          children: [
+                                                                            Container(
+                                                                              width: MediaQuery.of(context).size.width * (order.orderType == 2 ? 0.18 : 0.3),
+                                                                              child: Text(
+                                                                                order.orderType == 2 ? 'pickup'.tr : (order.shipping_address?.zip?.toString() ?? guestAddress),
+                                                                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, fontFamily: "Mulish-Regular"),
+                                                                              ),
+                                                                            ),
+                                                                            if (order.deliveryTime != null &&
+                                                                                order.deliveryTime!.isNotEmpty)
+                                                                              Container(
+                                                                                width: MediaQuery.of(context).size.width * 0.3,
+                                                                                child: Text(
+                                                                                  '${'time'.tr}: ${_extractTime(order.deliveryTime!)}',
+                                                                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, fontFamily: "Mulish-Regular"),
+                                                                                ),
+                                                                              ),
+                                                                          ],
+                                                                        ),
+                                                                      ),
+                                                                      Visibility(
+                                                                        visible: order.shipping_address !=
+                                                                                null ||
+                                                                            order.guestShippingJson !=
+                                                                                null,
+                                                                        child:
+                                                                            Container(
+                                                                          width:
+                                                                              MediaQuery.of(context).size.width * 0.5,
+                                                                          child:
+                                                                              Text(
+                                                                            order.orderType == 1
+                                                                                ? (order.shipping_address != null
+                                                                                    ? '${order.shipping_address!.line1!}, ${order.shipping_address!.city!}'
+                                                                                    : '${order.guestShippingJson?.line1 ?? ''}, '
+                                                                                        '${order.guestShippingJson?.city ?? ''}')
+                                                                                : '',
+                                                                            style: const TextStyle(
+                                                                                fontWeight: FontWeight.w500,
+                                                                                fontSize: 11,
+                                                                                letterSpacing: 0,
+                                                                                height: 0,
+                                                                                fontFamily: "Mulish"),
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  )
+                                                                ],
+                                                              ),
+                                                              Row(
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons
+                                                                        .access_time,
+                                                                    size: 20,
+                                                                  ),
+                                                                  Text(
+                                                                    time,
+                                                                    style:
+                                                                        const TextStyle(
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w500,
+                                                                      fontFamily:
+                                                                          "Mulish",
+                                                                      fontSize:
+                                                                          10,
+                                                                    ),
+                                                                  )
+                                                                ],
+                                                              )
                                                             ],
                                                           ),
-                                                        ),
-                                                        Visibility(
-                                                          visible: order.shipping_address != null || order.guestShippingJson != null,
-                                                          child: Container(
-                                                            width: MediaQuery.of(context).size.width*0.5,
-                                                            child: Text(
-                                                              order.orderType == 1
-                                                                  ? (order.shipping_address != null
-                                                                  ? '${order.shipping_address!.line1!}, ${order.shipping_address!.city!}'
-                                                                  : '${order.guestShippingJson?.line1 ?? ''}, '
-                                                                  '${order.guestShippingJson?.city ?? ''}')
-                                                                  : '',
-                                                              style: const TextStyle(
-                                                                  fontWeight: FontWeight.w500,
-                                                                  fontSize: 11,
-                                                                  letterSpacing: 0,
-                                                                  height: 0,
-                                                                  fontFamily: "Mulish"
+                                                          SizedBox(height: 8),
+                                                          Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .spaceBetween,
+                                                            children: [
+                                                              Container(
+                                                                width: MediaQuery.of(
+                                                                            context)
+                                                                        .size
+                                                                        .width *
+                                                                    0.5,
+                                                                child: Text(
+                                                                  '${order.shipping_address?.customer_name ?? guestName ?? ""} / ${order.shipping_address?.phone ?? guestPhone}',
+                                                                  style: const TextStyle(
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w700,
+                                                                      fontFamily:
+                                                                          "Mulish",
+                                                                      fontSize:
+                                                                          13),
+                                                                ),
                                                               ),
-                                                            ),
+                                                              Row(
+                                                                children: [
+                                                                  Text(
+                                                                    '${'order_id'.tr} :',
+                                                                    style: const TextStyle(
+                                                                        fontWeight:
+                                                                            FontWeight
+                                                                                .w700,
+                                                                        fontSize:
+                                                                            11,
+                                                                        fontFamily:
+                                                                            "Mulish"),
+                                                                  ),
+                                                                  Text(
+                                                                    '${order.id}',
+                                                                    style: const TextStyle(
+                                                                        fontWeight:
+                                                                            FontWeight
+                                                                                .w500,
+                                                                        fontSize:
+                                                                            11,
+                                                                        fontFamily:
+                                                                            "Mulish"),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ],
                                                           ),
-                                                        ),
-                                                      ],
-                                                    )
-                                                  ],
-                                                ),
-                                                Row(
-                                                  children: [
-                                                    Icon(Icons.access_time,size: 20,),
-                                                    Text(time,
-                                                      style: const TextStyle(
-                                                        fontWeight: FontWeight.w500,
-                                                        fontFamily: "Mulish",
-                                                        fontSize: 10,
-                                                      ),
-                                                    )
-                                                  ],
-                                                )
-                                              ],
-                                            ),
-                                            SizedBox(height: 8),
-                                            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                Container(
-                                                  width: MediaQuery.of(context).size.width*0.5,
-                                                  child: Text(
-                                                    '${order.shipping_address?.customer_name ??
-                                                        guestName ?? ""} / ${order.shipping_address?.phone ??
-                                                        guestPhone}',
-                                                    style: const TextStyle(
-                                                        fontWeight: FontWeight.w700,
-                                                        fontFamily: "Mulish",
-                                                        fontSize: 13
-                                                    ),
-                                                  ),),
-                                                Row(
-                                                  children: [
-                                                    Text(
-                                                      '${'order_id'.tr} :',
-                                                      style: const TextStyle(
-                                                          fontWeight: FontWeight.w700,
-                                                          fontSize: 11,
-                                                          fontFamily: "Mulish"
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      '${order.id}',
-                                                      style: const TextStyle(
-                                                          fontWeight: FontWeight.w500,
-                                                          fontSize: 11,
-                                                          fontFamily: "Mulish"
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
 
-                                            const SizedBox(height: 8),
+                                                          const SizedBox(
+                                                              height: 8),
 
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                Text(
-                                                  order.payment != null
-                                                      ? '${'currency'.tr} ${formatAmount(order.payment!.amount ?? 0)}'
-                                                      : '${'currency'.tr} ${formatAmount(0)}',
-                                                  style: const TextStyle(
-                                                      fontWeight: FontWeight.w800,
-                                                      fontFamily: "Mulish",
-                                                      fontSize: 16
+                                                          Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .spaceBetween,
+                                                            children: [
+                                                              Text(
+                                                                order.payment !=
+                                                                        null
+                                                                    ? '${'currency'.tr} ${formatAmount(order.payment!.amount ?? 0)}'
+                                                                    : '${'currency'.tr} ${formatAmount(0)}',
+                                                                style: const TextStyle(
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w800,
+                                                                    fontFamily:
+                                                                        "Mulish",
+                                                                    fontSize:
+                                                                        16),
+                                                              ),
+                                                              Row(
+                                                                children: [
+                                                                  Text(
+                                                                    getApprovalStatusText(
+                                                                        order
+                                                                            .approvalStatus),
+                                                                    style: const TextStyle(
+                                                                        fontWeight:
+                                                                            FontWeight
+                                                                                .w800,
+                                                                        fontFamily:
+                                                                            "Mulish-Regular",
+                                                                        fontSize:
+                                                                            13),
+                                                                  ),
+                                                                  const SizedBox(
+                                                                      width: 6),
+                                                                  CircleAvatar(
+                                                                    radius: 14,
+                                                                    backgroundColor:
+                                                                        getStatusColor(
+                                                                            order.approvalStatus ??
+                                                                                0),
+                                                                    child: Icon(
+                                                                      getStatusIcon(
+                                                                          order.approvalStatus ??
+                                                                              0),
+                                                                      color: Colors
+                                                                          .white,
+                                                                      size: 16,
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
                                                   ),
                                                 ),
-                                                Row(
-                                                  children: [
-                                                    Text(
-                                                      getApprovalStatusText(order.approvalStatus),
-                                                      style: const TextStyle(
-                                                          fontWeight: FontWeight.w800,
-                                                          fontFamily: "Mulish-Regular",
-                                                          fontSize: 13
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 6),
-                                                    CircleAvatar(
-                                                      radius: 14,
-                                                      backgroundColor: getStatusColor(order.approvalStatus ?? 0),
-                                                      child: Icon(
-                                                        getStatusIcon(order.approvalStatus ?? 0),
-                                                        color: Colors.white,
-                                                        size: 16,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            );
-                          }
-                      );
-                    })
-                ),
-              ),
-            )
-          ],
-        ),
-      );})
-    );
+                                              );
+                                            },
+                                          );
+                                        });
+                                  })),
+                  ),
+                )
+              ],
+            ),
+          );
+        }));
   }
 
   Widget _buildStatusContainer(String text, Color backgroundColor) {
@@ -2113,8 +2257,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
             fontFamily: "Mulish",
             fontWeight: FontWeight.w700,
             fontSize: 11,
-            color: Colors.black87
-        ),
+            color: Colors.black87),
       ),
     );
   }
@@ -2145,10 +2288,11 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       }
     } catch (e) {
       Log.loga(title, "Login Api:: e >>>>> $e");
-      showSnackbar("Api Error", "An error occurred: $e");
+      showSnackbar("api_error".tr, "${'an_error'.tr}: $e");
     }
   }
 }
+
 class SalesCacheHelper {
   static const _salesDataKey = 'cached_sales_data';
   static const _lastDateKey = 'cached_sales_date';
@@ -2169,8 +2313,10 @@ class SalesCacheHelper {
     final currentStoreId = prefs.getString(valueShared_STORE_KEY);
 
     // âœ… Use store-specific keys
-    final storeSpecificSalesKey = _getUserSpecificKey(_salesDataKey, currentStoreId);
-    final storeSpecificDateKey = _getUserSpecificKey(_lastDateKey, currentStoreId);
+    final storeSpecificSalesKey =
+        _getUserSpecificKey(_salesDataKey, currentStoreId);
+    final storeSpecificDateKey =
+        _getUserSpecificKey(_lastDateKey, currentStoreId);
 
     await prefs.setString(storeSpecificSalesKey, jsonEncode(salesData));
     await prefs.setString(storeSpecificDateKey, todayString);
@@ -2186,8 +2332,10 @@ class SalesCacheHelper {
     final cachedStoreId = prefs.getString(_storeIdKey);
 
     // âœ… Use store-specific keys
-    final storeSpecificSalesKey = _getUserSpecificKey(_salesDataKey, currentStoreId);
-    final storeSpecificDateKey = _getUserSpecificKey(_lastDateKey, currentStoreId);
+    final storeSpecificSalesKey =
+        _getUserSpecificKey(_salesDataKey, currentStoreId);
+    final storeSpecificDateKey =
+        _getUserSpecificKey(_lastDateKey, currentStoreId);
 
     final cachedDate = prefs.getString(storeSpecificDateKey);
     final cachedData = prefs.getString(storeSpecificSalesKey);
@@ -2202,7 +2350,8 @@ class SalesCacheHelper {
       return jsonDecode(cachedData);
     }
 
-    print("â„¹ï¸ No valid cached data found for store $currentStoreId on $todayString");
+    print(
+        "â„¹ï¸ No valid cached data found for store $currentStoreId on $todayString");
     return null;
   }
 
@@ -2212,8 +2361,10 @@ class SalesCacheHelper {
 
     // âœ… Clear current store's data
     if (currentStoreId != null) {
-      final storeSpecificSalesKey = _getUserSpecificKey(_salesDataKey, currentStoreId);
-      final storeSpecificDateKey = _getUserSpecificKey(_lastDateKey, currentStoreId);
+      final storeSpecificSalesKey =
+          _getUserSpecificKey(_salesDataKey, currentStoreId);
+      final storeSpecificDateKey =
+          _getUserSpecificKey(_lastDateKey, currentStoreId);
 
       await prefs.remove(storeSpecificSalesKey);
       await prefs.remove(storeSpecificDateKey);

@@ -240,7 +240,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
                               if (tax.id != null) {
                                 _showDeleteTaxConfirmation(context, tax.name ?? 'Tax', tax.id!);
                               } else {
-                                Get.snackbar('Error', 'Invalid tax ID');
+                                Get.snackbar('error'.tr, 'taxId'.tr);
                               }
                             },
                             child: Container(
@@ -492,7 +492,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
 
       await getStoreTaxes(showLoader: false);
 
-      Get.snackbar('Success', 'Tax deleted successfully');
+      Get.snackbar('success'.tr, 'tax_delete'.tr);
 
     } catch (e) {
       Get.back();
@@ -500,14 +500,14 @@ class _TaxmanagementState extends State<Taxmanagement> {
 
       if (e.toString().contains('Cannot delete tax') || e.toString().contains('referenced by')) {
         Get.snackbar(
-          'Cannot Delete',
-          'This tax is being used by categories or products and cannot be deleted',
+          'cant_delete'.tr,
+          'this'.tr,
           backgroundColor: Colors.orange,
           colorText: Colors.white,
           duration: Duration(seconds: 4),
         );
       } else {
-        Get.snackbar('Error', 'Failed to delete tax');
+        Get.snackbar('error'.tr, 'delete_tax'.tr);
       }
     }
   }

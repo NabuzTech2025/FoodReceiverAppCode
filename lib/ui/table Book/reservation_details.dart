@@ -120,7 +120,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
             Divider(color: Color(0xff757B8F)),
             Center(
               child: Text(
-                'Order ID: ${orderId}',
+                '${'order_id'.tr}: ${orderId}',
                 style: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 18,
@@ -129,7 +129,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
             ),
             Center(
               child: Text(
-                'Date: ${formatDateTime(date)}',
+                '${'date'.tr}: ${formatDateTime(date)}',
                 style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
@@ -138,7 +138,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
             ),
             Divider(color: Color(0xff757B8F)),
             Text(
-              'Customer : ${customerName}',
+              '${'customer'.tr} : ${customerName}',
               style: TextStyle(
                   fontFamily: 'Mulish',
                   fontSize: 15,
@@ -146,7 +146,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
             ),
             SizedBox(height: 5),
             Text(
-              'Phone : ${phone} ',
+              '${'phone'.tr} : ${phone} ',
               style: TextStyle(
                   fontFamily: 'Mulish',
                   fontSize: 15,
@@ -154,7 +154,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
             ),
             SizedBox(height: 5),
             Text(
-              'Guest : ${guest}',
+              '${'guest'.tr} : ${guest}',
               style: TextStyle(
                   fontFamily: 'Mulish',
                   fontSize: 15,
@@ -166,7 +166,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Reservation Date :  ${formatDateTime(reservation)}',
+                  '${'reservation_date'.tr}:  ${formatDateTime(reservation)}',
                   style: TextStyle(
                       fontFamily: 'Mulish',
                       fontSize: 15,
@@ -179,7 +179,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
             Divider(color: Color(0xff757B8F)),
             SizedBox(height: 5),
             Text(
-              'Note:  ${note}',
+              '${'note'.tr}:  ${note}',
               style: TextStyle(
                   fontFamily: 'Mulish',
                   fontSize: 15,
@@ -199,9 +199,9 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                     padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
                         color: Colors.red, borderRadius: BorderRadius.circular(5)),
-                    child: const Center(
+                    child:  Center(
                       child: Text(
-                        'Decline',
+                        'decline'.tr,
                         style: TextStyle(
                             fontWeight: FontWeight.w500, fontSize: 15, color: Colors.white),
                       ),
@@ -214,13 +214,13 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                     acceptDeclineReservation('booked');
                   },
                   child: Container(
-                    width: 100,
+                    width: 110,
                     padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
                         color: Colors.green, borderRadius: BorderRadius.circular(5)),
-                    child: const Center(
+                    child:   Center(
                       child: Text(
-                        'Accept',
+                        'accept'.tr,
                         style: TextStyle(
                             fontWeight: FontWeight.w500, fontSize: 15, color: Colors.white),
                       ),
@@ -341,8 +341,8 @@ class _ReservationDetailsState extends State<ReservationDetails> {
       await getFullReservationDetails();
 
       Get.snackbar(
-        'Success',
-        'Reservation ${statusToUpdate == 'booked' ? 'accepted' : 'declined'} successfully',
+        'success'.tr,
+        '${'reserv'.tr} ${statusToUpdate == 'booked'.tr ? 'accepted'.tr : 'decline'.tr} ${'successfully'.tr}',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: statusToUpdate == 'booked' ? Colors.green : Colors.red,
         colorText: Colors.white,
@@ -357,7 +357,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
       }
       Get.back(); // Close loading dialog
       print('Status error: $e');
-      Get.snackbar('Error', 'Failed to Update Status: ${e.toString()}');
+      Get.snackbar('error'.tr, '${'updated_status'.tr}: ${e.toString()}');
     }
   }
 
@@ -409,8 +409,8 @@ class _ReservationDetailsState extends State<ReservationDetails> {
       await getFullReservationDetails();
 
       Get.snackbar(
-        'Success',
-        'Reservation updated successfully',
+        'success'.tr,
+        'reserv_update'.tr,
         backgroundColor: Colors.green,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -424,8 +424,8 @@ class _ReservationDetailsState extends State<ReservationDetails> {
       Get.back(); // Close loading dialog
       print('Edit error: $e');
       Get.snackbar(
-        'Error',
-        'Failed to update reservation: ${e.toString()}',
+        'error'.tr,
+        '${'reserv_update_failed'.tr}: ${e.toString()}',
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -476,9 +476,9 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                 width: double.infinity,
                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
                 margin: EdgeInsets.all(8),
-                child: const Center(
+                child:  Center(
                   child: Text(
-                    'Edit Reservation',
+                    'edit_reservation'.tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 18,
@@ -494,12 +494,12 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                   physics: BouncingScrollPhysics(),
                   child: Column(
                     children: [
-                      _buildEditableField('Customer Name', nameController, Icons.person),
-                      _buildEditableField('Phone Number', phoneController, Icons.phone),
-                      _buildEditableField('Email Address', emailController, Icons.email),
-                      _buildEditableField('Guest Count', guestController, Icons.group),
-                      _buildEditableField('Reservation Date & Time', reservationController, Icons.calendar_today),
-                      _buildEditableField('Special Note', noteController, Icons.note, maxLines: 3),
+                      _buildEditableField('customer_name'.tr, nameController, Icons.person),
+                      _buildEditableField('phone_number'.tr, phoneController, Icons.phone),
+                      _buildEditableField('email_address'.tr, emailController, Icons.email),
+                      _buildEditableField('guest_count'.tr, guestController, Icons.group),
+                      _buildEditableField('reservation'.tr, reservationController, Icons.calendar_today),
+                      _buildEditableField('special_note'.tr, noteController, Icons.note, maxLines: 3),
 
                       SizedBox(height: 20),
                       Row(
@@ -541,7 +541,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                                                 ),
                                                 SizedBox(height: 15),
                                                 Text(
-                                                  'Cancel Reservation?',
+                                                  'cancel_reservation'.tr,
                                                   style: TextStyle(
                                                       fontSize: 18,
                                                       fontWeight: FontWeight.w800,
@@ -552,7 +552,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                                                 ),
                                                 SizedBox(height: 10),
                                                 Text(
-                                                  'Are you sure you want to cancel this reservation? This action cannot be undone.',
+                                                  'cancel_msg'.tr,
                                                   style: TextStyle(
                                                       fontSize: 14,
                                                       fontWeight: FontWeight.w500,
@@ -576,9 +576,9 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                                                             borderRadius: BorderRadius.circular(8),
                                                           ),
                                                         ),
-                                                        child: const Center(
+                                                        child:  Center(
                                                           child: Text(
-                                                            'No',
+                                                            'no_'.tr,
                                                             style: TextStyle(
                                                               fontSize: 12,
                                                               fontWeight: FontWeight.w700,
@@ -615,9 +615,9 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                                                             borderRadius: BorderRadius.circular(8),
                                                           ),
                                                         ),
-                                                        child: const Center(
+                                                        child:  Center(
                                                           child: Text(
-                                                            'Yes',
+                                                            'yes'.tr,
                                                             style: TextStyle(
                                                               fontSize: 12,
                                                               fontWeight: FontWeight.w700,
@@ -667,7 +667,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                                   },
                                 );
                               },
-                              child: Text('Cancel Reserv',style: TextStyle(
+                              child: Text('cancel_reserv'.tr,style: TextStyle(
                                 fontFamily: 'Mulish',fontWeight: FontWeight.w700,fontSize: 14,),),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.red[400],
@@ -693,7 +693,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                                 );
                               },
                               child: Text(
-                                'Save Reserv.',
+                                'save_reserv'.tr,
                                 style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
@@ -934,8 +934,8 @@ class _ReservationDetailsState extends State<ReservationDetails> {
 
       if (availableSlots.isEmpty) {
         Get.snackbar(
-          'Restaurant Closed',
-          'No available time slots for today. Restaurant might be closed or all slots are past.',
+          'closed',
+          'slot'.tr,
           backgroundColor: Colors.red,
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
@@ -982,7 +982,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                       Icon(Icons.access_time, color: Colors.white),
                       SizedBox(width: 10),
                       Text(
-                        'Select Time Slot',
+                        'time_slot'.tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -1014,7 +1014,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
             Container(
               padding: EdgeInsets.all(16),
               child: Text(
-                'Date: ${DateFormat('dd-MM-yyyy (EEEE)').format(selectedDate)}',
+                '${'date'.tr}: ${DateFormat('dd-MM-yyyy (EEEE)').format(selectedDate)}',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -1055,8 +1055,8 @@ class _ReservationDetailsState extends State<ReservationDetails> {
 
                         Get.back(); // Close time picker
                         Get.snackbar(
-                          'Time Selected',
-                          'Reservation time updated to ${slot.displayTime}',
+                          'time_selected'.tr,
+                          '${"updated".tr} ${slot.displayTime}',
                           backgroundColor: Colors.green,
                           colorText: Colors.white,
                           snackPosition: SnackPosition.BOTTOM,
@@ -1174,8 +1174,8 @@ class _ReservationDetailsState extends State<ReservationDetails> {
 
       // Show success message
       Get.snackbar(
-        'Success',
-        'Reservation cancelled successfully',
+        'success'.tr,
+        'reserv_cancelled'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -1191,8 +1191,8 @@ class _ReservationDetailsState extends State<ReservationDetails> {
 
       print('Cancel reservation error: $e');
       Get.snackbar(
-        'Error',
-        'Failed to cancel reservation: ${e.toString()}',
+        'error'.tr,
+        '${'failed_cancelled'.tr}: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,

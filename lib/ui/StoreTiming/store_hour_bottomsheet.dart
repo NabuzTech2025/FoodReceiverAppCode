@@ -199,23 +199,23 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
   void _onSave() {
     // Validate inputs
     if (_storeNameController.text.trim().isEmpty) {
-      Get.snackbar('Error', 'Please enter store hours name');
+      Get.snackbar('error'.tr, 'please_enter'.tr);
       return;
     }
 
     if (_selectedOpeningTime == null) {
-      Get.snackbar('Error', 'Please select opening time');
+      Get.snackbar('error'.tr, 'please_select'.tr);
       return;
     }
 
     if (_selectedClosingTime == null) {
-      Get.snackbar('Error', 'Please select closing time');
+      Get.snackbar('error'.tr, 'please_select_close'.tr);
       return;
     }
 
     List<int> selectedDays = _getSelectedDayIndices();
     if (selectedDays.isEmpty) {
-      Get.snackbar('Error', 'Please select at least one day');
+      Get.snackbar('error'.tr, 'please_select_day'.tr);
       return;
     }
 
@@ -225,13 +225,13 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
 
   Future<void> _saveStoreHours(List<int> selectedDays) async {
     if (sharedPreferences == null) {
-      Get.snackbar('Error', 'SharedPreferences not initialized');
+      Get.snackbar('error'.tr, 'shared'.tr);
       return;
     }
 
     storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
     if (storeId == null) {
-      Get.snackbar('Error', 'Store ID not found');
+      Get.snackbar('error'.tr, 'storeId'.tr);
       return;
     }
 
@@ -274,7 +274,7 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
 
       Get.back(); // Close loading dialog
       Navigator.pop(context); // Close bottom sheet
-      Get.snackbar('Success', 'Store hours added successfully');
+      Get.snackbar('success'.tr, 'store_hours'.tr);
       if (widget.onDataAdded != null) {
         widget.onDataAdded!();
       }
@@ -285,7 +285,7 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
       });
       Get.back(); // Close loading dialog
       print('Adding error: $e');
-      Get.snackbar('Error', 'Failed to add store hours: ${e.toString()}');
+      Get.snackbar('error'.tr, '${'failed_store_hours'.tr}: ${e.toString()}');
     }
   }
 
@@ -588,8 +588,8 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                                 strokeWidth: 2,
                               ),
                             )
-                                : const Text(
-                              'saved',
+                                :  Text(
+                              'saved'.tr,
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

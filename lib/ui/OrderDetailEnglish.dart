@@ -100,8 +100,8 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
       // ✅ NEW: Check if result is null due to timeout
       if (result == null) {
         Get.snackbar(
-          'Timeout',
-          'Request timed out. Please try again.',
+          'timeout'.tr,
+          'request'.tr,
           backgroundColor: Colors.orange,
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
@@ -159,7 +159,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
 
       if (e.toString().contains('timeout')) {
         Get.snackbar(
-          'Timeout Error',
+          '${'timeout'.tr} ${'error'.tr}',
           errorMessage,
           backgroundColor: Colors.orange,
           colorText: Colors.white,
@@ -452,7 +452,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Note:  ',
+                          '${'note'.tr}:  ',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
@@ -1027,8 +1027,8 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
       });
       Get.back();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Print Details Sent Successfully'),
+         SnackBar(
+          content: Text('print'.tr),
           backgroundColor: Colors.green,
           duration: Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
@@ -1047,8 +1047,8 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
 
       // Handle error case
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('An error occurred during Sending Details.'),
+         SnackBar(
+          content: Text('sending'.tr),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,

@@ -201,7 +201,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
       _orderTimer = Timer(Duration(seconds: 7), () {
         if (Get.isDialogOpen ?? false) {
           Get.back();
-          showSnackbar("Report Timeout", "Get Report request timed out. Please try again.");
+          showSnackbar("report".tr, "get_report".tr);
         }
       });
       final result = await ApiRepo().reportGetApi(bearerKey!);
@@ -219,7 +219,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
       _orderTimer?.cancel();
       Get.back();
       Log.loga(title, "Login Api:: e >>>>> $e");
-      showSnackbar("Api Error", "An error occurred: $e");
+      showSnackbar("api_error".tr, "${'an_error'.tr}: $e");
     }
   }
 
@@ -325,7 +325,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
       print('Stack trace: $stackTrace');
       _setEmptyValues();
       if (!e.toString().contains('204')) {
-        showSnackbar("Info", "Unable to load live sales data");
+        showSnackbar("info".tr, "unable".tr);
       }
     }
   }
@@ -1593,7 +1593,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
       Get.back();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('An error occurred during Getting History: $e'),
+          content: Text('${'during'.tr}: $e'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
