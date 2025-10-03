@@ -1,82 +1,6 @@
-// import 'package:flutter/material.dart';
-//
-// class ItemBottomBar extends StatelessWidget {
-//   final String icon;          // asset path
-//   final String name;          // tab label
-//   final bool selected;        // highlight when active
-//   final bool showBadge;       // toggle badge on/off
-//   final int  badgeValue;      // value to show in badge
-//   final VoidCallback onPressed;
-//
-//   const ItemBottomBar({
-//     super.key,
-//     required this.icon,
-//     required this.name,
-//     required this.onPressed,
-//     this.selected   = false,
-//     this.showBadge  = false,
-//     this.badgeValue = 0,
-//   });
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     final Widget _tabContent = Column(
-//       mainAxisSize: MainAxisSize.min,
-//       children: [
-//         Image.asset(
-//           icon,
-//           width: 20,
-//           height: 20,
-//           color: selected ? Colors.green : Colors.black,
-//         ),
-//         const SizedBox(height: 4),
-//         Text(
-//           name,
-//           style: TextStyle(
-//             fontSize: 12,
-//             fontWeight: FontWeight.w500,
-//             color: selected ? Colors.green : Colors.black,
-//           ),
-//         ),
-//       ],
-//     );
-//     return InkWell(
-//       onTap: onPressed,
-//       child: Stack(
-//         clipBehavior: Clip.none,
-//         children: [
-//           _tabContent,
-//           if (showBadge && badgeValue > 0)
-//             Positioned(
-//               top: -6,
-//               right: -10,
-//               child: Container(
-//                 padding: const EdgeInsets.all(4),
-//                 constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-//                 decoration: const BoxDecoration(
-//                   color: Colors.orange,
-//                   shape: BoxShape.circle,
-//                 ),
-//                 child: Center(
-//                   child: Text(
-//                     '$badgeValue',
-//                     style: const TextStyle(
-//                       fontSize: 10,
-//                       color: Colors.white,
-//                       fontWeight: FontWeight.bold,
-//                     ),
-//                   ),
-//                 ),
-//               ),
-//             ),
-//         ],
-//       ),
-//     );
-//   }
-// }
 import 'package:flutter/material.dart';
-
-class ItemBottomBar extends StatelessWidget {
+import 'dart:io' show Platform;
+class ItemBottomBar extends StatefulWidget {
   final String icon;          // asset path
   final String name;          // tab label
   final bool selected;        // highlight when active
@@ -99,40 +23,90 @@ class ItemBottomBar extends StatelessWidget {
   });
 
   @override
+  State<ItemBottomBar> createState() => _ItemBottomBarState();
+}
+
+class _ItemBottomBarState extends State<ItemBottomBar> {
+  bool _isTapped = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 2),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset(icon,
-                    width: iconWidth,
-                    height: iconHeight,
-                    color: selected ? Colors.green : Colors.black,
+    double containerHeight = Platform.isIOS ? 90 : 50;
+    EdgeInsets containerPadding = Platform.isIOS
+        ? const EdgeInsets.symmetric(horizontal: 12, vertical: 4)
+        : const EdgeInsets.symmetric(horizontal: 11);
+    return GestureDetector(
+      onTapDown: (_) {
+        setState(() {
+          _isTapped = true;
+        });
+      },
+      onTapUp: (_) {
+        setState(() {
+          _isTapped = false;
+        });
+        widget.onPressed();
+      },
+      onTapCancel: () {
+        setState(() {
+          _isTapped = false;
+        });
+      },
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 50),
+        height: containerHeight,
+        padding: containerPadding,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          color: _isTapped
+              ? Colors.grey.withOpacity(0.2)
+              : Colors.transparent,
+          boxShadow: _isTapped ? [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+              spreadRadius: 1,
+            ),
+          ] : [],
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedScale(
+                  scale: _isTapped ? 0.95 : 1.0,
+                  duration: const Duration(milliseconds: 150),
+                  child: Image.asset(
+                    widget.icon,
+                    width: widget.iconWidth,
+                    height: widget.iconHeight,
+                    color: widget.selected ? Colors.green : Colors.black,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    name,
+                ),
+                const SizedBox(height: 4),
+                AnimatedScale(
+                  scale: _isTapped ? 0.95 : 1.0,
+                  duration: const Duration(milliseconds: 150),
+                  child: Text(
+                    widget.name,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: selected ? Colors.green : Colors.black,
+                      color: widget.selected ? Colors.green : Colors.black,
                     ),
                   ),
-                ],
-              ),
-              if (showBadge && badgeValue > 0)
-                Positioned(
-                  top: -6,
-                  right: -10,
+                ),
+              ],
+            ),
+            if (widget.showBadge && widget.badgeValue > 0)
+              Positioned(
+                top: -6,
+                right: -10,
+                child: IgnorePointer(
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
@@ -142,7 +116,7 @@ class ItemBottomBar extends StatelessWidget {
                     ),
                     child: Center(
                       child: Text(
-                        '$badgeValue',
+                        '${widget.badgeValue}',
                         style: const TextStyle(
                           fontSize: 10,
                           color: Colors.white,
@@ -152,10 +126,70 @@ class ItemBottomBar extends StatelessWidget {
                     ),
                   ),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );
   }
 }
+// @override
+// Widget build(BuildContext context) {
+//   return Container(
+//     color: Colors.transparent,
+//     child: InkWell(
+//       onTap: onPressed,
+//       borderRadius: BorderRadius.circular(8),
+//       child: Container(
+//         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 2),
+//         child: Stack(
+//           clipBehavior: Clip.none,
+//           children: [
+//             Column(
+//               mainAxisSize: MainAxisSize.min,
+//               children: [
+//                 Image.asset(icon,
+//                   width: iconWidth,
+//                   height: iconHeight,
+//                   color: selected ? Colors.green : Colors.black,
+//                 ),
+//                 const SizedBox(height: 4),
+//                 Text(
+//                   name,
+//                   style: TextStyle(
+//                     fontSize: 12,
+//                     fontWeight: FontWeight.w500,
+//                     color: selected ? Colors.green : Colors.black,
+//                   ),
+//                 ),
+//               ],
+//             ),
+//             if (showBadge && badgeValue > 0)
+//               Positioned(
+//                 top: -6,
+//                 right: -10,
+//                 child: Container(
+//                   padding: const EdgeInsets.all(4),
+//                   constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+//                   decoration: const BoxDecoration(
+//                     color: Colors.orange,
+//                     shape: BoxShape.circle,
+//                   ),
+//                   child: Center(
+//                     child: Text(
+//                       '$badgeValue',
+//                       style: const TextStyle(
+//                         fontSize: 10,
+//                         color: Colors.white,
+//                         fontWeight: FontWeight.bold,
+//                       ),
+//                     ),
+//                   ),
+//                 ),
+//               ),
+//           ],
+//         ),
+//       ),
+//     ),
+//   );
+// }

@@ -30,10 +30,8 @@ class OrderScreenNew extends StatefulWidget {
   _OrderScreenState createState() => _OrderScreenState();
 }
 
-class _OrderScreenState extends State<OrderScreenNew>
-    with
-        TickerProviderStateMixin,
-        AutomaticKeepAliveClientMixin,
+class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMixin,
+    AutomaticKeepAliveClientMixin,
         WidgetsBindingObserver {
   Color getStatusColor(int status) {
     switch (status) {
@@ -1739,7 +1737,7 @@ class _OrderScreenState extends State<OrderScreenNew>
                                     ? DateFormat('d MMMM, y')
                                         .format(DateTime.now())
                                     : dateSeleted,
-                                style: const TextStyle(fontSize: 16),
+                                style: const TextStyle(fontSize: 14),
                               ),
                             ],
                           ),
@@ -1890,37 +1888,17 @@ class _OrderScreenState extends State<OrderScreenNew>
                                         physics:
                                             const AlwaysScrollableScrollPhysics(),
                                         padding: EdgeInsets.zero,
-                                        itemCount: app.appController
-                                            .searchResultOrder.length,
+                                        itemCount: app.appController.searchResultOrder.length,
                                         itemBuilder: (context, index) {
-                                          final order = app.appController
-                                              .searchResultOrder[index];
-                                          DateTime startTime =
-                                              DateTime.tryParse(
-                                                      order.createdAt ?? '') ??
-                                                  DateTime.now();
-                                          DateTime endTime = startTime
-                                              .add(const Duration(minutes: 30));
-                                          String formattedEnd =
-                                              DateFormat('hh:mm a')
-                                                  .format(endTime);
-                                          DateTime dateTime = DateTime.parse(
-                                              order.createdAt.toString());
-                                          String time = DateFormat('hh:mm a')
-                                              .format(dateTime);
-                                          String guestAddress = order
-                                                  .guestShippingJson?.zip
-                                                  ?.toString() ??
-                                              '';
-                                          String guestName = order
-                                                  .guestShippingJson
-                                                  ?.customerName
-                                                  ?.toString() ??
-                                              '';
-                                          String guestPhone = order
-                                                  .guestShippingJson?.phone
-                                                  ?.toString() ??
-                                              '';
+                                          final order = app.appController.searchResultOrder[index];
+                                          DateTime startTime = DateTime.tryParse(order.createdAt ?? '') ?? DateTime.now();
+                                          DateTime endTime = startTime.add(const Duration(minutes: 30));
+                                          String formattedEnd = DateFormat('hh:mm a').format(endTime);
+                                          DateTime dateTime = DateTime.parse(order.createdAt.toString());
+                                          String time = DateFormat('hh:mm a').format(dateTime);
+                                          String guestAddress = order.guestShippingJson?.zip?.toString() ?? '';
+                                          String guestName = order.guestShippingJson?.customerName?.toString() ?? '';
+                                          String guestPhone = order.guestShippingJson?.phone?.toString() ?? '';
                                           print('guest name is $guestName');
                                           print('guest name is $guestAddress');
                                           print('guest name is $guestPhone');
@@ -1928,8 +1906,7 @@ class _OrderScreenState extends State<OrderScreenNew>
                                             animation: _opacityAnimation,
                                             builder: (context, child) {
                                               final bool isPending =
-                                                  (order.approvalStatus ?? 0) ==
-                                                      1;
+                                                  (order.approvalStatus ?? 0) == 1;
                                               Color getContainerColor() {
                                                 switch (order.approvalStatus) {
                                                   case 2: // Accepted
@@ -1945,34 +1922,21 @@ class _OrderScreenState extends State<OrderScreenNew>
 
                                               return Opacity(
                                                 opacity: isPending
-                                                    ? _opacityAnimation.value
-                                                    : 1.0,
+                                                    ? _opacityAnimation.value : 1.0,
                                                 child: Container(
-                                                  margin: EdgeInsets.only(
-                                                      bottom: 12),
+                                                  margin: EdgeInsets.only(bottom: 12),
                                                   decoration: BoxDecoration(
                                                     color: getContainerColor(),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            7),
+                                                    borderRadius: BorderRadius.circular(7),
                                                     border: Border.all(
-                                                      color: (order
-                                                                  .approvalStatus ==
-                                                              2)
+                                                      color: (order.approvalStatus == 2)
                                                           ? Color(0xffC3F2D9)
-                                                          : (order.approvalStatus ==
-                                                                  3)
-                                                              ? Color(
-                                                                  0xffFFD0D0)
-                                                              : Colors.grey
-                                                                  .withOpacity(
-                                                                      0.2),
+                                                          : (order.approvalStatus == 3) ? Color(0xffFFD0D0) : Colors.grey.withOpacity(0.2),
                                                       width: 1,
                                                     ),
                                                     boxShadow: [
                                                       BoxShadow(
-                                                        color: Colors.black
-                                                            .withOpacity(0.1),
+                                                        color: Colors.black.withOpacity(0.1),
                                                         spreadRadius: 0,
                                                         blurRadius: 4,
                                                         offset: Offset(0, 2),
@@ -1982,64 +1946,41 @@ class _OrderScreenState extends State<OrderScreenNew>
                                                   child: Padding(
                                                     padding: EdgeInsets.all(8),
                                                     child: GestureDetector(
-                                                      behavior: HitTestBehavior
-                                                          .opaque,
+                                                      behavior: HitTestBehavior.opaque,
                                                       onTap: () => Get.to(() =>
-                                                          OrderDetailEnglish(
-                                                              order)),
+                                                          OrderDetailEnglish(order)),
                                                       child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
                                                         children: [
                                                           // top row
                                                           Row(
-                                                            crossAxisAlignment:
-                                                                CrossAxisAlignment
-                                                                    .start,
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .spaceBetween,
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                             children: [
                                                               Row(
-                                                                crossAxisAlignment:
-                                                                    CrossAxisAlignment
-                                                                        .start,
+                                                                crossAxisAlignment: CrossAxisAlignment.start,
                                                                 children: [
                                                                   CircleAvatar(
                                                                     radius: 14,
-                                                                    backgroundColor:
-                                                                        Colors
-                                                                            .green,
-                                                                    child: SvgPicture
-                                                                        .asset(
-                                                                      order.orderType ==
-                                                                              1
+                                                                    backgroundColor: Colors.green,
+                                                                    child: SvgPicture.asset(order.orderType == 1
                                                                           ? 'assets/images/ic_delivery.svg'
                                                                           : order.orderType == 2
                                                                               ? 'assets/images/ic_pickup.svg'
                                                                               : 'assets/images/ic_pickup.svg',
-                                                                      height:
-                                                                          14,
+                                                                      height: 14,
                                                                       width: 14,
-                                                                      color: Colors
-                                                                          .white,
+                                                                      color: Colors.white,
                                                                     ),
                                                                   ),
                                                                   SizedBox(
                                                                       width: 6),
                                                                   Column(
-                                                                    crossAxisAlignment:
-                                                                        CrossAxisAlignment
-                                                                            .start,
+                                                                    crossAxisAlignment: CrossAxisAlignment.start,
                                                                     children: [
                                                                       Container(
-                                                                        width: MediaQuery.of(context).size.width *
-                                                                            0.6,
-                                                                        child:
-                                                                            Row(
-                                                                          crossAxisAlignment:
-                                                                              CrossAxisAlignment.start,
+                                                                        width: MediaQuery.of(context).size.width * 0.6,
+                                                                        child: Row(crossAxisAlignment: CrossAxisAlignment.start,
                                                                           children: [
                                                                             Container(
                                                                               width: MediaQuery.of(context).size.width * (order.orderType == 2 ? 0.18 : 0.3),
@@ -2061,22 +2002,13 @@ class _OrderScreenState extends State<OrderScreenNew>
                                                                         ),
                                                                       ),
                                                                       Visibility(
-                                                                        visible: order.shipping_address !=
-                                                                                null ||
-                                                                            order.guestShippingJson !=
-                                                                                null,
-                                                                        child:
-                                                                            Container(
-                                                                          width:
-                                                                              MediaQuery.of(context).size.width * 0.5,
-                                                                          child:
-                                                                              Text(
-                                                                            order.orderType == 1
+                                                                        visible: order.shipping_address != null || order.guestShippingJson != null,
+                                                                        child: Container(width: MediaQuery.of(context).size.width * 0.5,
+                                                                          child: Text(order.orderType == 1
                                                                                 ? (order.shipping_address != null
                                                                                     ? '${order.shipping_address!.line1!}, ${order.shipping_address!.city!}'
                                                                                     : '${order.guestShippingJson?.line1 ?? ''}, '
-                                                                                        '${order.guestShippingJson?.city ?? ''}')
-                                                                                : '',
+                                                                                        '${order.guestShippingJson?.city ?? ''}') : '',
                                                                             style: const TextStyle(
                                                                                 fontWeight: FontWeight.w500,
                                                                                 fontSize: 11,
@@ -2092,22 +2024,12 @@ class _OrderScreenState extends State<OrderScreenNew>
                                                               ),
                                                               Row(
                                                                 children: [
-                                                                  Icon(
-                                                                    Icons
-                                                                        .access_time,
-                                                                    size: 20,
-                                                                  ),
-                                                                  Text(
-                                                                    time,
-                                                                    style:
-                                                                        const TextStyle(
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w500,
-                                                                      fontFamily:
-                                                                          "Mulish",
-                                                                      fontSize:
-                                                                          10,
+                                                                  Icon(Icons.access_time, size: 20,),
+                                                                  Text(time,
+                                                                    style: const TextStyle(
+                                                                      fontWeight: FontWeight.w500,
+                                                                      fontFamily: "Mulish",
+                                                                      fontSize: 10,
                                                                     ),
                                                                   )
                                                                 ],
@@ -2116,108 +2038,65 @@ class _OrderScreenState extends State<OrderScreenNew>
                                                           ),
                                                           SizedBox(height: 8),
                                                           Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .spaceBetween,
+                                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                             children: [
                                                               Container(
-                                                                width: MediaQuery.of(
-                                                                            context)
-                                                                        .size
-                                                                        .width *
-                                                                    0.5,
+                                                                width: MediaQuery.of(context).size.width * 0.5,
                                                                 child: Text(
                                                                   '${order.shipping_address?.customer_name ?? guestName ?? ""} / ${order.shipping_address?.phone ?? guestPhone}',
-                                                                  style: const TextStyle(
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w700,
-                                                                      fontFamily:
-                                                                          "Mulish",
-                                                                      fontSize:
-                                                                          13),
+                                                                  style: const TextStyle(fontWeight: FontWeight.w700,
+                                                                      fontFamily: "Mulish",
+                                                                      fontSize: 13),
                                                                 ),
                                                               ),
                                                               Row(
                                                                 children: [
                                                                   Text(
-                                                                    '${'order_id'.tr} :',
-                                                                    style: const TextStyle(
-                                                                        fontWeight:
-                                                                            FontWeight
-                                                                                .w700,
-                                                                        fontSize:
-                                                                            11,
-                                                                        fontFamily:
-                                                                            "Mulish"),
+                                                                    '${'order_number'.tr} : ',
+                                                                    style: const TextStyle(fontWeight: FontWeight.w700,
+                                                                        fontSize: 11,
+                                                                        fontFamily: "Mulish"),
                                                                   ),
                                                                   Text(
-                                                                    '${order.id}',
+                                                                    '${order.orderNumber}',
                                                                     style: const TextStyle(
-                                                                        fontWeight:
-                                                                            FontWeight
-                                                                                .w500,
-                                                                        fontSize:
-                                                                            11,
-                                                                        fontFamily:
-                                                                            "Mulish"),
+                                                                        fontWeight: FontWeight.w500,
+                                                                        fontSize: 11,
+                                                                        fontFamily: "Mulish"),
                                                                   ),
                                                                 ],
                                                               ),
                                                             ],
                                                           ),
-
-                                                          const SizedBox(
-                                                              height: 8),
-
+                                                          const SizedBox(height: 8),
                                                           Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .spaceBetween,
+                                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                             children: [
                                                               Text(
-                                                                order.payment !=
-                                                                        null
+                                                                order.payment != null
                                                                     ? '${'currency'.tr} ${formatAmount(order.payment!.amount ?? 0)}'
                                                                     : '${'currency'.tr} ${formatAmount(0)}',
                                                                 style: const TextStyle(
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w800,
-                                                                    fontFamily:
-                                                                        "Mulish",
-                                                                    fontSize:
-                                                                        16),
+                                                                    fontWeight: FontWeight.w800,
+                                                                    fontFamily: "Mulish",
+                                                                    fontSize: 16),
                                                               ),
                                                               Row(
                                                                 children: [
                                                                   Text(
-                                                                    getApprovalStatusText(
-                                                                        order
-                                                                            .approvalStatus),
+                                                                    getApprovalStatusText(order.approvalStatus),
                                                                     style: const TextStyle(
-                                                                        fontWeight:
-                                                                            FontWeight
-                                                                                .w800,
-                                                                        fontFamily:
-                                                                            "Mulish-Regular",
-                                                                        fontSize:
-                                                                            13),
+                                                                        fontWeight: FontWeight.w800,
+                                                                        fontFamily: "Mulish-Regular",
+                                                                        fontSize: 13),
                                                                   ),
-                                                                  const SizedBox(
-                                                                      width: 6),
+                                                                  const SizedBox(width: 6),
                                                                   CircleAvatar(
                                                                     radius: 14,
-                                                                    backgroundColor:
-                                                                        getStatusColor(
-                                                                            order.approvalStatus ??
-                                                                                0),
+                                                                    backgroundColor: getStatusColor(order.approvalStatus ?? 0),
                                                                     child: Icon(
-                                                                      getStatusIcon(
-                                                                          order.approvalStatus ??
-                                                                              0),
-                                                                      color: Colors
-                                                                          .white,
+                                                                      getStatusIcon(order.approvalStatus ?? 0),
+                                                                      color: Colors.white,
                                                                       size: 16,
                                                                     ),
                                                                   ),

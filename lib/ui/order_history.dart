@@ -114,7 +114,7 @@ class _OrderHistoryState extends State<OrderHistory> {
   @override
   void initState() {
     super.initState();
-    _filteredOrders = widget.orders; // Initialize with all orders
+    _filteredOrders = widget.orders;
 
     // Add search listener
     searchController.addListener(_onSearchChanged);
@@ -481,8 +481,8 @@ class _OrderHistoryState extends State<OrderHistory> {
                                 ),
                                 Row(
                                   children: [
-                                    const Text(
-                                      'Order ID: ',
+                                     Text(
+                                      '${'order_number'.tr} : ',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w700,
                                         fontSize: 11,
@@ -490,7 +490,7 @@ class _OrderHistoryState extends State<OrderHistory> {
                                       ),
                                     ),
                                     Text(
-                                      '${order.id ?? 'N/A'}',
+                                      '${order.orderNumber ?? 'N/A'}',
                                       style: const TextStyle(
                                         fontWeight: FontWeight.w500,
                                         fontSize: 11,

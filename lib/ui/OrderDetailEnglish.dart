@@ -364,7 +364,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                     SizedBox(height: 5),
                     Center(
                       child: Text(
-                        '${'order_id'.tr} # ${updatedOrder.id ?? ''}',
+                        '${'order_number'.tr} # ${updatedOrder.orderNumber ?? ''}',
                         style: TextStyle(
                             fontWeight: FontWeight.w700, fontSize: 15),
                       ),

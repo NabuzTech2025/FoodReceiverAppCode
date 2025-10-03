@@ -951,7 +951,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                         ),
                         SizedBox(width: 15),
                         Expanded(
-                          flex: 2,
+                          //flex: 2,
                           child: ElevatedButton(
                             onPressed: () {
                               _createNewReservation(

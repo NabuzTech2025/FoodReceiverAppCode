@@ -1204,14 +1204,12 @@ class _CategoryState extends State<Category> {
     try {
       print('API call ProductId: $productId ke liye');
 
-      // Change this line - call the correct method for deleting product category:
-      await CallService().deleteProductCategory(productId); // Instead of deleteStoreTax
+      await CallService().deleteProductCategory(productId);
 
       Get.back();
       Get.snackbar('Success', 'Product Category deleted successfully');
 
-      // Change this line - refresh product categories instead of store taxes:
-      await getProductCategory(showLoader: false); // Instead of getStoreTaxes
+      await getProductCategory(showLoader: false);
 
     } catch (e) {
       Get.back();

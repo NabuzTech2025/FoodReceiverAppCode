@@ -363,6 +363,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:food_app/models/Store.dart';
 import 'package:food_app/ui/Driver/driver_screen.dart';
+import 'package:food_app/ui/PostCode/postcode.dart';
 import 'package:food_app/ui/home_screen.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
@@ -374,6 +375,8 @@ import '../constants/constant.dart';
 import '../ui/Discount/discount.dart';
 import '../ui/LoginScreen.dart';
 import '../ui/Products/Category/category.dart';
+import '../ui/Products/Product/products.dart';
+import '../ui/Products/Topping/toppings.dart';
 import '../ui/StoreTiming/store_timing.dart';
 import '../ui/Tax MAnagement/taxmanagement.dart';
 import '../utils/log_util.dart';
@@ -509,7 +512,6 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     _navigateToHomeScreenTab(3);
                   }),
 
-                  // Expandable Product section
                  // _expandableProductItem(),
 
                   _drawerItem('discount'.tr, onTap: () {
@@ -523,6 +525,10 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   _drawerItem('manage'.tr, onTap: () {
                     Navigator.of(context).pop();
                     Get.to(() => Taxmanagement());
+                  }),
+                  _drawerItem('postcode'.tr, onTap: () {
+                    Navigator.of(context).pop();
+                    Get.to(() => const Postcode());
                   }),
                 ],
               ),
@@ -541,7 +547,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 ),
                 Padding(
                   padding: EdgeInsets.only(left: 15.0),
-                  child: Text('${'version'.tr}:1.12.0', style: TextStyle(
+                  child: Text('${'version'.tr}:1.15.0', style: TextStyle(
                       fontWeight: FontWeight.w300,
                       fontSize: 15
                   ),),
@@ -696,69 +702,6 @@ class _CustomDrawerState extends State<CustomDrawer> {
     }
   }
 
-  // ✅ NEW: Restore IP data for the current user after login
-  Future<void> _restoreUserIPData(String currentStoreId) async {
-    try {
-      print("🔄 Restoring IP data for current user: $currentStoreId");
-
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String userPrefix = "user_${currentStoreId}_";
-
-      // Restore local printer IPs
-      for (int i = 0; i < 5; i++) {
-        String? savedIP = prefs.getString('${userPrefix}printer_ip_$i');
-        if (savedIP != null && savedIP.isNotEmpty) {
-          await prefs.setString('printer_ip_$i', savedIP);
-          print("🔄 Restored printer_ip_$i: $savedIP");
-        }
-      }
-
-      // Restore remote printer IPs
-      for (int i = 0; i < 5; i++) {
-        String? savedRemoteIP = prefs.getString('${userPrefix}printer_ip_remote_$i');
-        if (savedRemoteIP != null && savedRemoteIP.isNotEmpty) {
-          await prefs.setString('printer_ip_remote_$i', savedRemoteIP);
-          print("🔄 Restored printer_ip_remote_$i: $savedRemoteIP");
-        }
-      }
-
-      // Restore selected indices
-      int? selectedIndex = prefs.getInt('${userPrefix}selected_ip_index');
-      if (selectedIndex != null) {
-        await prefs.setInt('selected_ip_index', selectedIndex);
-      }
-
-      int? selectedRemoteIndex = prefs.getInt('${userPrefix}selected_ip_remote_index');
-      if (selectedRemoteIndex != null) {
-        await prefs.setInt('selected_ip_remote_index', selectedRemoteIndex);
-      }
-
-      // Restore toggle settings
-      bool? autoOrderAccept = prefs.getBool('${userPrefix}auto_order_accept');
-      if (autoOrderAccept != null) {
-        await prefs.setBool('auto_order_accept', autoOrderAccept);
-      }
-
-      bool? autoOrderPrint = prefs.getBool('${userPrefix}auto_order_print');
-      if (autoOrderPrint != null) {
-        await prefs.setBool('auto_order_print', autoOrderPrint);
-      }
-
-      bool? autoRemoteAccept = prefs.getBool('${userPrefix}auto_order_remote_accept');
-      if (autoRemoteAccept != null) {
-        await prefs.setBool('auto_order_remote_accept', autoRemoteAccept);
-      }
-
-      bool? autoRemotePrint = prefs.getBool('${userPrefix}auto_order_remote_print');
-      if (autoRemotePrint != null) {
-        await prefs.setBool('auto_order_remote_print', autoRemotePrint);
-      }
-
-      print("✅ IP data restored for store: $currentStoreId");
-    } catch (e) {
-      print("❌ Error restoring IP data: $e");
-    }
-  }
 
 // ✅ Complete logout cleanup WITHOUT clearing IP data
   Future<void> _forceCompleteLogoutCleanup() async {
@@ -889,15 +832,15 @@ class _CustomDrawerState extends State<CustomDrawer> {
             // Navigate to Category screen
              Get.to(() => Category());
           }),
-          _subDrawerItem('item'.tr, onTap: () {
+          _subDrawerItem('product'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Items screen
-            // Get.to(() => ItemsScreen());
+             Get.to(() => Products());
           }),
           _subDrawerItem('topping'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Toppings screen
-            // Get.to(() => ToppingsScreen());
+            Get.to(() => ToppingsScreen());
           }),
           _subDrawerItem('topping_group'.tr, onTap: () {
             Navigator.of(context).pop();

@@ -19,11 +19,11 @@ class Order {
   int? orderStatus;
   int? approvalStatus;
   String? deliveryTime;
-  //DateTime? deliveryTime;
   int? storeId;
   bool? isActive;
   int? id;
   String? createdAt;
+  int? orderNumber;
   OrderUser? user;
   List<OrderItem>? items;
   Discount? discount;
@@ -51,6 +51,7 @@ class Order {
     this.isActive,
     this.id,
     this.createdAt,
+    this.orderNumber,
     this.user,
     this.items,
     this.discount,
@@ -84,6 +85,7 @@ class Order {
       isActive: json["isActive"],
       id: json["id"],
       createdAt: json["created_at"],
+      orderNumber: json['order_number'],
       user: json["user"] != null ? OrderUser.fromJson(json["user"]) : null,
       items: json["items"] != null
           ? List<OrderItem>.from(
@@ -125,6 +127,7 @@ class Order {
         "isActive": isActive,
         "id": id,
         "created_at": createdAt,
+        "order_Number": orderNumber,
         "user": user?.toJson(),
         "items": items?.map((x) => x.toJson()).toList(),
         "discount": discount?.toJson(),

@@ -7,7 +7,8 @@ import 'package:new_version_plus/new_version_plus.dart';
 
 class AppUpdateService {
   static const String _androidPackageName = 'com.food.mandeep.food_app'; // Replace with your actual package name
-  static const String _iosAppId = '1234567890'; // Replace with your actual iOS App ID
+  static const String _iosAppId = '6747834218'; // Your actual App Store ID
+  static const String _iosAppStoreUrl = 'https://apps.apple.com/in/app/magskr-food-app/id6747834218'; // Your actual App Store URL
 
   static Future<void> checkForUpdates(BuildContext context) async {
     print("🔄 ========== APP UPDATE CHECK STARTED ==========");
@@ -25,14 +26,18 @@ class AppUpdateService {
       if (status != null) {
         print("📱 Local Version: ${status.localVersion}");
         print("🎯 Store Version: ${status.storeVersion}");
-        print("🏪 Store Link: ${status.appStoreLink}");
+        print("🪩 Store Link: ${status.appStoreLink}");
         print("⚖️ Can Update: ${status.canUpdate}");
 
         if (status.canUpdate) {
           print("🚀 Update available! Showing dialog...");
           _showUpdateDialog(context, status.localVersion, status.storeVersion,
                   () async {
-                final uri = Uri.parse(status.appStoreLink);
+                // Use your actual App Store link for iOS
+                final uri = Platform.isIOS
+                    ? Uri.parse(_iosAppStoreUrl)
+                    : Uri.parse(status.appStoreLink);
+
                 if (await canLaunchUrl(uri)) {
                   await launchUrl(uri, mode: LaunchMode.externalApplication);
                 }
@@ -47,13 +52,13 @@ class AppUpdateService {
       print("❌ Error checking for updates: $e");
       print("❌ Stack trace: $stackTrace");
 
-      // Fallback for testing
+      // Fallback for testing - using your actual links
       print("🔄 Showing fallback update dialog for testing...");
       _showUpdateDialog(context, '1.0.0', '1.0.1', () async {
         final uri = Uri.parse(
             Platform.isAndroid
                 ? 'https://play.google.com/store/apps/details?id=$_androidPackageName'
-                : 'https://apps.apple.com/app/id$_iosAppId');
+                : _iosAppStoreUrl); // Using your actual iOS App Store URL
         if (await canLaunchUrl(uri)) {
           await launchUrl(uri, mode: LaunchMode.externalApplication);
         }
@@ -129,9 +134,9 @@ class AppUpdateService {
     }
   }
 
-  // Force update dialog
+  // Force update dialog - also using your actual App Store link
   static void showForceUpdateDialog(
-      BuildContext context, VoidCallback onUpdate) {
+      BuildContext context, VoidCallback? customUpdate) {
     try {
       showDialog(
         context: context,
@@ -145,7 +150,15 @@ class AppUpdateService {
                   'This version of the app is no longer supported. Please update to the latest version to continue.'),
               actions: [
                 ElevatedButton(
-                  onPressed: onUpdate,
+                  onPressed: customUpdate ?? () async {
+                    final uri = Uri.parse(
+                        Platform.isAndroid
+                            ? 'https://play.google.com/store/apps/details?id=$_androidPackageName'
+                            : _iosAppStoreUrl); // Using your actual iOS App Store URL
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  },
                   child: const Text('Update Now'),
                 ),
               ],

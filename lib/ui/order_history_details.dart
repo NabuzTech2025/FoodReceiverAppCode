@@ -209,7 +209,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                     SizedBox(height: 5),
                     Center(
                       child: Text(
-                        '${'order_id'.tr} # ${historyOrder.id ?? ''}',
+                        '${'order_number'.tr} # ${historyOrder.orderNumber ?? ''}',
                         style: TextStyle(
                             fontWeight: FontWeight.w700, fontSize: 15),
                       ),

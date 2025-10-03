@@ -1,5 +1,4 @@
-import 'dart:convert';
-
+import 'dart:io' show Platform;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -9,8 +8,6 @@ import 'package:food_app/main.dart';
 import 'package:food_app/ui/PrinterSettingsScreen.dart';
 import 'package:food_app/ui/table%20Book/reservation.dart';
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../constants/constant.dart';
 import '../constants/item_bottom_bar.dart';
 import '../constants/app_color.dart';
 import '../customView/CustomAppBar.dart';
@@ -18,9 +15,6 @@ import '../customView/CustomDrawer.dart';
 import '../utils/global.dart';
 import '../utils/keep_alive_page.dart';
 import '../utils/my_application.dart';
-import '../utils/validators.dart';
-
-import 'LoginScreen.dart';
 import 'OrderScreen.dart';
 import 'ReportScreen.dart';
 
@@ -221,9 +215,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBottomBar() {
     return Obx(() {
+      double bottomBarHeight = Platform.isIOS ? 90 : 75;
       return Container(
-        height: 75,
-        color: Colors.grey[100],
+        height: bottomBarHeight,
+          decoration: BoxDecoration(
+            boxShadow:  [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+                spreadRadius: 1,
+              ),
+            ],
+            color: Colors.grey[100],
+          ),
         child: BottomAppBar(
           color: appColor.white,
           child: Row(

@@ -1,4 +1,3 @@
-// Updated model classes with proper type handling for numeric fields
 
 class orderHistoryResponseModel {
   int? userId;
@@ -12,6 +11,7 @@ class orderHistoryResponseModel {
   bool? isActive;
   int? id;
   String? createdAt;
+  int? orderNumber;
   User? user;
   List<Items>? items;
   Discount? discount;
@@ -35,6 +35,7 @@ class orderHistoryResponseModel {
     this.isActive,
     this.id,
     this.createdAt,
+    this.orderNumber,
     this.user,
     this.items,
     this.discount,
@@ -59,6 +60,7 @@ class orderHistoryResponseModel {
     isActive = json['isActive'];
     id = json['id'];
     createdAt = json['created_at'];
+    orderNumber = json['order_number'];
     user = json['user'] != null ? User.fromJson(json['user']) : null;
     if (json['items'] != null) {
       items = <Items>[];
@@ -102,6 +104,7 @@ class orderHistoryResponseModel {
     data['isActive'] = isActive;
     data['id'] = id;
     data['created_at'] = createdAt;
+    data['order_number'] = this.orderNumber;
     if (user != null) {
       data['user'] = user!.toJson();
     }

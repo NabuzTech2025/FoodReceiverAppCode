@@ -19,16 +19,23 @@ import '../../models/PrinterSetting.dart';
 import '../../models/StoreDetail.dart';
 import '../../models/StoreSetting.dart';
 import '../../models/UserMe.dart';
+import '../../models/add-store_postcode_response_model.dart';
 import '../../models/add_new_product_category_response_model.dart';
+import '../../models/add_new_product_response_model.dart';
 import '../../models/add_new_store_timing_response_model.dart';
 import '../../models/discount_change_response_model.dart';
 import '../../models/driver/get_deliver_driver_response_model.dart';
 import '../../models/edit_existing_product_category_response_model.dart';
+import '../../models/edit_postcode_response_model.dart';
+import '../../models/edit_store_product_response_model.dart';
 import '../../models/edit_tax_response_model.dart';
 import '../../models/get_added_tax_response_model.dart';
 import '../../models/get_discount_percentage_response_model.dart';
 import '../../models/get_product_category_list_response_model.dart';
+import '../../models/get_store_postcode_response_model.dart';
+import '../../models/get_store_products_response_model.dart';
 import '../../models/get_store_timing_response_model.dart';
+import '../../models/get_toppings_response_model.dart';
 import '../../models/order_history_response_model.dart';
 import '../../models/order_model.dart';
 import '../../models/print_order_without_ip.dart';
@@ -1646,5 +1653,281 @@ class CallService extends GetConnect {
       }
     }
   }
+
+  //For Getting products Of Specific Store
+  Future<List<GetStoreProducts>> getProducts(String storeId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $accessToken");
+
+    httpClient.baseUrl = Api.baseUrl;
+    var res = await get('products/?store_id=$storeId', headers: {
+      'accept': 'application/json',
+      'Authorization': "Bearer $accessToken",
+    });
+
+    if (res.statusCode == 200) {
+      print("Getting Product of Store response is :${res.statusCode.toString()}");
+      List<dynamic> jsonList = res.body;
+      return jsonList.map((json) => GetStoreProducts.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load Product of Store: ${res.statusCode}');
+    }
+  }
+
+  //For Add New Products
+  Future<AddNewProductResponseModel> addNewProduct(dynamic body,) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await post(
+        'products/', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("Add Product response is ${res.statusCode}");
+      print("Add Product Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("Add Product Response is : ${res.statusCode.toString()}");
+        return AddNewProductResponseModel.fromJson(res.body);
+      } else {
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("Adding error: $e");
+
+      // Re-throw the exception with more context
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Editing the Existing Products
+  Future<EditStoreProductResponseModel> editProducts(dynamic body,String productId) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await put(
+        'products/$productId', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("EDIT Store Product response is ${res.statusCode}");
+      print("EDIT Store Product Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("EDIT Product Response is : ${res.statusCode.toString()}");
+        return EditStoreProductResponseModel.fromJson(res.body);
+      } else {
+        // Other errors
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("EDIT error: $e");
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Deleting Product
+  Future<bool> deleteProduct(int productId) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      httpClient.baseUrl = Api.baseUrl;
+      var res = await delete("products/$productId",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer $accessToken",
+        },
+      );
+      if (res.statusCode == 200 || res.statusCode == 204) {
+        return true;
+      } else {
+        print('Delete API Error: ${res.statusCode} - ${res.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Delete API Exception: $e');
+      return false;
+    }
+  }
+
+  //For Getting Toppings
+  Future<List<GetToppingsResponseModel>> getToppings(String storeId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $accessToken");
+
+    httpClient.baseUrl = Api.baseUrl;
+    var res = await get('toppings/?store_id=$storeId', headers: {
+      'accept': 'application/json',
+      //'Authorization': "Bearer $accessToken",
+    });
+
+    if (res.statusCode == 200) {
+      print("Getting Toppings of Store response is :${res.statusCode.toString()}");
+      List<dynamic> jsonList = res.body;
+      return jsonList.map((json) => GetToppingsResponseModel.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load Toppings of Store: ${res.statusCode}');
+    }
+  }
+
+  //For Getting Postcode
+  Future<List<GetStorePostCodesResponseModel>> getPostCode(String storeId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $accessToken");
+
+    httpClient.baseUrl = Api.baseUrl;
+    var res = await get('postcodes/store/$storeId', headers: {
+      'accept': 'application/json',
+      //'Authorization': "Bearer $accessToken",
+    });
+
+    if (res.statusCode == 200) {
+      print("Getting Postcode of Store response is :${res.statusCode.toString()}");
+      List<dynamic> jsonList = res.body;
+      return jsonList.map((json) => GetStorePostCodesResponseModel.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load Postcode of Store: ${res.statusCode}');
+    }
+  }
+
+  //For Add New PostCode
+  Future<List<AddStorePostCodesResponseModel>> addNewPostcode(dynamic body) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+      var res = await post(
+        'postcodes/', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+      print("Add PostCode response is ${res.statusCode}");
+      print("Add PostCode Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("Add PostCode Response is : ${res.statusCode.toString()}");
+        List<dynamic> jsonList = res.body;
+        return jsonList.map((json) => AddStorePostCodesResponseModel.fromJson(json)).toList();
+      } else {
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("Adding error: $e");
+
+      // Re-throw the exception with more context
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Editing PostCode
+  Future<List<EditStorePostCodesResponseModel>> editPostcode(dynamic body) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await put(
+        'postcodes/', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("EDIT Store PostCode response is ${res.statusCode}");
+      print("EDIT Store Postcode Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("EDIT PostCode Response is : ${res.statusCode.toString()}");
+        List<dynamic> jsonList = res.body;
+        return jsonList.map((json) => EditStorePostCodesResponseModel.fromJson(json)).toList();
+      } else {
+        // Other errors
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("EDIT error: $e");
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Deleting PostCode
+  Future<bool> deletePostCode(int postcodeId) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      httpClient.baseUrl = Api.baseUrl;
+      var res = await delete("postcodes/$postcodeId",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer $accessToken",
+        },
+      );
+      if (res.statusCode == 200 || res.statusCode == 204) {
+        return true;
+      } else {
+        print('Delete API Error: ${res.statusCode} - ${res.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Delete API Exception: $e');
+      return false;
+    }
+  }
+
 
 }
