@@ -20,21 +20,32 @@ import '../../models/StoreDetail.dart';
 import '../../models/StoreSetting.dart';
 import '../../models/UserMe.dart';
 import '../../models/add-store_postcode_response_model.dart';
+import '../../models/add_new_group_item_response_model.dart';
 import '../../models/add_new_product_category_response_model.dart';
+import '../../models/add_new_product_group_response_model.dart';
 import '../../models/add_new_product_response_model.dart';
 import '../../models/add_new_store_timing_response_model.dart';
+import '../../models/add_new_store_topping_response_model.dart';
+import '../../models/add_new_topping_group_response_model.dart';
 import '../../models/discount_change_response_model.dart';
 import '../../models/driver/get_deliver_driver_response_model.dart';
 import '../../models/edit_existing_product_category_response_model.dart';
+import '../../models/edit_group_item_response_model.dart';
 import '../../models/edit_postcode_response_model.dart';
+import '../../models/edit_product_group_response_model.dart';
 import '../../models/edit_store_product_response_model.dart';
+import '../../models/edit_store_toppings_response_model.dart';
 import '../../models/edit_tax_response_model.dart';
+import '../../models/edit_topping_group_response_model.dart';
 import '../../models/get_added_tax_response_model.dart';
 import '../../models/get_discount_percentage_response_model.dart';
+import '../../models/get_group_item_response_model.dart';
 import '../../models/get_product_category_list_response_model.dart';
+import '../../models/get_product_group_response_model.dart';
 import '../../models/get_store_postcode_response_model.dart';
 import '../../models/get_store_products_response_model.dart';
 import '../../models/get_store_timing_response_model.dart';
+import '../../models/get_toppings_groups_response_model.dart';
 import '../../models/get_toppings_response_model.dart';
 import '../../models/order_history_response_model.dart';
 import '../../models/order_model.dart';
@@ -1802,6 +1813,112 @@ class CallService extends GetConnect {
     }
   }
 
+  //For Add New Toppings
+  Future<AddNewStoreToppingsResponseModel> addNewToppings(dynamic body) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await post(
+        'toppings/', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("Add Toppings response is ${res.statusCode}");
+      print("Add Toppings Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("Add Toppings Response is : ${res.statusCode.toString()}");
+        return AddNewStoreToppingsResponseModel.fromJson(res.body);
+      } else {
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("Adding error: $e");
+
+      // Re-throw the exception with more context
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Editing Existing Toppings
+  Future<EditStoreToppingsResponseModel> editToppings(dynamic body,String toppingsId) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await put(
+        'toppings/$toppingsId', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("EDIT Store Toppings response is ${res.statusCode}");
+      print("EDIT Store Toppings Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("EDIT Toppings Response is : ${res.statusCode.toString()}");
+        return EditStoreToppingsResponseModel.fromJson(res.body);
+      } else {
+        // Other errors
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("EDIT error: $e");
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Deleting Toppings
+  Future<bool> deleteToppings(String toppingId) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      httpClient.baseUrl = Api.baseUrl;
+      var res = await delete("toppings/$toppingId",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer $accessToken",
+        },
+      );
+      if (res.statusCode == 200 || res.statusCode == 204) {
+        return true;
+      } else {
+        print('Delete API Error: ${res.statusCode} - ${res.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Delete API Exception: $e');
+      return false;
+    }
+  }
+
   //For Getting Postcode
   Future<List<GetStorePostCodesResponseModel>> getPostCode(String storeId) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -1929,5 +2046,390 @@ class CallService extends GetConnect {
     }
   }
 
+  //For Getting Toppings Group
+  Future<List<GetToppingsGroupResponseModel>> getToppingGroups(String storeId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $accessToken");
+
+    httpClient.baseUrl = Api.baseUrl;
+    var res = await get('toppings/groups?store_id=$storeId', headers: {
+      'accept': 'application/json',
+      //'Authorization': "Bearer $accessToken",
+    });
+
+    if (res.statusCode == 200) {
+      print("Getting Toppings of Store response is :${res.statusCode.toString()}");
+      List<dynamic> jsonList = res.body;
+      return jsonList.map((json) => GetToppingsGroupResponseModel.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load Toppings of Store: ${res.statusCode}');
+    }
+  }
+
+  //For Add New Topping Group
+  Future<AddToppingsGroupResponseModel> addToppingGroup(dynamic body) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await post(
+        'toppings/groups', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("Add Topping Group response is ${res.statusCode}");
+      print("Add Topping Group Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("Add Topping Group Response is : ${res.statusCode.toString()}");
+        return AddToppingsGroupResponseModel.fromJson(res.body);
+      } else {
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("Adding error: $e");
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  // For Editing Topping Group
+  Future<EditToppingsGroupResponseModel> editToppingGroup(dynamic body,String groupId) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await put(
+        'toppings/groups/$groupId', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("EDIT Store Topping Group response is ${res.statusCode}");
+      print("EDIT Store Topping Group Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("EDIT Topping Group Response is : ${res.statusCode.toString()}");
+        return EditToppingsGroupResponseModel.fromJson(res.body);
+      } else {
+        // Other errors
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("EDIT error: $e");
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Delete Topping Group
+  Future<bool> deleteToppingGroup(String groupId) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      httpClient.baseUrl = Api.baseUrl;
+      var res = await delete("toppings/groups/$groupId",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer $accessToken",
+        },
+      );
+      if (res.statusCode == 200 || res.statusCode == 204) {
+        return true;
+      } else {
+        print('Delete API Error: ${res.statusCode} - ${res.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Delete API Exception: $e');
+      return false;
+    }
+  }
+
+  // For Getting Group Items
+  Future<List<GetGroupItemResponseModel>> getGroupItems(String storeId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $accessToken");
+
+    httpClient.baseUrl = Api.baseUrl;
+    var res = await get('toppings/group-items?store_id=$storeId', headers: {
+      'accept': 'application/json',
+      'Authorization': "Bearer $accessToken",
+    });
+    if (res.statusCode == 200) {
+      print("Getting Group items response is :${res.statusCode.toString()}");
+      List<dynamic> jsonList = res.body;
+      return jsonList.map((json) => GetGroupItemResponseModel.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load Group items : ${res.statusCode}');
+    }
+  }
+
+  //For Add New Group Item
+  Future<AddGroupItemResponseModel> addGroupItem(dynamic body) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await post(
+        'toppings/group-items', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("Add  Group Item response is ${res.statusCode}");
+      print("Add  Group Item Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("Add  Group Item Response is : ${res.statusCode.toString()}");
+        return AddGroupItemResponseModel.fromJson(res.body);
+      } else {
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("Adding error: $e");
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  // For Edit Group Items
+  Future<EditGroupItemResponseModel> editGroupItem(dynamic body,String groupItemId) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await put(
+        'toppings/group-items/$groupItemId', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("EDIT Group Item response is ${res.statusCode}");
+      print("EDIT Group Item Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("EDIT Group Item Response is : ${res.statusCode.toString()}");
+        return EditGroupItemResponseModel.fromJson(res.body);
+      } else {
+        // Other errors
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("EDIT error: $e");
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  // For Deleting the group item
+  Future<bool> deleteGroupItem(String groupItemId) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      httpClient.baseUrl = Api.baseUrl;
+      var res = await delete("toppings/group-items/$groupItemId",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer $accessToken",
+        },
+      );
+      if (res.statusCode == 200 || res.statusCode == 204) {
+        return true;
+      } else {
+        print('Delete API Error: ${res.statusCode} - ${res.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Delete API Exception: $e');
+      return false;
+    }
+  }
+
+  //For Getting Product Groups
+  Future<List<GetProductGroupResponseModel>> getProductGroup(String storeId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $accessToken");
+
+    httpClient.baseUrl = Api.baseUrl;
+    var res = await get('toppings/product-groups?store_id=$storeId',
+        headers: {
+      'accept': 'application/json',
+      'Authorization': "Bearer $accessToken",
+    });
+    if (res.statusCode == 200) {
+      print("Getting Product Group response is :${res.statusCode.toString()}");
+      List<dynamic> jsonList = res.body;
+      return jsonList.map((json) => GetProductGroupResponseModel.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load Product Group : ${res.statusCode}');
+    }
+  }
+
+  //For Add New Product Group
+  Future<AddNewProductGroupResponseModel> addProductGroup(dynamic body) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await post(
+        'toppings/product-groups', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("Add  ProductGroup response is ${res.statusCode}");
+      print("Add  ProductGroup Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("Add  ProductGroup Response is : ${res.statusCode.toString()}");
+        return AddNewProductGroupResponseModel.fromJson(res.body);
+      } else {
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("Adding error: $e");
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Editing Product Group
+  Future<EditProductGroupResponseModel> editProductGroup(dynamic body,String productGroupId) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await put(
+        'toppings/product-groups/$productGroupId', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("EDIT Product Group response is ${res.statusCode}");
+      print("EDIT Product Group Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("EDIT Product Group Response is : ${res.statusCode.toString()}");
+        return EditProductGroupResponseModel.fromJson(res.body);
+      } else {
+        // Other errors
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("EDIT error: $e");
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  // For Delete Product Group
+  Future<bool> deleteProductGroup(String productGroupId) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      httpClient.baseUrl = Api.baseUrl;
+
+      var res = await delete(
+        "toppings/product-groups/$productGroupId",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer $accessToken",
+        },
+      );
+
+      print("Delete Product Group Response Status: ${res.statusCode}");
+
+      // 204 means success but no content returned
+      if (res.statusCode == 200 || res.statusCode == 204) {
+        print("Product Group deleted successfully");
+        return true;
+      } else {
+        print('Delete API Error: ${res.statusCode} - ${res.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Delete API Exception: $e');
+      // Even if GetX throws error on 204, check if it's actually successful
+      if (e.toString().contains('Cannot decode')) {
+        print("Delete successful but response was empty (204)");
+        return true;
+      }
+      return false;
+    }
+  }
 
 }

@@ -2206,8 +2206,7 @@ class _ProductsState extends State<Products> {
     String? price,
     List<Map<String, dynamic>>? productVariants,
     String? imageUrl,
-  })
-  async {
+  }) async {
     if (sharedPreferences == null) {
       Get.snackbar('Error', 'SharedPreferences not initialized',
           snackPosition: SnackPosition.BOTTOM);
@@ -2257,11 +2256,11 @@ class _ProductsState extends State<Products> {
       print("Add Product Map: $map");
       AddNewProductResponseModel model = await CallService().addNewProduct(map);
 
-      // Close loader
-      Get.back();
-
       // Refresh product list
       await getProduct(showLoader: false);
+
+      // Close loader AFTER API completes
+      Get.back();
 
       // Show success snackbar using context
       if (mounted) {
@@ -2277,6 +2276,7 @@ class _ProductsState extends State<Products> {
       return true;
 
     } catch (e) {
+      // Close loader on error
       Get.back();
 
       print('Create Product error: $e');
@@ -2307,8 +2307,7 @@ class _ProductsState extends State<Products> {
     String? price,
     List<Map<String, dynamic>>? productVariants,
     String? imageUrl,
-  })
-  async {
+  }) async {
 
     Get.dialog(
       Center(child: Lottie.asset('assets/animations/burger.json', width: 150, height: 150, repeat: true)),
@@ -2338,10 +2337,12 @@ class _ProductsState extends State<Products> {
       }
 
       print("Edit Product Map: $map");
-      EditStoreProductResponseModel model = await CallService().editProducts(map,productId.toString());
+      EditStoreProductResponseModel model = await CallService().editProducts(map, productId.toString());
 
-      Get.back();
       await getProduct(showLoader: false);
+
+      // Close loader AFTER API completes
+      Get.back();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2351,7 +2352,9 @@ class _ProductsState extends State<Products> {
 
       return true;
     } catch (e) {
+      // Close loader on error
       Get.back();
+
       print('Edit Product error: $e');
 
       if (mounted) {

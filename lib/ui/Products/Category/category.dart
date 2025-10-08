@@ -1000,48 +1000,33 @@ class _CategoryState extends State<Category> {
       return;
     }
 
-    if (mounted) {
-      setState(() {
-        isLoading = true;
-      });
-    }
+    // Show loader
+    Get.dialog(
+      Center(
+          child: Lottie.asset(
+            'assets/animations/burger.json',
+            width: 150,
+            height: 150,
+            repeat: true,
+          )
+      ),
+      barrierDismissible: false,
+    );
 
     try {
-      Get.dialog(
-        Center(
-            child: Lottie.asset(
-              'assets/animations/burger.json',
-              width: 150,
-              height: 150,
-              repeat: true,
-            )
-        ),
-        barrierDismissible: false,
-      );
-
       var map = {
         "name": categoryNameController.text.trim(),
         "store_id": storeId,
         "tax_id": selectedTaxId,
         "image_url": selectedImage,
-        "description": descriptionController.text??''
+        "description": descriptionController.text ?? ''
       };
 
       print("Add product Map: $map");
 
       AddNewProductCategoryResponseModel model = await CallService().addNewProductCategory(map);
 
-      await Future.delayed(Duration(seconds: 2));
-
       print("Product Category added successfully");
-
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
-
-      Get.back(); // Close loading dialog
 
       // Clear form fields
       categoryNameController.clear();
@@ -1050,20 +1035,41 @@ class _CategoryState extends State<Category> {
       selectedTaxName = null;
       selectedImage = null;
 
-      Navigator.pop(context);
       await getProductCategory(showLoader: false);
 
-      Get.snackbar('Success', 'Product category added successfully');
+      // Close loader AFTER API completes
+      Get.back();
+
+      // Close bottom sheet
+      Navigator.pop(context);
+
+      // Show success message using ScaffoldMessenger instead of Get.snackbar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Product category added successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
 
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
-      Get.back(); // Close loading dialog
+      // Close loader on error
+      Get.back();
+
       print('Adding error: $e');
-      Get.snackbar('Error', 'Failed to add product category: ${e.toString()}');
+
+      // Show error using ScaffoldMessenger
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add product category: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -1206,15 +1212,38 @@ class _CategoryState extends State<Category> {
 
       await CallService().deleteProductCategory(productId);
 
-      Get.back();
-      Get.snackbar('Success', 'Product Category deleted successfully');
-
       await getProductCategory(showLoader: false);
 
-    } catch (e) {
+      // Close loader AFTER API completes
       Get.back();
+
+      // Show success using ScaffoldMessenger
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Product Category deleted successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+
+    } catch (e) {
+      // Close loader on error
+      Get.back();
+
       print('Error deleting product: $e');
-      Get.snackbar('Error', 'Failed to delete product');
+
+      // Show error using ScaffoldMessenger
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete product'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -1230,45 +1259,34 @@ class _CategoryState extends State<Category> {
       return;
     }
 
-
-    setState(() {
-      isLoading = true;
-    });
+    // Show loader
+    Get.dialog(
+      Center(
+          child: Lottie.asset(
+            'assets/animations/burger.json',
+            width: 150,
+            height: 150,
+            repeat: true,
+          )
+      ),
+      barrierDismissible: false,
+    );
 
     try {
-      Get.dialog(
-        Center(
-            child: Lottie.asset(
-              'assets/animations/burger.json',
-              width: 150,
-              height: 150,
-              repeat: true,
-            )
-        ),
-        barrierDismissible: false,
-      );
       var map = {
         "name": categoryNameController.text.trim(),
         "store_id": storeId,
         "tax_id": selectedTaxId,
-        "image_url": "", // You may want to handle image upload here
+        "image_url": "",
         "description": descriptionController.text.trim()
       };
 
       print("Edit Product Category Map: $map");
 
-      EditExistingProductCategoryResponseModel model = await CallService().editProductCategory(map,productId);
-
-      await Future.delayed(Duration(seconds: 2));
+      EditExistingProductCategoryResponseModel model = await CallService().editProductCategory(map, productId);
 
       print("Product updated successfully");
 
-      setState(() {
-        isLoading = false;
-      });
-
-      Get.back(); // Close loading dialog
-      Navigator.pop(context);
       // Clear form fields
       categoryNameController.clear();
       descriptionController.clear();
@@ -1276,18 +1294,41 @@ class _CategoryState extends State<Category> {
       selectedTaxName = null;
       selectedImage = null;
 
-// Refresh the list
-      await getProductCategory(showLoader: false);// Close bottom sheet
-      Get.snackbar('Success', 'Product category updated successfully');
+      await getProductCategory(showLoader: false);
 
+      // Close loader AFTER API completes
+      Get.back();
+
+      // Close bottom sheet
+      Navigator.pop(context);
+
+      // Show success using ScaffoldMessenger
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Product category updated successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
 
     } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
+      // Close loader on error
       Get.back();
+
       print('Edit error: $e');
-      Get.snackbar('Error', 'Failed to update product: ${e.toString()}');
+
+      // Show error using ScaffoldMessenger
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update product: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 }

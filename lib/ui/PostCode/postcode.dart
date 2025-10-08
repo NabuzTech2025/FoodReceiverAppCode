@@ -96,7 +96,7 @@ class _PostcodeState extends State<Postcode> {
   }
   void _editPostcode(int index) {
     GetStorePostCodesResponseModel postCode = currentPageItems[index];
-    showAddProductBottomSheet(
+    showAddPostcodeBottomSheet(
       isEditMode: true,
       postcodeData: postCode,
     );
@@ -153,7 +153,7 @@ class _PostcodeState extends State<Postcode> {
                                 fontWeight: FontWeight.bold)),
                         GestureDetector(
                           onTap: () {
-                            showAddProductBottomSheet();
+                            showAddPostcodeBottomSheet();
                           },
                           child: Container(
                             padding: const EdgeInsets.all(10),
@@ -488,7 +488,7 @@ class _PostcodeState extends State<Postcode> {
   }
 
 
-  void showAddProductBottomSheet({
+  void showAddPostcodeBottomSheet({
     bool isEditMode = false,
     GetStorePostCodesResponseModel? postcodeData,
   })

@@ -1,4 +1,4 @@
-class GetToppingsResponseModel {
+class EditStoreToppingsResponseModel {
   String? name;
   String? description;
   double? price;
@@ -6,7 +6,7 @@ class GetToppingsResponseModel {
   int? id;
   bool? isActive;
 
-  GetToppingsResponseModel(
+  EditStoreToppingsResponseModel(
       {this.name,
         this.description,
         this.price,
@@ -14,7 +14,7 @@ class GetToppingsResponseModel {
         this.id,
         this.isActive});
 
-  GetToppingsResponseModel.fromJson(Map<String, dynamic> json) {
+  EditStoreToppingsResponseModel.fromJson(Map<String, dynamic> json) {
     name = json['name'];
     description = json['description'];
     price = json['price'];

@@ -1,23 +1,26 @@
-class GetToppingsResponseModel {
+class EditToppingsGroupResponseModel {
   String? name;
-  String? description;
-  double? price;
+  int? minSelect;
+  int? maxSelect;
+  bool? isRequired;
   int? storeId;
   int? id;
   bool? isActive;
 
-  GetToppingsResponseModel(
+  EditToppingsGroupResponseModel(
       {this.name,
-        this.description,
-        this.price,
+        this.minSelect,
+        this.maxSelect,
+        this.isRequired,
         this.storeId,
         this.id,
         this.isActive});
 
-  GetToppingsResponseModel.fromJson(Map<String, dynamic> json) {
+  EditToppingsGroupResponseModel.fromJson(Map<String, dynamic> json) {
     name = json['name'];
-    description = json['description'];
-    price = json['price'];
+    minSelect = json['min_select'];
+    maxSelect = json['max_select'];
+    isRequired = json['is_required'];
     storeId = json['store_id'];
     id = json['id'];
     isActive = json['isActive'];
@@ -26,8 +29,9 @@ class GetToppingsResponseModel {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['name'] = this.name;
-    data['description'] = this.description;
-    data['price'] = this.price;
+    data['min_select'] = this.minSelect;
+    data['max_select'] = this.maxSelect;
+    data['is_required'] = this.isRequired;
     data['store_id'] = this.storeId;
     data['id'] = this.id;
     data['isActive'] = this.isActive;

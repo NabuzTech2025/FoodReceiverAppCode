@@ -375,8 +375,11 @@ import '../constants/constant.dart';
 import '../ui/Discount/discount.dart';
 import '../ui/LoginScreen.dart';
 import '../ui/Products/Category/category.dart';
+import '../ui/Products/Group Item/group_item.dart';
 import '../ui/Products/Product/products.dart';
+import '../ui/Products/Topping/topping_group.dart';
 import '../ui/Products/Topping/toppings.dart';
+import '../ui/Products/product_group/product_group.dart';
 import '../ui/StoreTiming/store_timing.dart';
 import '../ui/Tax MAnagement/taxmanagement.dart';
 import '../utils/log_util.dart';
@@ -499,34 +502,34 @@ class _CustomDrawerState extends State<CustomDrawer> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _drawerItem('order'.tr, onTap: () {
+                  _drawerItem('order'.tr,'assets/images/order.png', onTap: () {
                     _navigateToHomeScreenTab(0);
                   }),
-                  _drawerItem('reserv'.tr, onTap: () {
+                  _drawerItem('reserv'.tr,'assets/images/reserv.png', onTap: () {
                     _navigateToHomeScreenTab(1);
                   }),
-                  _drawerItem('reports'.tr, onTap: () {
+                  _drawerItem('reports'.tr,'assets/images/report.png', onTap: () {
                     _navigateToHomeScreenTab(2);
                   }),
-                  _drawerItem('setting'.tr, onTap: () {
+                  _drawerItem('setting'.tr,'assets/images/settings.png', onTap: () {
                     _navigateToHomeScreenTab(3);
                   }),
 
-                 // _expandableProductItem(),
+                  _expandableProductItem(),
 
-                  _drawerItem('discount'.tr, onTap: () {
+                  _drawerItem('discount'.tr,'assets/images/discount.png', onTap: () {
                     Navigator.of(context).pop();
                     Get.to(() => Discount());
                   }),
-                  _drawerItem('store'.tr, onTap: () {
+                  _drawerItem('store'.tr,'assets/images/store.png', onTap: () {
                     Navigator.of(context).pop();
                     Get.to(() => StoreTiming());
                   }),
-                  _drawerItem('manage'.tr, onTap: () {
+                  _drawerItem('manage'.tr,'assets/images/tax.png', onTap: () {
                     Navigator.of(context).pop();
                     Get.to(() => Taxmanagement());
                   }),
-                  _drawerItem('postcode'.tr, onTap: () {
+                  _drawerItem('postcode'.tr,'assets/images/postcode.png', onTap: () {
                     Navigator.of(context).pop();
                     Get.to(() => const Postcode());
                   }),
@@ -540,7 +543,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  child: _drawerItem('logout'.tr, onTap: () async {
+                  child: _drawerItem('logout'.tr,'assets/images/logout.png', onTap: () async {
                     var bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
                     logutAPi(bearerKey);
                   }),
@@ -563,11 +566,12 @@ class _CustomDrawerState extends State<CustomDrawer> {
     );
   }
 
-  Widget _drawerItem(String title, {required VoidCallback onTap}) {
+  Widget _drawerItem(String title,String imagePath, {required VoidCallback onTap}) {
     return ListTile(
       title: Text(title, style: const TextStyle(fontSize: 16)),
       onTap: onTap,
-        dense: true, // Add this line to reduce height
+        dense: true,
+        leading: Image.asset(imagePath,color: Color(0xff757B8F),height: 20,width: 25,),
         contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0), // Add this line
         visualDensity: VisualDensity.compact
     );
@@ -807,6 +811,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
     return Column(
       children: [
         ListTile(
+          leading: Image.asset('assets/images/product.png',color: Color(0xff757B8F),height: 20,width: 25,),
           title: Row(
             children: [
               Text('product'.tr, style: const TextStyle(fontSize: 16)),
@@ -845,17 +850,17 @@ class _CustomDrawerState extends State<CustomDrawer> {
           _subDrawerItem('topping_group'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Topping Group screen
-            // Get.to(() => ToppingGroupScreen());
+            Get.to(() => ToppingGroup());
           }),
           _subDrawerItem('group'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Group Item screen
-            // Get.to(() => GroupItemScreen());
+             Get.to(() => GroupItem());
           }),
           _subDrawerItem('product_group'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Product Groups screen
-            // Get.to(() => ProductGroupsScreen());
+             Get.to(() => ProductGroup());
           }),
         ],
       ],
@@ -864,10 +869,10 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
   Widget _subDrawerItem(String title, {required VoidCallback onTap}) {
     return Padding(
-      padding: const EdgeInsets.only(left: 32.0),
+      padding: const EdgeInsets.only(left: 30.0),
       child: ListTile(
         title: Text(
-          title,
+         '- ${title}',
           style: TextStyle(
             fontSize: 14,
             color: Colors.grey[700],

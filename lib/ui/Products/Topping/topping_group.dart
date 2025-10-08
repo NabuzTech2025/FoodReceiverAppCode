@@ -3,28 +3,29 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../../api/repository/api_repository.dart';
 import '../../../constants/constant.dart';
 import '../../../customView/CustomAppBar.dart';
 import '../../../customView/CustomDrawer.dart';
-import '../../../models/add_new_store_topping_response_model.dart';
-import '../../../models/edit_store_toppings_response_model.dart';
-import '../../../models/get_toppings_response_model.dart';
+import '../../../models/add_new_topping_group_response_model.dart';
+import '../../../models/edit_topping_group_response_model.dart';
+import '../../../models/get_toppings_groups_response_model.dart';
 
-class ToppingsScreen extends StatefulWidget {
-  const ToppingsScreen({super.key});
+class ToppingGroup extends StatefulWidget {
+  const ToppingGroup({super.key});
 
   @override
-  State<ToppingsScreen> createState() => _ToppingsScreenState();
+  State<ToppingGroup> createState() => _ToppingGroupState();
 }
 
-class _ToppingsScreenState extends State<ToppingsScreen> {
+class _ToppingGroupState extends State<ToppingGroup> {
   late PageController _pageController;
   bool isLoading = false;
   String? storeId;
   SharedPreferences? sharedPreferences;
-  List<GetToppingsResponseModel> toppingsList = [];
-  List<GetToppingsResponseModel> currentPageItems = [];
+  List<GetToppingsGroupResponseModel> toppingGroupList = [];
+  List<GetToppingsGroupResponseModel> currentPageItems = [];
   int currentPage = 1;
   int itemsPerPage = 8;
   int totalPages = 0;
@@ -45,7 +46,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
     }
   }
   void _updatePagination() {
-    totalPages = (toppingsList.length / itemsPerPage).ceil();
+    totalPages = (toppingGroupList.length / itemsPerPage).ceil();
     if (totalPages == 0) totalPages = 1;
 
     // Ensure current page is valid
@@ -55,9 +56,9 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
     // Get items for current page
     int startIndex = (currentPage - 1) * itemsPerPage;
     int endIndex = startIndex + itemsPerPage;
-    if (endIndex > toppingsList.length) endIndex = toppingsList.length;
+    if (endIndex > toppingGroupList.length) endIndex = toppingGroupList.length;
 
-    currentPageItems = toppingsList.sublist(startIndex, endIndex);
+    currentPageItems = toppingGroupList.sublist(startIndex, endIndex);
   }
 
   void _goToPage(int page) {
@@ -103,7 +104,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
   Future<void> _initializeSharedPreferences() async {
     try {
       sharedPreferences = await SharedPreferences.getInstance();
-      await getToppings();
+      await getToppingGroup();
     } catch (e) {
       print('Error initializing SharedPreferences: $e');
       setState(() {
@@ -130,14 +131,14 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('topping'.tr,
+                        Text('topping_group'.tr,
                             style: TextStyle(
                                 fontFamily: 'Mulish',
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold)),
                         GestureDetector(
                           onTap: () {
-                            showAddToppingBottomSheet();
+                            showAddToppingGroupBottomSheet();
                           },
                           child: Container(
                             padding: const EdgeInsets.all(10),
@@ -165,8 +166,8 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Text('${'showing'.tr} ${(currentPage - 1) * itemsPerPage +
-                            1} to ${(currentPage - 1) * itemsPerPage +
-                            currentPageItems.length} of ${toppingsList.length} ${'entries'.tr}',
+                          1} to ${(currentPage - 1) * itemsPerPage +
+                          currentPageItems.length} of ${toppingGroupList.length} ${"entries".tr}',
                         style: TextStyle(
                           fontSize: 12,
                           fontFamily: 'Mulish',
@@ -182,11 +183,10 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                     decoration: const BoxDecoration(
                       color: Color(0xFFECF8FF),
                     ),
-                    child: Row(
+                    child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Container(
-                          width: MediaQuery.of(context).size.width * 0.43,
-                          child: Text('topping_name'.tr,
+                          child: Text('topping_group'.tr,
                             style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 13,
@@ -194,24 +194,16 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                           ),
                         ),
                         Container(
-                          child: Text('desc'.tr,
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 13,
-                                  fontFamily: 'Mulish')),
-                        ),
-                        const SizedBox(width: 15),
-                        Container(
-                          width: MediaQuery.of(context).size.width * 0.2,
+                          width: MediaQuery.of(context).size.width*0.3,
                           child: Center(
-                            child: Text('price'.tr,
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 13,
-                                  fontFamily: 'Mulish'),
-                            ),
+                            child: Text('status'.tr,
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 13,
+                                    fontFamily: 'Mulish')),
                           ),
-                        )
+                        ),
+
                       ],
                     ),
                   ),
@@ -227,24 +219,12 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                           key: ValueKey(index),
                           endActionPane: ActionPane(
                             motion: const ScrollMotion(),
-                            extentRatio: 0.502,
+                            extentRatio: 0.335,
                             children: [
-                              Container(
-                                width: 60,
-                                height: double.infinity,
-                                decoration: BoxDecoration(
-                                  color: (item.isActive ?? false) ? Colors.green : Colors.red,   // ✅ container color condition
-
-                                ),
-                                child: Icon(
-                                  (item.isActive ?? false) ? Icons.airplanemode_active : Icons.airplanemode_inactive,
-                                  color: Colors.white,
-                                ),
-                              ),
                               GestureDetector(
-                                onTap: () => showAddToppingBottomSheet(
+                                onTap: () => showAddToppingGroupBottomSheet(
                                   isEditMode: true,
-                                  toppingData: item,
+                                  toppingGroupData: item,
                                 ),
                                 child: Container(
                                   width: 60,
@@ -261,7 +241,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                               ),
                               GestureDetector(
                                 onTap: (){
-                                  showDeleteTopping(context, item.name.toString(),
+                                  showDeleteToppingGroup(context, item.name.toString(),
                                       item.id.toString());
                                 },
                                 child: Container(
@@ -290,52 +270,40 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                                 ),
                               ),
                             ),
-                            child: Row(
-                              children: [
-                                SizedBox(width: 5),
-                                Container(
-                                  child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Container(
-                                        width: MediaQuery.of(context).size.width * 0.4,
-                                        child:  Text(
-                                          currentPageItems[index].name ?? 'N/A',
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 14,
-                                              fontFamily: 'Mulish'),
-                                          //overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      Container(
-                                        width: MediaQuery.of(context).size.width * 0.32,
-                                        child: Text(
-                                          currentPageItems[index].description ?? 'N/A',
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.w400,
-                                              fontSize: 12,
-                                              fontFamily: 'Mulish'),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 5),
-                                Container(
-                                  child: Center(
-                                    child: Text(
-                                      '€${currentPageItems[index].price?.toStringAsFixed(2) ??
-                                          '0.00'}',
-                                      style: TextStyle(
-                                          fontSize: 12,
-                                          fontFamily: 'Mulish',
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.black),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                           child:  Container(
+                             child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                               children: [
+                                 Container(
+                                   child:  Text(
+                                     currentPageItems[index].name ?? 'N/A',
+                                     style: const TextStyle(
+                                         fontWeight: FontWeight.w700,
+                                         fontSize: 14,
+                                         fontFamily: 'Mulish'),
+                                     //overflow: TextOverflow.ellipsis,
+                                   ),
+                                 ),
+                                 Container(
+                                   decoration: BoxDecoration(
+                                     borderRadius: BorderRadius.circular(5),
+                                     color: (item.isActive ?? false) ? Colors.green : Colors.grey,
+                                   ),
+                                   padding: EdgeInsets.all(5),
+                                   width: MediaQuery.of(context).size.width * 0.32,
+                                   child: Center(
+                                     child: Text( (item.isActive ?? false)? 'Active':'InActive',
+                                       style: TextStyle(
+                                           fontWeight: (item.isActive ?? false) ? FontWeight.w400:FontWeight.w600,
+                                           fontSize: 12,
+                                           fontFamily: 'Mulish',
+                                         color: (item.isActive ?? false) ? Colors.white : Colors.black,
+                                       ),
+                                     ),
+                                   ),
+                                 ),
+                               ],
+                             ),
+                           ),
                           ),
                         );
                       },
@@ -346,7 +314,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
             ),
           ),
 
-           if (toppingsList.isNotEmpty && totalPages > 1)
+          if (toppingGroupList.isNotEmpty && totalPages > 1)
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Container(
@@ -434,7 +402,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
 
                     // Next Button
                     GestureDetector(
-                       onTap: currentPage < totalPages ? () =>
+                      onTap: currentPage < totalPages ? () =>
                           _goToPage(currentPage + 1) : null,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -468,247 +436,133 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
     );
   }
 
+  void showAddToppingGroupBottomSheet({bool isEditMode = false, GetToppingsGroupResponseModel? toppingGroupData}) {
+    final TextEditingController nameController = TextEditingController();
 
-  void showAddToppingBottomSheet({
-    bool isEditMode = false,
-    GetToppingsResponseModel? toppingData,
-  })
-  {
-    TextEditingController nameController = TextEditingController(
-      text: isEditMode ? toppingData?.name ?? '' : '',
-    );
-    TextEditingController priceController = TextEditingController(
-      text: isEditMode ? toppingData?.price?.toString() ?? '' : '',
-    );
-    TextEditingController descriptionController = TextEditingController(
-      text: isEditMode ? toppingData?.description ?? '' : '',
-    );
-    showModalBottomSheet(
+    if (isEditMode && toppingGroupData != null) {
+      nameController.text = toppingGroupData.name ?? '';
+    }
+
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: Stack(
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Stack(
               clipBehavior: Clip.none,
               children: [
                 Container(
-                  height: MediaQuery.of(context).size.height * 0.7,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
+              width: MediaQuery.of(context).size.width * 0.9,
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isEditMode ? 'edit_topping_group'.tr : 'add_topping_group'.tr,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Mulish',
                     ),
                   ),
-                  child: Column(
+                  SizedBox(height: 20),
+                  Text(
+                    '${'name'.tr} :',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Mulish',
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      hintText: 'enter_name'.tr,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4),
+                        borderSide: BorderSide(color: Color(0xFF0EA5E9)),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Container(
-                        padding: EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(color: Colors.grey.shade200),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.grey.shade400,
+                          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
                           ),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(isEditMode ? 'edit_topping'.tr : 'add_topping'.tr,
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'Mulish',
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          'close'.tr,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontFamily: 'Mulish',
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: EdgeInsets.all(8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(height: 10),
-                              Text(
-                                'name'.tr,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  fontFamily: 'Mulish',
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              TextField(
-                                controller: nameController,
-                                decoration: InputDecoration(
-                                  hintText: 'enter_topping'.tr,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Colors.grey.shade300),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Colors.grey.shade300),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Color(0xFFFCAE03)),
-                                  ),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                ),
-                              ),
-                              SizedBox(height: 10),
-                              Text(
-                                'price'.tr,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  fontFamily: 'Mulish',
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              TextField(
-                                controller: priceController,
-                                keyboardType: TextInputType.number,
-                                decoration: InputDecoration(
-                                  hintText: 'enter_price'.tr,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Colors.grey.shade300),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Color(0xFFFCAE03)),
-                                  ),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                ),
-                              ),
-                              SizedBox(height: 10),
-                              Text(
-                                'desc'.tr,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  fontFamily: 'Mulish',
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              TextField(
-                                controller: descriptionController,
-                                keyboardType: TextInputType.text,
-                                decoration: InputDecoration(
-                                  hintText: 'enter_desc'.tr,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Colors.grey.shade300),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Color(0xFFFCAE03)),
-                                  ),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                ),
-                              ),
-                              SizedBox(height: 10),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 120,
-                                    child: ElevatedButton(
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.black.withOpacity(0.2),
-                                        padding: EdgeInsets.symmetric(vertical: 14),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'close'.tr,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
-                                          fontFamily: 'Mulish',
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 15),
-                                  SizedBox(
-                                    width: 200,
-                                    child: ElevatedButton(
-                                      onPressed: () async {
-                                        // Validation
-                                        if (nameController.text.isEmpty) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('please_enter_topping'.tr), backgroundColor: Colors.red),
-                                          );
-                                          return;
-                                        }
-                                        if (priceController.text.isEmpty) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('please_enter_price'.tr), backgroundColor: Colors.red),
-                                          );
-                                          return;
-                                        }
+                      SizedBox(width: 10),
+                      TextButton(
+                        onPressed: () async {
+                          String name = nameController.text.trim();
+                          if (name.isEmpty) {
+                            Get.snackbar('Error', 'Please enter a name');
+                            return;
+                          }
 
-                                        Navigator.pop(context);
+                          Navigator.of(context).pop(); // Close dialog first
 
-                                        bool success = isEditMode
-                                            ? await editToppingsDetail(
-                                          toppingId: toppingData!.id!,
-                                          name: nameController.text,
-                                          price: priceController.text,
-                                          description: descriptionController.text,
-                                        )
-                                            : await addToppings(
-                                          name: nameController.text,
-                                          price: priceController.text,
-                                          description: descriptionController.text,
-                                        );
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Color(0xFFFCAE03),
-                                        padding: EdgeInsets.symmetric(vertical: 14),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                      ),
-                                      child: Text( isEditMode ? 'update'.tr : 'ad'.tr,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
-                                          fontFamily: 'Mulish',
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 20),
-                            ],
+                          bool success;
+                          if (isEditMode && toppingGroupData != null) {
+                            success = await editToppingGroup(
+                              groupId: toppingGroupData.id ?? 0,
+                              name: name,
+                            );
+                          } else {
+                            success = await addToppingGroup(name: name);
+                          }
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor: Color(0xFF0EA5E9),
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        child: Text(
+                          'save_topping'.tr,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontFamily: 'Mulish',
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
                     ],
                   ),
-                ),
+                ],
+              ),
+            ),
                 Positioned(
                   top: -70,
                   right: 0,
@@ -733,15 +587,13 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                     ),
                   ),
                 ),
-              ],
-            ),
-          );
-        },
-      ),
+          ]),
+        );
+      },
     );
   }
-  
-  Future<void> getToppings({bool showLoader = true}) async {
+
+  Future<void> getToppingGroup({bool showLoader = true}) async {
     if (sharedPreferences == null) {
       print('SharedPreferences not initialized yet');
       return;
@@ -777,8 +629,8 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
     }
 
     try {
-      List<GetToppingsResponseModel> toppings = await CallService().getToppings(storeId!);
-      print('Toppings list length is ${toppings.length}');
+      List<GetToppingsGroupResponseModel> toppingsGroup = await CallService().getToppingGroups(storeId!);
+      print('Topping Group list length is ${toppingsGroup.length}');
 
       if (showLoader) {
         Get.back();
@@ -786,7 +638,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
 
       if (mounted) {
         setState(() {
-          toppingsList= toppings;
+          toppingGroupList= toppingsGroup;
           currentPage = 1;
           _updatePagination();
           isLoading = false;
@@ -805,12 +657,9 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
     }
   }
 
-  Future<bool> addToppings({
+  Future<bool> addToppingGroup({
     required String name,
-    required String price,
-    required String description,
-  })
-  async {
+  }) async {
     if (sharedPreferences == null) {
       Get.snackbar('Error', 'SharedPreferences not initialized',
           snackPosition: SnackPosition.BOTTOM);
@@ -823,6 +672,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
           snackPosition: SnackPosition.BOTTOM);
       return false;
     }
+
     Get.dialog(
       Center(
           child: Lottie.asset(
@@ -837,21 +687,22 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
 
     try {
       var map = {
-        "name": name,
-        "description": description,
-        "price": double.parse(price),
-        "store_id": int.parse(storeId!)
+        "name": name,  // Changed from hardcoded "veg"
+        "min_select": 0,
+        "max_select": 0,
+        "is_required": true,
+        "store_id": int.parse(storeId!)  // Changed from hardcoded 13
       };
       print("Add Toppings Map: $map");
-      AddNewStoreToppingsResponseModel model = await CallService().addNewToppings(map);
+      AddToppingsGroupResponseModel model = await CallService().addToppingGroup(map);
 
       Get.back();
+      await getToppingGroup(showLoader: false);
 
-      await getToppings(showLoader: false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('topping_created'.tr),
+            content: Text('topping_group_create'.tr),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
@@ -862,12 +713,12 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
 
     } catch (e) {
       Get.back();
+      print('Create Topping Group error: $e');
 
-      print('Create Toppings error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${'failed_topping'.tr}: ${e.toString()}'),
+            content: Text('${'failed_topping_group'.tr}: ${e.toString()}'),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 2),
           ),
@@ -877,47 +728,63 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
     }
   }
 
-  Future<bool> editToppingsDetail({
-    required int toppingId,
+  Future<bool> editToppingGroup({
+    required int groupId,
     required String name,
-    required String price,
-    required String description,
-  })
-  async {
+  }) async {
+    if (sharedPreferences == null) {
+      Get.snackbar('Error', 'SharedPreferences not initialized',
+          snackPosition: SnackPosition.BOTTOM);
+      return false;
+    }
+
+    storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
+    if (storeId == null) {
+      Get.snackbar('Error', 'Store ID not found',
+          snackPosition: SnackPosition.BOTTOM);
+      return false;
+    }
 
     Get.dialog(
-      Center(child: Lottie.asset('assets/animations/burger.json',
-          width: 150, height: 150, repeat: true)),
+      Center(
+          child: Lottie.asset(
+              'assets/animations/burger.json',
+              width: 150,
+              height: 150,
+              repeat: true
+          )
+      ),
       barrierDismissible: false,
     );
 
     try {
       var map = {
-        "name": name,
-        "description": description,
-        "price": double.parse(price),
-        "store_id": int.parse(storeId!)
+        "name": name,  // Changed from hardcoded "Non-Veg spcl"
+        "min_select": 0,
+        "max_select": 0,
+        "is_required": true,
+        "store_id": int.parse(storeId!)  // Changed from hardcoded 13
       };
       print("Edit Toppings Map: $map");
-      EditStoreToppingsResponseModel model = await CallService().editToppings(map,toppingId.toString());
+      EditToppingsGroupResponseModel model = await CallService().editToppingGroup(map, groupId.toString());
 
       Get.back();
-      await getToppings(showLoader: false);
+      await getToppingGroup(showLoader: false);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('topping_update'.tr), backgroundColor: Colors.green),
+          SnackBar(content: Text('topping_group_update'.tr), backgroundColor: Colors.green),
         );
       }
 
       return true;
     } catch (e) {
       Get.back();
-      print('Edit Toppings error: $e');
+      print('Edit Topping Group error: $e');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${"failed_upd".tr}: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Failed to update: $e'), backgroundColor: Colors.red),
         );
       }
 
@@ -925,7 +792,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
     }
   }
 
-  Future<void> deleteToppings(String toppingId) async {
+  Future<void> deleteToppingGroup(String groupId) async {
     Get.dialog(
       Center(
           child: Lottie.asset(
@@ -939,17 +806,17 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
     );
 
     try {
-      print('Deleting ToppingId: $toppingId');
+      print('Deleting ToppingId: $groupId');
 
-      await CallService().deleteToppings(toppingId);
+      await CallService().deleteToppingGroup(groupId);
 
       Get.back();
-      await getToppings(showLoader: false);
+      await getToppingGroup(showLoader: false);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('topping_delete'.tr),
+            content: Text('topping_group_delete'.tr),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
@@ -963,7 +830,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('failed_delete'.tr),
+            content: Text('failed_delete_group'.tr),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 2),
           ),
@@ -972,7 +839,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
     }
   }
 
-  void showDeleteTopping(BuildContext context, String toppingName, String toppingId) {
+  void showDeleteToppingGroup(BuildContext context, String toppingGroupName, String groupId) {
     Get.dialog(
       Dialog(
         backgroundColor: Colors.transparent,
@@ -998,7 +865,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                   children: [
                     SizedBox(height: 20,),
                     Text(
-                      '${'are'.tr}"$toppingName"?',
+                      '${'are'.tr}"$toppingGroupName"?',
                       style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
@@ -1046,7 +913,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                           child: TextButton(
                             onPressed: () {
                               Get.back();
-                              deleteToppings(toppingId);
+                              deleteToppingGroup(groupId);
                             },
                             style: TextButton.styleFrom(
                               foregroundColor: Colors.white,
