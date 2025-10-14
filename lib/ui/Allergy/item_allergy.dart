@@ -4,35 +4,48 @@ import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../api/repository/api_repository.dart';
-import '../../../constants/constant.dart';
-import '../../../customView/CustomAppBar.dart';
-import '../../../customView/CustomDrawer.dart';
-import '../../../models/add_new_group_item_response_model.dart';
-import '../../../models/edit_group_item_response_model.dart';
-import '../../../models/get_group_item_response_model.dart';
-import '../../../models/get_toppings_groups_response_model.dart';
-import '../../../models/get_toppings_response_model.dart';
-class GroupItem extends StatefulWidget {
-  const GroupItem({super.key});
+import '../../api/repository/api_repository.dart';
+import '../../constants/constant.dart';
+import '../../customView/CustomAppBar.dart';
+import '../../customView/CustomDrawer.dart';
+import '../../models/add_aleergy_link_response_model.dart';
+import '../../models/edit_allergy_link_response_model.dart';
+import '../../models/get_allergy_response_model.dart';
+import '../../models/get_item_allergy_link_response_model.dart';
+import '../../models/get_store_products_response_model.dart';
+class ItemAllergy extends StatefulWidget {
+  const ItemAllergy({super.key});
 
   @override
-  State<GroupItem> createState() => _GroupItemState();
+  State<ItemAllergy> createState() => _ItemAllergyState();
 }
 
-class _GroupItemState extends State<GroupItem> {
+class _ItemAllergyState extends State<ItemAllergy> {
   late PageController _pageController;
   bool isLoading = false;
   String? storeId;
   SharedPreferences? sharedPreferences;
-  List<GetGroupItemResponseModel> groupItemList = [];
-  List<GetGroupItemResponseModel> currentPageItems = [];
+  List<get_item_allergy_link_response_model> allergyItemLinkList = [];
+  List<get_item_allergy_link_response_model> currentPageItems = [];
   int currentPage = 1;
   int itemsPerPage = 8;
   int totalPages = 0;
-  List<GetToppingsResponseModel> toppingsList = [];
-  List<GetToppingsGroupResponseModel> toppingGroupList = [];
-
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  bool _isEditMode = false;
+  List<GetStoreProducts> productList = [];
+  List<GetAllergyResponseModel> allergyList = [];
+  @override
+  void initState() {
+    super.initState();
+    _initializeSharedPreferences();
+  }
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
   void _openTab(int index) {
     if (_pageController.hasClients &&
         _pageController.page == index.toDouble()) {
@@ -41,7 +54,7 @@ class _GroupItemState extends State<GroupItem> {
     }
   }
   void _updatePagination() {
-    totalPages = (groupItemList.length / itemsPerPage).ceil();
+    totalPages = (allergyItemLinkList.length / itemsPerPage).ceil();
     if (totalPages == 0) totalPages = 1;
 
     // Ensure current page is valid
@@ -51,9 +64,9 @@ class _GroupItemState extends State<GroupItem> {
     // Get items for current page
     int startIndex = (currentPage - 1) * itemsPerPage;
     int endIndex = startIndex + itemsPerPage;
-    if (endIndex > groupItemList.length) endIndex = groupItemList.length;
+    if (endIndex > allergyItemLinkList.length) endIndex = allergyItemLinkList.length;
 
-    currentPageItems = groupItemList.sublist(startIndex, endIndex);
+    currentPageItems = allergyItemLinkList.sublist(startIndex, endIndex);
   }
 
   void _goToPage(int page) {
@@ -96,20 +109,14 @@ class _GroupItemState extends State<GroupItem> {
     return pages;
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _initializeSharedPreferences();
-  }
-
   Future<void> _initializeSharedPreferences() async {
     try {
       sharedPreferences = await SharedPreferences.getInstance();
-      await getGroupItem();
-      await getToppings(showLoader: false);
-      await getToppingGroup(showLoader: false);
+      await getAllergyItemLink();
+      await getProduct(showLoader: false);
+      await getAllergy(showLoader: false);
     } catch (e) {
-      print('Error initializing SharedPreferences: $e');
+      print('Error initializing: $e');
       setState(() {
         isLoading = false;
       });
@@ -134,14 +141,14 @@ class _GroupItemState extends State<GroupItem> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('group'.tr,
+                        Text('allergy'.tr,
                             style: TextStyle(
                                 fontFamily: 'Mulish',
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold)),
                         GestureDetector(
                           onTap: () {
-                            showAddGroupItemBottomSheet();  // Add this
+                            showAddAllergyBottomSheet();
                           },
                           child: Container(
                             padding: const EdgeInsets.all(10),
@@ -170,7 +177,7 @@ class _GroupItemState extends State<GroupItem> {
                       alignment: Alignment.centerLeft,
                       child: Text('${'showing'.tr} ${(currentPage - 1) * itemsPerPage +
                           1} to ${(currentPage - 1) * itemsPerPage +
-                          currentPageItems.length} of ${groupItemList.length} ${'entries'.tr}',
+                          currentPageItems.length} of ${allergyItemLinkList.length} ${'entries'.tr}',
                         style: TextStyle(
                           fontSize: 12,
                           fontFamily: 'Mulish',
@@ -189,8 +196,8 @@ class _GroupItemState extends State<GroupItem> {
                     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Container(
-                          width:MediaQuery.of(context).size.width*0.38,
-                          child: Text('topping_group_item'.tr,
+                          width: MediaQuery.of(context).size.width * 0.43,
+                          child: Text('Product Name'.tr,
                             style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 13,
@@ -198,26 +205,13 @@ class _GroupItemState extends State<GroupItem> {
                           ),
                         ),
                         Container(
-                          width: MediaQuery.of(context).size.width*0.25,
-                          child: Center(
-                            child: Text('grp'.tr,
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 13,
-                                    fontFamily: 'Mulish')),
-                          ),
+                          width: MediaQuery.of(context).size.width * 0.32,
+                          child: Text('allergy_name'.tr,
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                  fontFamily: 'Mulish')),
                         ),
-                        Container(
-                          width: MediaQuery.of(context).size.width*0.25,
-                          child: Center(
-                            child: Text('display'.tr,
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 13,
-                                    fontFamily: 'Mulish')),
-                          ),
-                        ),
-
                       ],
                     ),
                   ),
@@ -233,12 +227,12 @@ class _GroupItemState extends State<GroupItem> {
                           key: ValueKey(index),
                           endActionPane: ActionPane(
                             motion: const ScrollMotion(),
-                            extentRatio: 0.335,
+                            extentRatio: 0.339,
                             children: [
                               GestureDetector(
-                                onTap: () => showAddGroupItemBottomSheet(
+                                onTap: () => showAddAllergyBottomSheet(
                                   isEditMode: true,
-                                  groupItemData: item,
+                                  allergyData: item,
                                 ),
                                 child: Container(
                                   width: 60,
@@ -255,8 +249,8 @@ class _GroupItemState extends State<GroupItem> {
                               ),
                               GestureDetector(
                                 onTap: (){
-                                  showDeleteGroupItem(context, item.group!.name.toString(),
-                                      item.id.toString());
+                                  showDeleteAllergyLink(context, item.productName.toString(),
+                                      item.productId.toString(), item.allergyItemId.toString());
                                 },
                                 child: Container(
                                   width: 60,
@@ -284,44 +278,30 @@ class _GroupItemState extends State<GroupItem> {
                                 ),
                               ),
                             ),
-                            child:  Container(
-                              child: Row(mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    width: MediaQuery.of(context).size.width*0.4,
-                                    child:  Text(
-                                      currentPageItems[index].topping!.name.toString(),
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 14,
-                                          fontFamily: 'Mulish'),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  width: MediaQuery.of(context).size.width * 0.43,
+                                  child:  Text(
+                                    currentPageItems[index].productName ?? 'N/A',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 14,
+                                        fontFamily: 'Mulish'),
+                                    //overflow: TextOverflow.ellipsis,
                                   ),
-                                  Container(
-                                    width: MediaQuery.of(context).size.width * 0.4,
-                                    child: Center(
-                                      child: Text(
-                                        currentPageItems[index].group!.name.toString(),
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 12,
-                                            fontFamily: 'Mulish'),
-                                      ),
-                                    ),
+                                ),
+                                Container(
+                                  width: MediaQuery.of(context).size.width * 0.32,
+                                  child:Text(
+                                    currentPageItems[index].allergyName.toString(),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w400,
+                                        fontSize: 12,
+                                        fontFamily: 'Mulish'),
                                   ),
-                                  Container(
-                                    //width: MediaQuery.of(context).size.width * 0.32,
-                                    child: Text(
-                                      currentPageItems[index].displayOrder.toString(),
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w400,
-                                          fontSize: 12,
-                                          fontFamily: 'Mulish'),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         );
@@ -332,8 +312,7 @@ class _GroupItemState extends State<GroupItem> {
               ),
             ),
           ),
-
-          if (groupItemList.isNotEmpty && totalPages > 1)
+          if (allergyItemLinkList.isNotEmpty && totalPages > 1)
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Container(
@@ -455,257 +434,165 @@ class _GroupItemState extends State<GroupItem> {
     );
   }
 
-  void showAddGroupItemBottomSheet({bool isEditMode = false, GetGroupItemResponseModel? groupItemData}) {
-    String? selectedGroupId;
-    String? selectedToppingId;
-    TextEditingController displayOrderController = TextEditingController(
-        text: isEditMode ? groupItemData?.displayOrder.toString() : '0'
-    );
-    bool isLoadingData = true;
+  void showAddAllergyBottomSheet({
+    bool isEditMode = false,
+    get_item_allergy_link_response_model? allergyData,
+  }) {
+    GetStoreProducts? selectedProduct;
+    GetAllergyResponseModel? selectedAllergy;
 
-    if (isEditMode && groupItemData != null) {
-      selectedGroupId = groupItemData.group?.id.toString();
-      selectedToppingId = groupItemData.topping?.id.toString();
+    if (isEditMode && allergyData != null) {
+      selectedProduct = productList.firstWhereOrNull(
+              (p) => p.id.toString() == allergyData.productId.toString()
+      );
+      selectedAllergy = allergyList.firstWhereOrNull(
+              (a) => a.id.toString() == allergyData..toString()
+      );
     }
 
-    showModalBottomSheet(
-      context: context,
+    Get.bottomSheet(
+      StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      isEditMode ? 'Edit Product Allergy' : 'Add Product Allergy',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Mulish',
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Get.back(),
+                      icon: Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20),
+
+                // Product Dropdown
+                Text('Select Product *', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                SizedBox(height: 8),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<GetStoreProducts>(
+                      isExpanded: true,
+                      hint: Text('Choose a product...'),
+                      value: selectedProduct,
+                      items: productList.map((product) {
+                        return DropdownMenuItem(
+                          value: product,
+                          child: Text(product.name ?? 'N/A'),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setModalState(() {
+                          selectedProduct = value;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 16),
+
+                // Allergy Dropdown
+                Text('Select Allergy *', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                SizedBox(height: 8),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<GetAllergyResponseModel>(
+                      isExpanded: true,
+                      hint: Text('Choose an allergy...'),
+                      value: selectedAllergy,
+                      items: allergyList.map((allergy) {
+                        return DropdownMenuItem(
+                          value: allergy,
+                          child: Text(allergy.name ?? 'N/A'),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setModalState(() {
+                          selectedAllergy = value;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 24),
+
+                // Buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Get.back(),
+                      child: Text('Cancel', style: TextStyle(color: Colors.grey)),
+                    ),
+                    SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () {
+                        if (selectedProduct == null || selectedAllergy == null) {
+                          Get.snackbar('Error', 'Please select both product and allergy');
+                          return;
+                        }
+
+                        if (isEditMode) {
+                          editAllergyLinkWithData(
+                            allergyData!.allergyItemId.toString(),
+                            selectedProduct!.id!.toString(),
+                            selectedAllergy!.id!.toString(),
+                          );
+                        } else {
+                          addAllergyLinkWithData(
+                            selectedProduct!.id!.toString(),
+                            selectedAllergy!.id!.toString(),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFFFCAE03),
+                      ),
+                      child: Text(
+                        isEditMode ? 'Update' : 'Add',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            // Load data on first build
-            if (isLoadingData) {
-              Future.wait([
-                getToppings(showLoader: false),
-                getToppingGroup(showLoader: false),
-              ]).then((_) {
-                setModalState(() {
-                  isLoadingData = false;
-                });
-              }).catchError((error) {
-                print('Error loading data: $error');
-                setModalState(() {
-                  isLoadingData = false;
-                });
-              });
-            }
-
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 20,
-                right: 20,
-                top: 20,
-              ),
-              child:Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isEditMode ? 'edit_grp_item'.tr : 'add_grp_item'.tr,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Mulish',
-                        ),
-                      ),
-                      SizedBox(height: 20),
-
-                      // Select Group Dropdown
-                      Text('select_grp'.tr, style: TextStyle(fontFamily: 'Mulish')),
-                      SizedBox(height: 8),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            isExpanded: true,
-                            hint: Text('select_grp'.tr),
-                            value: selectedGroupId,
-                            items: toppingGroupList.map((group) {
-                              return DropdownMenuItem<String>(
-                                value: group.id.toString(),
-                                child: Text(group.name ?? ''),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setModalState(() {
-                                selectedGroupId = value;
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 16),
-
-                      // Select Topping Dropdown
-                      Text('select_topp'.tr, style: TextStyle(fontFamily: 'Mulish')),
-                      SizedBox(height: 8),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            isExpanded: true,
-                            hint: Text('select_topp'.tr),
-                            value: selectedToppingId,
-                            items: toppingsList.map((topping) {
-                              return DropdownMenuItem<String>(
-                                value: topping.id.toString(),
-                                child: Text(topping.name ?? ''),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setModalState(() {
-                                selectedToppingId = value;
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 16),
-
-                      // Display Order TextField
-                      Text('display'.tr, style: TextStyle(fontFamily: 'Mulish')),
-                      SizedBox(height: 8),
-                      TextField(
-                        controller: displayOrderController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          hintText: '',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      SizedBox(height: 20),
-
-                      // Buttons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 120,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.black.withOpacity(0.2),
-                                padding: EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              child: Text(
-                                'close'.tr,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  fontFamily: 'Mulish',
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 10),
-                          SizedBox(
-                            width: 150,
-                            child: ElevatedButton(
-                              onPressed: () async {
-                                if (selectedGroupId == null || selectedToppingId == null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('please_select_both'.tr)),
-                                  );
-                                  return;
-                                }
-
-                                Navigator.pop(context);
-
-                                if (isEditMode) {
-                                  await editGroupItem(
-                                    id: groupItemData!.id!,
-                                    groupId: selectedGroupId!,
-                                    toppingId: selectedToppingId!,
-                                    displayOrder: displayOrderController.text,
-                                  );
-                                } else {
-                                  await addGroupItem(
-                                    groupId: selectedGroupId!,
-                                    toppingId: selectedToppingId!,
-                                    displayOrder: displayOrderController.text,
-                                  );
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFFFCAE03),
-                                padding: EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              child: Text( isEditMode ? 'update_grp'.tr : 'add_grp'.tr,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  fontFamily: 'Mulish',
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-                    ],
-                    ),
-                  ),
-                  Positioned(
-                    top: -80,
-                    right: 0,
-                    left: 0,
-                    child: Center(
-                      child: GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black12,
-                                blurRadius: 6,
-                              )
-                            ],
-                          ),
-                          child: const Icon(Icons.close, size: 25, color: Colors.black),
-                        ),
-                      ),
-                    ),
-                  ),
-              ]),
-            );
-          },
-        );
-      },
     );
   }
 
-  Future<void> getGroupItem({bool showLoader = true}) async {
+  Future<void> getAllergyItemLink({bool showLoader = true}) async {
     if (sharedPreferences == null) {
       print('SharedPreferences not initialized yet');
       return;
@@ -741,8 +628,8 @@ class _GroupItemState extends State<GroupItem> {
     }
 
     try {
-      List<GetGroupItemResponseModel> itemGroup = await CallService().getGroupItems(storeId!);
-      print('Group Item list length is ${itemGroup.length}');
+      List<get_item_allergy_link_response_model> allergy = await CallService().getAllergyItemLink(storeId!);
+      print('Toppings list length is ${allergy.length}');
 
       if (showLoader) {
         Get.back();
@@ -750,7 +637,7 @@ class _GroupItemState extends State<GroupItem> {
 
       if (mounted) {
         setState(() {
-          groupItemList= itemGroup;
+          allergyItemLinkList= allergy;
           currentPage = 1;
           _updatePagination();
           isLoading = false;
@@ -769,25 +656,179 @@ class _GroupItemState extends State<GroupItem> {
     }
   }
 
-  Future<bool> addGroupItem({
-    required String groupId,
-    required String toppingId,
-    required String displayOrder,
-  }) async
-  {
+  Future<bool> addAllergyLinkWithData(String productId, String allergyId) async {
     if (sharedPreferences == null) {
-      Get.snackbar('Error', 'SharedPreferences not initialized',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('Error', 'SharedPreferences not initialized');
       return false;
     }
 
     storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
     if (storeId == null) {
-      Get.snackbar('Error', 'Store ID not found',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('Error', 'Store ID not found');
       return false;
     }
 
+    Get.dialog(
+      Center(child: Lottie.asset('assets/animations/burger.json', width: 150, height: 150, repeat: true)),
+      barrierDismissible: false,
+    );
+
+    try {
+      var map = [
+        int.tryParse(allergyId)
+      ];
+
+      AddAllergyLinkResponseModel model = await CallService().addAllergyItemLink(map,productId);
+      Get.back();
+      Get.back();
+      await getAllergyItemLink(showLoader: false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('created_allergy'.tr), backgroundColor: Colors.green),
+        );
+      }
+      return true;
+    } catch (e) {
+      Get.back();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('failed_allergy'.tr), backgroundColor: Colors.red),
+        );
+      }
+      return false;
+    }
+  }
+
+  Future<bool> editAllergyLinkWithData(String linkId, String productId, String allergyId) async {
+    Get.dialog(
+      Center(child: Lottie.asset('assets/animations/burger.json', width: 150, height: 150, repeat: true)),
+      barrierDismissible: false,
+    );
+
+    try {
+      var map = [
+        int.tryParse(allergyId),
+      ];
+
+      EditAllergyLinkResponseModel model = await CallService().editAllergyItemLink(map,productId);
+      Get.back();
+      Get.back();
+      await getAllergyItemLink(showLoader: false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('updated_allergy'.tr), backgroundColor: Colors.green),
+        );
+      }
+      return true;
+    } catch (e) {
+      Get.back();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('failed_upd'.tr), backgroundColor: Colors.red),
+        );
+      }
+      return false;
+    }
+  }
+
+  Future<void> getProduct({bool showLoader = true}) async {
+    if (sharedPreferences == null) {
+      print('SharedPreferences not initialized yet');
+      return;
+    }
+
+    storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
+
+    if (storeId == null) {
+      print('Store ID not found in SharedPreferences');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+      return;
+    }
+    try {
+      List<GetStoreProducts> product = await CallService().getProducts(storeId!);
+      print('product list length is ${product.length}');
+
+      if (showLoader) {
+        Get.back();
+      }
+
+      if (mounted) {
+        setState(() {
+          productList = product;
+          currentPage = 1;
+          _updatePagination();
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (showLoader) {
+        Get.back();
+      }
+      print('Error getting Product: $e');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> getAllergy({bool showLoader = true}) async {
+    if (sharedPreferences == null) {
+      print('SharedPreferences not initialized yet');
+      return;
+    }
+
+    storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
+
+    if (storeId == null) {
+      print('Store ID not found in SharedPreferences');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+      return;
+    }
+
+
+
+    try {
+      List<GetAllergyResponseModel> allergy = await CallService().getAllergy(storeId!);
+      print('Toppings list length is ${allergy.length}');
+
+      if (showLoader) {
+        Get.back();
+      }
+
+      if (mounted) {
+        setState(() {
+          allergyList= allergy;
+          currentPage = 1;
+          _updatePagination();
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (showLoader) {
+        Get.back();
+      }
+      print('Error getting Product: $e');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> deleteAllergyLink(String productId,String allergyId) async {
     Get.dialog(
       Center(
           child: Lottie.asset(
@@ -801,256 +842,17 @@ class _GroupItemState extends State<GroupItem> {
     );
 
     try {
-      var map = {
-        "topping_group_id": int.parse(groupId),
-        "topping_id": int.parse(toppingId),
-        "display_order": int.parse(displayOrder)
-      };
-      print("Add group item Map: $map");
-      AddGroupItemResponseModel model = await CallService().addGroupItem(map);
+
+
+      await CallService().deleteAllergyLink(productId,allergyId);
 
       Get.back();
-
-      await getGroupItem(showLoader: false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('grp_create'.tr),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-
-      return true;
-
-    } catch (e) {
-      Get.back();
-
-      print('Create Group Item error: $e');
-
-      // Extract error message
-      String errorMessage = 'Failed to create Group Item';
-
-      if (e.toString().contains('Topping already in group')) {
-        errorMessage = 'already_add'.tr;
-      } else if (e.toString().contains('400')) {
-        errorMessage = 'Invalid request. Please check your input';
-      }
+      await getAllergy(showLoader: false);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-      return false;
-    }
-  }
-
-  Future<bool> editGroupItem({
-    required int id,
-    required String groupId,
-    required String toppingId,
-    required String displayOrder,
-  })
-  async {
-
-    Get.dialog(
-      Center(child: Lottie.asset('assets/animations/burger.json',
-          width: 150, height: 150, repeat: true)),
-      barrierDismissible: false,
-    );
-
-    try {
-      var map = {
-        "topping_group_id": int.parse(groupId),
-        "topping_id": int.parse(toppingId),
-        "display_order": int.parse(displayOrder)
-      };
-      print("Edit group Item Map: $map");
-      EditGroupItemResponseModel model = await CallService().editGroupItem(map,toppingId.toString());
-
-      Get.back();
-      await getGroupItem(showLoader: false);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('grp_update'.tr), backgroundColor: Colors.green),
-        );
-      }
-
-      return true;
-    } catch (e) {
-      Get.back();
-      print('Edit Group item error: $e');
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update: $e'), backgroundColor: Colors.red),
-        );
-      }
-
-      return false;
-    }
-  }
-
-  Future<void> getToppings({bool showLoader = true}) async {
-    if (sharedPreferences == null) {
-      print('SharedPreferences not initialized yet');
-      return;
-    }
-
-    storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
-
-    if (storeId == null) {
-      print('Store ID not found in SharedPreferences');
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
-      return;
-    }
-
-    if (showLoader && mounted) {
-      setState(() {
-        isLoading = true;
-      });
-      Get.dialog(
-        Center(
-            child: Lottie.asset(
-              'assets/animations/burger.json',
-              width: 150,
-              height: 150,
-              repeat: true,
-            )
-        ),
-        barrierDismissible: false,
-      );
-    }
-
-    try {
-      List<GetToppingsResponseModel> toppings = await CallService().getToppings(storeId!);
-      print('Toppings list length is ${toppings.length}');
-
-      if (showLoader) {
-        Get.back();
-      }
-
-      if (mounted) {
-        setState(() {
-          toppingsList= toppings;
-          currentPage = 1;
-          _updatePagination();
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (showLoader) {
-        Get.back();
-      }
-      print('Error getting Product: $e');
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> getToppingGroup({bool showLoader = true}) async {
-    if (sharedPreferences == null) {
-      print('SharedPreferences not initialized yet');
-      return;
-    }
-
-    storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
-
-    if (storeId == null) {
-      print('Store ID not found in SharedPreferences');
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
-      return;
-    }
-
-    if (showLoader && mounted) {
-      setState(() {
-        isLoading = true;
-      });
-      Get.dialog(
-        Center(
-            child: Lottie.asset(
-              'assets/animations/burger.json',
-              width: 150,
-              height: 150,
-              repeat: true,
-            )
-        ),
-        barrierDismissible: false,
-      );
-    }
-
-    try {
-      List<GetToppingsGroupResponseModel> toppingsGroup = await CallService().getToppingGroups(storeId!);
-      print('Topping Group list length is ${toppingsGroup.length}');
-
-      if (showLoader) {
-        Get.back();
-      }
-
-      if (mounted) {
-        setState(() {
-          toppingGroupList= toppingsGroup;
-          currentPage = 1;
-          _updatePagination();
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (showLoader) {
-        Get.back();
-      }
-      print('Error getting Product: $e');
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> deleteGroupItem(String groupItemId) async {
-    Get.dialog(
-      Center(
-          child: Lottie.asset(
-            'assets/animations/burger.json',
-            width: 150,
-            height: 150,
-            repeat: true,
-          )
-      ),
-      barrierDismissible: false,
-    );
-
-    try {
-      print('Deleting groupItem id: $groupItemId');
-
-      await CallService().deleteGroupItem(groupItemId);
-
-      Get.back();
-      await getToppings(showLoader: false);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('grp_delete'.tr),
+            content: Text('delete_allergy'.tr),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
@@ -1059,12 +861,12 @@ class _GroupItemState extends State<GroupItem> {
 
     } catch (e) {
       Get.back();
-      print('Error deleting Group Item: $e');
+      print('Error deleting Toppings: $e');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('failed_grp'.tr),
+            content: Text('faile_allergy'.tr),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 2),
           ),
@@ -1073,7 +875,7 @@ class _GroupItemState extends State<GroupItem> {
     }
   }
 
-  void showDeleteGroupItem(BuildContext context, String groupItemName, String groupItemId) {
+  void showDeleteAllergyLink(BuildContext context, String allergyLinkName, String productId,String allergyId) {
     Get.dialog(
       Dialog(
         backgroundColor: Colors.transparent,
@@ -1099,7 +901,7 @@ class _GroupItemState extends State<GroupItem> {
                   children: [
                     SizedBox(height: 20,),
                     Text(
-                      '${'are'.tr}"$groupItemName"?',
+                      '${'are'.tr}"$allergyLinkName"?',
                       style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
@@ -1147,7 +949,7 @@ class _GroupItemState extends State<GroupItem> {
                           child: TextButton(
                             onPressed: () {
                               Get.back();
-                              deleteGroupItem(groupItemId);
+                              deleteAllergyLink(productId,allergyId);
                             },
                             style: TextButton.styleFrom(
                               foregroundColor: Colors.white,
@@ -1193,8 +995,5 @@ class _GroupItemState extends State<GroupItem> {
       ),
     );
   }
-
-
-
 
 }

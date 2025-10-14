@@ -36,6 +36,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
   bool _isDialogShowing = false;
   Timer? _reservationTimer;
   final SocketService _socketService = SocketService();
+
   Color getStatusColor(String? status) {
     if (status == null) return Colors.grey;
 
@@ -68,6 +69,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
   String? storeId;
   SharedPreferences? sharedPreferences;
   bool isLoading = false;
+
   void _startInternetMonitoring() {
     _internetCheckTimer?.cancel();
     _internetCheckTimer = Timer.periodic(Duration(seconds: 30), (timer) async {
@@ -86,6 +88,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       }
     });
   }
+
   String? convertDisplayDateToApiFormat(String displayDate) {
     try {
       // If displayDate is in format "1 September, 2024", convert to "2024-09-01"
@@ -96,8 +99,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       return null;
     }
   }
-  // Add this method to OrderScreen.dart _OrderScreenState class
-  // Initialize SharedPreferences
+
   Future<void> _initializeSharedPreferences() async {
     try {
       sharedPreferences = await SharedPreferences.getInstance();

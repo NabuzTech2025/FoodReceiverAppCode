@@ -14,7 +14,6 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../models/print_order_without_ip.dart';
 
 class OrderDetailEnglish extends StatefulWidget {
@@ -264,7 +263,6 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     if (updatedOrder == null) {
       return Center(child: CircularProgressIndicator());
     }
-
     //var amount = (updatedOrder.payment?.amount ?? 0.0).toStringAsFixed(1);
     var amount = (updatedOrder.invoice?.totalAmount ?? 0.0).toStringAsFixed(1);
     var discount = (updatedOrder.invoice?.discount_amount ?? 0.0).toStringAsFixed(1);
@@ -291,6 +289,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     String guestAddress=updatedOrder.guestShippingJson?.line1?.toString()??'';
     String guestName=updatedOrder.guestShippingJson?.customerName?.toString()??'';
     String guestPhone=updatedOrder.guestShippingJson?.phone?.toString()??'';
+    String guestEmail=updatedOrder.guestShippingJson?.email?.toString()??'';
     print('guest name is $guestName');
     print('guest name is $guestAddress');
     print('guest name is $guestPhone');
@@ -417,6 +416,12 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                       '${'phone'.tr}: ${(updatedOrder.shipping_address?.phone != null && updatedOrder.shipping_address!.phone!.isNotEmpty)
                           ? updatedOrder.shipping_address!.phone!
                           : guestPhone}',
+                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                    ),
+                    Text(
+                      '${'email'.tr}: ${(updatedOrder.user?.username != null && updatedOrder.user!.username!.isNotEmpty)
+                          ? updatedOrder.user!.username!
+                          : guestEmail}',
                       style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
                     SizedBox(height: 2),
@@ -976,6 +981,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
           auto: false);
     }
   }
+
   void showSnackbar(String title, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -983,7 +989,6 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
       ),
     );
   }
-
 
   Future<void> printWithoutLocalIp() async {
     print("📡 DEBUG - printWithoutLocalIp called");
@@ -1056,7 +1061,5 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
       );
     }
   }
-
-
 
 }

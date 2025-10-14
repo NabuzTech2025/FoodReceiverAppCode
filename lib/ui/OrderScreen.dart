@@ -1,8 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-
-import 'package:audioplayers/audioplayers.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -16,12 +13,9 @@ import 'package:food_app/ui/OrderDetailEnglish.dart';
 import 'package:food_app/utils/log_util.dart';
 import 'package:food_app/utils/my_application.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../models/Store.dart';
 import '../models/today_report.dart' hide TaxBreakdown;
 import 'LoginScreen.dart';
 
@@ -30,9 +24,7 @@ class OrderScreenNew extends StatefulWidget {
   _OrderScreenState createState() => _OrderScreenState();
 }
 
-class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMixin,
-    AutomaticKeepAliveClientMixin,
-        WidgetsBindingObserver {
+class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMixin, AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   Color getStatusColor(int status) {
     switch (status) {
       case 1:
@@ -109,7 +101,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   bool hasInternet = true;
   Timer? _internetCheckTimer;
   bool _isDialogShowing = false;
-
+  String? _storeType;
   @override
   void initState() {
     super.initState();
@@ -240,6 +232,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
       sharedPreferences = await SharedPreferences.getInstance();
       bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
+      _storeType=sharedPreferences.getString(valueShared_STORE_TYPE);
       _socketService.disconnect();
       setState(() {
         _isLiveDataActive = false;
@@ -1729,14 +1722,10 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('order'.tr,
-                                  style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold)),
+                                  style: const TextStyle(fontSize: 18,fontWeight: FontWeight.bold)),
                               Text(
                                 dateSeleted.isEmpty
-                                    ? DateFormat('d MMMM, y')
-                                        .format(DateTime.now())
-                                    : dateSeleted,
+                                    ? DateFormat('d MMMM, y').format(DateTime.now()) : dateSeleted,
                                 style: const TextStyle(fontSize: 14),
                               ),
                             ],
@@ -1807,7 +1796,6 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                   ],
                 ),
                 const SizedBox(height: 15),
-                // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Orders list with pullâ€‘toâ€‘refresh â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 Expanded(
                   child: MediaQuery.removePadding(
                     context: context,
@@ -1823,19 +1811,15 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                             : !hasInternet // ✅ First check internet condition
                                 ? ListView(
                                     padding: EdgeInsets.zero,
-                                    physics:
-                                        const AlwaysScrollableScrollPhysics(),
+                                    physics: const AlwaysScrollableScrollPhysics(),
                                     children: [
                                       SizedBox(height: 100),
                                       Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                        mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          Icon(Icons.wifi_off,
-                                              size: 80, color: Colors.grey),
+                                          Icon(Icons.wifi_off, size: 80, color: Colors.grey),
                                           SizedBox(height: 16),
-                                          Text(
-                                            "no_internet".tr,
+                                          Text("no_internet".tr,
                                             style: TextStyle(
                                                 fontSize: 18,
                                                 color: Colors.grey,
@@ -1858,13 +1842,10 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                         .isEmpty) {
                                       return ListView(
                                         padding: EdgeInsets.zero,
-                                        physics:
-                                            const AlwaysScrollableScrollPhysics(),
+                                        physics: const AlwaysScrollableScrollPhysics(),
                                         children: [
                                           SizedBox(height: 100),
-                                          Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
+                                          Column(mainAxisAlignment: MainAxisAlignment.center,
                                             children: [
                                               Lottie.asset(
                                                 'assets/animations/empty.json',
@@ -1885,8 +1866,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                       );
                                     }
                                     return ListView.builder(
-                                        physics:
-                                            const AlwaysScrollableScrollPhysics(),
+                                        physics: const AlwaysScrollableScrollPhysics(),
                                         padding: EdgeInsets.zero,
                                         itemCount: app.appController.searchResultOrder.length,
                                         itemBuilder: (context, index) {
@@ -1905,8 +1885,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                           return AnimatedBuilder(
                                             animation: _opacityAnimation,
                                             builder: (context, child) {
-                                              final bool isPending =
-                                                  (order.approvalStatus ?? 0) == 1;
+                                              final bool isPending = (order.approvalStatus ?? 0) == 1;
                                               Color getContainerColor() {
                                                 switch (order.approvalStatus) {
                                                   case 2: // Accepted
@@ -1921,8 +1900,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                               }
 
                                               return Opacity(
-                                                opacity: isPending
-                                                    ? _opacityAnimation.value : 1.0,
+                                                opacity: isPending ? _opacityAnimation.value : 1.0,
                                                 child: Container(
                                                   margin: EdgeInsets.only(bottom: 12),
                                                   decoration: BoxDecoration(
@@ -1947,8 +1925,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                     padding: EdgeInsets.all(8),
                                                     child: GestureDetector(
                                                       behavior: HitTestBehavior.opaque,
-                                                      onTap: () => Get.to(() =>
-                                                          OrderDetailEnglish(order)),
+                                                      onTap: () => Get.to(() => OrderDetailEnglish(order)),
                                                       child: Column(
                                                         crossAxisAlignment: CrossAxisAlignment.start,
                                                         children: [
@@ -1973,8 +1950,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                                       color: Colors.white,
                                                                     ),
                                                                   ),
-                                                                  SizedBox(
-                                                                      width: 6),
+                                                                  SizedBox(width: 6),
                                                                   Column(
                                                                     crossAxisAlignment: CrossAxisAlignment.start,
                                                                     children: [
@@ -1983,9 +1959,15 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                                         child: Row(crossAxisAlignment: CrossAxisAlignment.start,
                                                                           children: [
                                                                             Container(
-                                                                              width: MediaQuery.of(context).size.width * (order.orderType == 2 ? 0.18 : 0.3),
+                                                                              width: MediaQuery.of(context).size.width *
+                                                                                  (_storeType == '2' ? 0.5
+                                                                                      : (order.orderType == 2 ? 0.18 : 0.3)),
                                                                               child: Text(
-                                                                                order.orderType == 2 ? 'pickup'.tr : (order.shipping_address?.zip?.toString() ?? guestAddress),
+                                                                                order.orderType == 2
+                                                                                    ? 'pickup'.tr
+                                                                                    : (_storeType == '2'
+                                                                                    ? _getFullAddress(order.shipping_address ?? order.guestShippingJson, order.shipping_address == null)
+                                                                                    : (order.shipping_address?.zip?.toString() ?? guestAddress)),
                                                                                 style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, fontFamily: "Mulish-Regular"),
                                                                               ),
                                                                             ),
@@ -2002,13 +1984,15 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                                         ),
                                                                       ),
                                                                       Visibility(
-                                                                        visible: order.shipping_address != null || order.guestShippingJson != null,
-                                                                        child: Container(width: MediaQuery.of(context).size.width * 0.5,
-                                                                          child: Text(order.orderType == 1
+                                                                        visible: (_storeType != '2') && (order.shipping_address != null || order.guestShippingJson != null),
+                                                                        child: Container(
+                                                                          width: MediaQuery.of(context).size.width * 0.5,
+                                                                          child: Text(
+                                                                            order.orderType == 1
                                                                                 ? (order.shipping_address != null
-                                                                                    ? '${order.shipping_address!.line1!}, ${order.shipping_address!.city!}'
-                                                                                    : '${order.guestShippingJson?.line1 ?? ''}, '
-                                                                                        '${order.guestShippingJson?.city ?? ''}') : '',
+                                                                                ? '${order.shipping_address!.line1!}, ${order.shipping_address!.city!}'
+                                                                                : '${order.guestShippingJson?.line1 ?? ''}, ${order.guestShippingJson?.city ?? ''}')
+                                                                                : '',
                                                                             style: const TextStyle(
                                                                                 fontWeight: FontWeight.w500,
                                                                                 fontSize: 11,
@@ -2120,6 +2104,50 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
             ),
           );
         }));
+  }
+
+  String _getFullAddress(dynamic shippingAddress, bool isGuest) {
+    if (shippingAddress == null) return '';
+
+    List<String> parts = [];
+
+    if (isGuest) {
+      // Guest shipping JSON
+      if (shippingAddress.line1 != null && shippingAddress.line1.toString().isNotEmpty) {
+        parts.add(shippingAddress.line1.toString());
+      }
+      if (shippingAddress.city != null && shippingAddress.city.toString().isNotEmpty) {
+        parts.add(shippingAddress.city.toString());
+      }
+      // ✅ Check if zip is not "00000" before adding
+      if (shippingAddress.zip != null &&
+          shippingAddress.zip.toString().isNotEmpty &&
+          shippingAddress.zip.toString() != '00000') {
+        parts.add(shippingAddress.zip.toString());
+      }
+      if (shippingAddress.country != null && shippingAddress.country.toString().isNotEmpty) {
+        parts.add(shippingAddress.country.toString());
+      }
+    } else {
+      // Regular shipping address
+      if (shippingAddress.line1 != null && shippingAddress.line1!.isNotEmpty) {
+        parts.add(shippingAddress.line1!);
+      }
+      if (shippingAddress.city != null && shippingAddress.city!.isNotEmpty) {
+        parts.add(shippingAddress.city!);
+      }
+      // ✅ Check if zip is not "00000" before adding
+      if (shippingAddress.zip != null &&
+          shippingAddress.zip!.isNotEmpty &&
+          shippingAddress.zip != '00000') {
+        parts.add(shippingAddress.zip!);
+      }
+      if (shippingAddress.country != null && shippingAddress.country!.isNotEmpty) {
+        parts.add(shippingAddress.country!);
+      }
+    }
+
+    return parts.join(', ');
   }
 
   Widget _buildStatusContainer(String text, Color backgroundColor) {

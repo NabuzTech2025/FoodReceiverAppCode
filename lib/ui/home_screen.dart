@@ -8,6 +8,9 @@ import 'package:food_app/main.dart';
 import 'package:food_app/ui/PrinterSettingsScreen.dart';
 import 'package:food_app/ui/table%20Book/reservation.dart';
 import 'package:get/get.dart';
+import 'package:lottie/lottie.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../constants/constant.dart';
 import '../constants/item_bottom_bar.dart';
 import '../constants/app_color.dart';
 import '../customView/CustomAppBar.dart';
@@ -24,16 +27,15 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // final _pageController = PageController(initialPage: 0);
   late PageController _pageController;
   int lastIndex = 0;
   int floatIndex = 0;
   bool isSelected = false;
-
-  // Declare a variable to hold the dialog context
+  bool _isDataLoaded = false;
   BuildContext? dialogContext;
   bool _fcmInitialized = false;
   int? _lastProcessedOrderId;
+  String? _storeType;
 
   @override
   void initState() {
@@ -51,6 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     super.initState();
   }
+
   void _setupLocalNotificationTap() {
     // Listen for local notification taps when app is in foreground
     flutterLocalNotificationsPlugin.initialize(
@@ -67,12 +70,20 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+
   Future<void> _loadInitialData() async {
+    SharedPreferences freshPrefs = await SharedPreferences.getInstance();
+    _storeType = freshPrefs.getString(valueShared_STORE_TYPE);
+
     await Future.wait([
       getOrdersInBackground(),
-      getReservationsInBackground(), // Add this method call
+      getReservationsInBackground(),
     ]);
+    setState(() {
+      _isDataLoaded = true;
+    });
   }
+
   DateTime? _lastProcessedTime;
 
   void _setupFCMListeners() {
@@ -154,22 +165,28 @@ class _HomeScreenState extends State<HomeScreen> {
         appBar: CustomAppBar(),
         resizeToAvoidBottomInset: true,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        // Add conditional floating action button
-        floatingActionButton: Obx(() {
-          print("Current selected tab index: ${app.appController.selectedTabIndex}");
+        floatingActionButton: !_isDataLoaded ? SizedBox.shrink() : Obx(() {
           if (app.appController.selectedTabIndex == 1) {
-            print("Should show floating button");
             return floatingButton(context);
           }
-          print("Should hide floating button");
           return SizedBox.shrink();
         }),
         bottomNavigationBar: _buildBottomBar(),
-        body: _buildBody(),
+        body: _isDataLoaded ? _buildBody() : Center(
+            child: Lottie.asset(
+              'assets/animations/burger.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            ))
       ),
     );
   }
+
   Widget floatingButton(BuildContext context) {
+    if (_storeType == '1' || _storeType == '2') {
+      return SizedBox.shrink();
+    }
     return Container(
       height: 55,
       width: 55,
@@ -208,46 +225,57 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
   @override
   void dispose() {
     super.dispose();
   }
 
+
   Widget _buildBottomBar() {
-    return Obx(() {
-      double bottomBarHeight = Platform.isIOS ? 90 : 75;
-      return Container(
-        height: bottomBarHeight,
-          decoration: BoxDecoration(
-            boxShadow:  [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-                spreadRadius: 1,
-              ),
-            ],
-            color: Colors.grey[100],
+    // Don't show bottom bar until data is loaded
+    if (!_isDataLoaded) {
+      return SizedBox.shrink();
+    }
+
+    double bottomBarHeight = Platform.isIOS ? 90 : 75;
+    return Container(
+      height: bottomBarHeight,
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+            spreadRadius: 1,
           ),
-        child: BottomAppBar(
-          color: appColor.white,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              //ic_project_home.png
-              ItemBottomBar(
-                selected: app.appController.selectedTabIndex == 0,
-                icon: "assets/images/ic_order.png",iconHeight: 20,iconWidth: 20,
-                name: 'order'.tr,
-                showBadge  : app.appController.getPendingOrder > 0,
-                badgeValue : app.appController.getPendingOrder,
-                onPressed: () {
-                  _openTab(0);
-                },
-              ),
+        ],
+        color: Colors.grey[100],
+      ),
+      child: BottomAppBar(
+        color: appColor.white,
+        child: Obx(() => Row(  // Obx only around Row for observing app.appController
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            ItemBottomBar(
+              selected: app.appController.selectedTabIndex == 0,
+              icon: "assets/images/ic_order.png",
+              iconHeight: 20,
+              iconWidth: 20,
+              name: 'order'.tr,
+              showBadge: app.appController.getPendingOrder > 0,
+              badgeValue: app.appController.getPendingOrder,
+              onPressed: () {
+                _openTab(0);
+              },
+            ),
+            // Only show reservation for storeType '0'
+            if (_storeType == '0')
               ItemBottomBar(
                 selected: app.appController.selectedTabIndex == 1,
-                icon: "assets/images/reservationIcon.png",iconHeight: 25,iconWidth: 30,
+                icon: "assets/images/reservationIcon.png",
+                iconHeight: 25,
+                iconWidth: 30,
                 name: 'reserv'.tr,
                 showBadge: app.appController.getPendingReservations > 0,
                 badgeValue: app.appController.getPendingReservations,
@@ -255,28 +283,32 @@ class _HomeScreenState extends State<HomeScreen> {
                   _openTab(1);
                 },
               ),
-              ItemBottomBar(
-                selected: app.appController.selectedTabIndex == 2,
-                icon: "assets/images/ic_reports.png",iconHeight: 20,iconWidth: 20,
-                name: 'reports'.tr,
-                onPressed: () {
-                  _openTab(2);
-                },
-              ),
-              ItemBottomBar(
-                selected: app.appController.selectedTabIndex == 3,
-                icon: "assets/images/ic_setting.png",iconHeight: 20,iconWidth: 20,
-                name: 'setting'.tr,
-                onPressed: () {
-                  _openTab(3);
-                },
-              ),
-            ],
-          ),
-        ),
-      );
-    });
+            ItemBottomBar(
+              selected: app.appController.selectedTabIndex == 2,
+              icon: "assets/images/ic_reports.png",
+              iconHeight: 20,
+              iconWidth: 20,
+              name: 'reports'.tr,
+              onPressed: () {
+                _openTab(2);
+              },
+            ),
+            ItemBottomBar(
+              selected: app.appController.selectedTabIndex == 3,
+              icon: "assets/images/ic_setting.png",
+              iconHeight: 20,
+              iconWidth: 20,
+              name: 'setting'.tr,
+              onPressed: () {
+                _openTab(3);
+              },
+            ),
+          ],
+        )),
+      ),
+    );
   }
+
 
   Widget _buildBody() {
     return PageView(

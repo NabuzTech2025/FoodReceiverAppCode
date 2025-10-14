@@ -940,7 +940,7 @@ class _PostcodeState extends State<Postcode> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('PostCode created successfully'),
+            content: Text('postcode_create'.tr),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
@@ -957,7 +957,7 @@ class _PostcodeState extends State<Postcode> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to create PostCode: ${e.toString()}'),
+            content: Text('${'failed_postcode'.tr}: ${e.toString()}'),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 2),
           ),
@@ -1021,7 +1021,7 @@ class _PostcodeState extends State<Postcode> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('PostCode Update successfully'),
+            content: Text('update_postcode'.tr),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
@@ -1038,7 +1038,7 @@ class _PostcodeState extends State<Postcode> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to Update PostCode: ${e.toString()}'),
+            content: Text('${'failed__upd_postcode'.tr}: ${e.toString()}'),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 2),
           ),
@@ -1073,7 +1073,7 @@ class _PostcodeState extends State<Postcode> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Product deleted successfully'),
+            content: Text('postcode_delete'.tr),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
@@ -1087,7 +1087,7 @@ class _PostcodeState extends State<Postcode> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to delete product'),
+            content: Text('postcode_delete_failed'.tr),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 2),
           ),

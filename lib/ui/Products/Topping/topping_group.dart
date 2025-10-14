@@ -543,7 +543,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
                           }
                         },
                         style: TextButton.styleFrom(
-                          backgroundColor: Color(0xFF0EA5E9),
+                          backgroundColor: Color(0xFFFCAE03),
                           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4),

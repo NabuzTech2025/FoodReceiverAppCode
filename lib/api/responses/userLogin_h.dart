@@ -12,11 +12,12 @@ class UserLoginH extends HiveObject {
   int? role_id;
   @HiveField(4)
   int? code;
-
   @HiveField(5)
   String? message;
+  @HiveField(6)
+  int? storeType;
 
-  UserLoginH({this.access_token, this.token_type, this.role_id});
+  UserLoginH({this.access_token, this.token_type, this.role_id , this.storeType});
 
   UserLoginH.withError({
     int? code,
@@ -24,33 +25,22 @@ class UserLoginH extends HiveObject {
   })  : this.code = code,
         this.message = mess;
 
-  //bool get isSuccess => this.success;
-
-  /*LoginResponse.withError({
-    int? code,
-    bool success = false,
-    String? msg,
-  })  : this.statusCode = statusCode,
-        this.success = success,
-        this.message = msg;*/
-
-  factory UserLoginH.fromRawJson(String str) =>
-      UserLoginH.fromJson(json.decode(str));
+  factory UserLoginH.fromRawJson(String str) => UserLoginH.fromJson(json.decode(str));
 
   String toRawJson() => json.encode(toJson());
 
   factory UserLoginH.fromJson(Map<String, dynamic> json) => UserLoginH(
-        access_token:
-            json["access_token"] == null ? null : json["access_token"],
+        access_token: json["access_token"] == null ? null : json["access_token"],
         token_type: json["token_type"] == null ? null : json["token_type"],
         role_id: json["role_id"] == null ? null : json["role_id"],
-        // data: UserModelH.fromJson(json["data"] == null ? null : json["data"]),
+        storeType: json["store_type"] == null ? null : json["store_type"],
+
       );
 
   Map<String, dynamic> toJson() => {
         "access_token": access_token == null ? null : access_token,
         "token_type": token_type == null ? null : token_type,
         "role_id": role_id == null ? null : role_id,
-        // "data": data == null ? null : data,
+        "store_type": storeType==null ? null : storeType
       };
 }

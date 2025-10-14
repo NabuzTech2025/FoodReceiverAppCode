@@ -140,7 +140,7 @@ class orderHistoryResponseModel {
 class User {
   String? username;
   int? id;
-  dynamic storeId;  // Changed from Null? to dynamic
+  dynamic storeId;
   int? roleId;
 
   User({this.username, this.id, this.storeId, this.roleId});
@@ -471,6 +471,7 @@ class GuestShippingJson {
   String? zip;
   String? city;
   String? type;
+  String? email;
   String? line1;
   String? phone;
   String? country;
@@ -480,6 +481,7 @@ class GuestShippingJson {
       {this.zip,
         this.city,
         this.type,
+        this.email,
         this.line1,
         this.phone,
         this.country,
@@ -489,6 +491,7 @@ class GuestShippingJson {
     zip = json['zip'];
     city = json['city'];
     type = json['type'];
+    email = json['email'];
     line1 = json['line1'];
     phone = json['phone'];
     country = json['country'];
@@ -500,6 +503,7 @@ class GuestShippingJson {
     data['zip'] = this.zip;
     data['city'] = this.city;
     data['type'] = this.type;
+    data['email'] = this.email;
     data['line1'] = this.line1;
     data['phone'] = this.phone;
     data['country'] = this.country;

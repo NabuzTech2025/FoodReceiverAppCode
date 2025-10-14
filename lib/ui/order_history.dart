@@ -4,6 +4,8 @@ import 'package:food_app/models/order_history_response_model.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../constants/constant.dart';
 import 'order_history_details.dart';
 
 class OrderHistory extends StatefulWidget {
@@ -27,6 +29,8 @@ class _OrderHistoryState extends State<OrderHistory> {
   bool _showClearButton = false;
   List<orderHistoryResponseModel> _filteredOrders = [];
   String _searchQuery = '';
+  String? _storeType;
+  bool isLoading = false;
   IconData getStatusIcon(int status) {
     switch (status) {
       case 1:
@@ -110,13 +114,12 @@ class _OrderHistoryState extends State<OrderHistory> {
     return NumberFormat('#,##0.00').format(amount);
   }
 
-  bool isLoading = false;
   @override
   void initState() {
     super.initState();
     _filteredOrders = widget.orders;
+    _loadStoreType();
 
-    // Add search listener
     searchController.addListener(_onSearchChanged);
   }
 
@@ -136,8 +139,6 @@ class _OrderHistoryState extends State<OrderHistory> {
       _filterOrders(query);
     });
   }
-
-  // 1. Update the _filterOrders method to include guest data:
 
   void _filterOrders(String query) {
     if (query.isEmpty) {
@@ -164,6 +165,7 @@ class _OrderHistoryState extends State<OrderHistory> {
       }).toList();
     }
   }
+
   String _extractTime(String deliveryTime) {
     try {
       // Parse the ISO string and extract time
@@ -173,6 +175,59 @@ class _OrderHistoryState extends State<OrderHistory> {
       return deliveryTime; // Return original if parsing fails
     }
   }
+
+  Future<void> _loadStoreType() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _storeType = prefs.getString(valueShared_STORE_TYPE);  // ✅ Use correct constant
+      print("📦 Store Type loaded in OrderHistory: $_storeType");  // Debug log
+    });
+  }
+
+  String _getFullAddress(dynamic shippingAddress, bool isGuest) {
+    if (shippingAddress == null) return '';
+
+    List<String> parts = [];
+
+    if (isGuest) {
+      // Guest shipping JSON
+      if (shippingAddress.line1 != null && shippingAddress.line1.toString().isNotEmpty) {
+        parts.add(shippingAddress.line1.toString());
+      }
+      if (shippingAddress.city != null && shippingAddress.city.toString().isNotEmpty) {
+        parts.add(shippingAddress.city.toString());
+      }
+      // ✅ Check if zip is not "00000" before adding
+      if (shippingAddress.zip != null &&
+          shippingAddress.zip.toString().isNotEmpty &&
+          shippingAddress.zip.toString() != '00000') {
+        parts.add(shippingAddress.zip.toString());
+      }
+      if (shippingAddress.country != null && shippingAddress.country.toString().isNotEmpty) {
+        parts.add(shippingAddress.country.toString());
+      }
+    } else {
+      // Regular shipping address
+      if (shippingAddress.line1 != null && shippingAddress.line1!.isNotEmpty) {
+        parts.add(shippingAddress.line1!);
+      }
+      if (shippingAddress.city != null && shippingAddress.city!.isNotEmpty) {
+        parts.add(shippingAddress.city!);
+      }
+      // ✅ Check if zip is not "00000" before adding
+      if (shippingAddress.zip != null &&
+          shippingAddress.zip!.isNotEmpty &&
+          shippingAddress.zip != '00000') {
+        parts.add(shippingAddress.zip!);
+      }
+      if (shippingAddress.country != null && shippingAddress.country!.isNotEmpty) {
+        parts.add(shippingAddress.country!);
+      }
+    }
+
+    return parts.join(', ');
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -266,7 +321,6 @@ class _OrderHistoryState extends State<OrderHistory> {
               ],
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
@@ -381,11 +435,19 @@ class _OrderHistoryState extends State<OrderHistory> {
                                             child: Row(crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
                                                 Container(
-                                                  width:  MediaQuery.of(context).size.width * (order.orderType == 2 ? 0.18 : 0.3),
+                                                  width: MediaQuery.of(context).size.width * (order.orderType == 2 ? 0.18 : 0.6),
                                                   child: Text(
                                                     order.orderType == 2
                                                         ? 'pickup'.tr
-                                                        : (order.shippingAddress?.zip?.toString() ?? order.guestShippingJson?.zip?.toString()??''),
+                                                        : (_storeType == '2'
+                                                        ? _getFullAddress(
+                                                        order.shippingAddress ?? order.guestShippingJson,
+                                                        order.shippingAddress == null
+                                                    ).trim()
+                                                        : (order.shippingAddress?.zip?.toString() ??
+                                                        order.guestShippingJson?.zip?.toString() ?? '')),
+                                                    maxLines: 2,  // ✅ Allow 2 lines for full address
+                                                    overflow: TextOverflow.ellipsis,
                                                     style: const TextStyle(
                                                         fontWeight: FontWeight.w700,
                                                         fontSize: 13,
@@ -409,7 +471,7 @@ class _OrderHistoryState extends State<OrderHistory> {
                                             ),
                                           ),
                                           Visibility(
-                                            visible: order.shippingAddress != null || order.guestShippingJson != null,
+                                            visible: (_storeType != '2') && (order.shippingAddress != null || order.guestShippingJson != null),
                                             child: Container(
                                               width: MediaQuery.of(context).size.width*0.5,
                                               child: Text(

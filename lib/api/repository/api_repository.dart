@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
@@ -8,10 +9,12 @@ import 'package:food_app/models/driver/driver_register_model.dart';
 import 'package:food_app/models/reservation/edit_reservation_details_response_model.dart';
 import 'package:food_app/models/reservation/get_user_reservation_details.dart';
 import 'package:food_app/models/today_report.dart';
-import 'package:get/get.dart' hide FormData;
-
+import 'package:get/get.dart' hide FormData, MultipartFile;
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import '../../constants/constant.dart';
 import '../../models/DailySalesReport.dart' hide TaxBreakdown, PaymentMethods, ApprovalStatuses;
 import '../../models/Logout.dart';
@@ -20,6 +23,8 @@ import '../../models/StoreDetail.dart';
 import '../../models/StoreSetting.dart';
 import '../../models/UserMe.dart';
 import '../../models/add-store_postcode_response_model.dart';
+import '../../models/add_aleergy_link_response_model.dart';
+import '../../models/add_allergy_response_model.dart';
 import '../../models/add_new_group_item_response_model.dart';
 import '../../models/add_new_product_category_response_model.dart';
 import '../../models/add_new_product_group_response_model.dart';
@@ -29,6 +34,8 @@ import '../../models/add_new_store_topping_response_model.dart';
 import '../../models/add_new_topping_group_response_model.dart';
 import '../../models/discount_change_response_model.dart';
 import '../../models/driver/get_deliver_driver_response_model.dart';
+import '../../models/edit_allergy_item_response_model.dart';
+import '../../models/edit_allergy_link_response_model.dart';
 import '../../models/edit_existing_product_category_response_model.dart';
 import '../../models/edit_group_item_response_model.dart';
 import '../../models/edit_postcode_response_model.dart';
@@ -38,8 +45,10 @@ import '../../models/edit_store_toppings_response_model.dart';
 import '../../models/edit_tax_response_model.dart';
 import '../../models/edit_topping_group_response_model.dart';
 import '../../models/get_added_tax_response_model.dart';
+import '../../models/get_allergy_response_model.dart';
 import '../../models/get_discount_percentage_response_model.dart';
 import '../../models/get_group_item_response_model.dart';
+import '../../models/get_item_allergy_link_response_model.dart';
 import '../../models/get_product_category_list_response_model.dart';
 import '../../models/get_product_group_response_model.dart';
 import '../../models/get_store_postcode_response_model.dart';
@@ -47,6 +56,7 @@ import '../../models/get_store_products_response_model.dart';
 import '../../models/get_store_timing_response_model.dart';
 import '../../models/get_toppings_groups_response_model.dart';
 import '../../models/get_toppings_response_model.dart';
+import '../../models/iamge_upload_response_model.dart';
 import '../../models/order_history_response_model.dart';
 import '../../models/order_model.dart';
 import '../../models/print_order_without_ip.dart';
@@ -60,6 +70,7 @@ import '../api_params.dart';
 import '../api_utils.dart';
 import '../responses/userLogin_h.dart';
 import 'base_repository.dart';
+import 'package:http_parser/http_parser.dart';
 
 final title = "ApiRepo";
 
@@ -2431,5 +2442,344 @@ class CallService extends GetConnect {
       return false;
     }
   }
+
+  // For Getting Allergy
+  Future<List<GetAllergyResponseModel>> getAllergy(String storeId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $accessToken");
+
+    httpClient.baseUrl = Api.baseUrl;
+    var res = await get('allergy-items/?store_id=$storeId',
+        headers: {
+          'accept': 'application/json',
+          'Authorization': "Bearer $accessToken",
+        });
+    if (res.statusCode == 200) {
+      print("Getting Allergy response is :${res.statusCode.toString()}");
+      List<dynamic> jsonList = res.body;
+      return jsonList.map((json) => GetAllergyResponseModel.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load Allergy : ${res.statusCode}');
+    }
+  }
+
+  //For Add Allergy
+  Future<AddAllergyResponseModel> addAllergy(dynamic body) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await post(
+        'allergy-items/', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("Add  Allergy response is ${res.statusCode}");
+      print("Add  Allergy Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("Add  Allergy Response is : ${res.statusCode.toString()}");
+        return AddAllergyResponseModel.fromJson(res.body);
+      } else {
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("Adding error: $e");
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Editing allergy
+  Future<EditAllergyResponseModel> editAllergy(dynamic body,String allergyId) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await put(
+        'allergy-items/$allergyId', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("EDIT Allergy response is ${res.statusCode}");
+      print("EDIT Allergy Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("EDIT Allergy Response is : ${res.statusCode.toString()}");
+        return EditAllergyResponseModel.fromJson(res.body);
+      } else {
+        // Other errors
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("EDIT error: $e");
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Delete Allergy
+  Future<bool> deleteAllergy(String allergyId) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      httpClient.baseUrl = Api.baseUrl;
+
+      var res = await delete(
+        "allergy-items/$allergyId",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer $accessToken",
+        },
+      );
+
+      print("Delete allergy Response Status: ${res.statusCode}");
+
+      // 204 means success but no content returned
+      if (res.statusCode == 200 || res.statusCode == 204) {
+        print("allergy deleted successfully");
+        return true;
+      } else {
+        print('Delete API Error: ${res.statusCode} - ${res.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Delete API Exception: $e');
+      // Even if GetX throws error on 204, check if it's actually successful
+      if (e.toString().contains('Cannot decode')) {
+        print("Delete successful but response was empty (204)");
+        return true;
+      }
+      return false;
+    }
+  }
+
+  // For Getting Item Allergy Link
+  Future<List<get_item_allergy_link_response_model>> getAllergyItemLink(String storeId,) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $accessToken");
+
+    httpClient.baseUrl = Api.baseUrl;
+    var res = await get('allergies_link/store/$storeId/allergy-product?include_unlinked=false&limit=500&offset=0',
+        headers: {
+          'accept': 'application/json',
+          'Authorization': "Bearer $accessToken",
+        });
+    if (res.statusCode == 200) {
+      print("Getting Allergy Item Link response is :${res.statusCode.toString()}");
+      List<dynamic> jsonList = res.body;
+      return jsonList.map((json) => get_item_allergy_link_response_model.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load Allergy item link : ${res.statusCode}');
+    }
+  }
+
+  // For Add New Allergy Item Link
+  Future<AddAllergyLinkResponseModel> addAllergyItemLink(dynamic body,String productId) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await post(
+        'allergies_link/$productId/allergy-items', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("Add  Allergy Item Link Response response is ${res.statusCode}");
+      print("Add  Allergy Item Link Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("Add Allergy Item Link Response is : ${res.statusCode.toString()}");
+        return AddAllergyLinkResponseModel.fromJson(res.body);
+      } else {
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("Adding error: $e");
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Editing allergy
+  Future<EditAllergyLinkResponseModel> editAllergyItemLink(dynamic body,String productId) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await put(
+        'allergies_link/$productId/allergy-items', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("EDIT Allergy Item Link response is ${res.statusCode}");
+      print("EDIT Allergy Item Link Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("EDIT Allergy Item Link Response is : ${res.statusCode.toString()}");
+        return EditAllergyLinkResponseModel.fromJson(res.body);
+      } else {
+        // Other errors
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("EDIT error: $e");
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Deleting Allergy Link Item
+  Future<bool> deleteAllergyLink(String productId,String allergyId) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      httpClient.baseUrl = Api.baseUrl;
+
+      var res = await delete(
+        "allergies_link/$productId/allergy-items/$allergyId",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer $accessToken",
+        },
+      );
+
+      print("Delete allergy Link Response Status: ${res.statusCode}");
+
+      // 204 means success but no content returned
+      if (res.statusCode == 200 || res.statusCode == 204) {
+        print("allergy Link deleted successfully");
+        return true;
+      } else {
+        print('Delete API Error: ${res.statusCode} - ${res.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Delete API Exception: $e');
+      // Even if GetX throws error on 204, check if it's actually successful
+      if (e.toString().contains('Cannot decode')) {
+        print("Delete successful but response was empty (204)");
+        return true;
+      }
+      return false;
+    }
+  }
+
+  Future<File> compressImage(File file) async {
+    final dir = await getTemporaryDirectory();
+    final targetPath = path.join(dir.path,
+        "${DateTime.now().millisecondsSinceEpoch}_compressed.jpg");
+
+    var result = await FlutterImageCompress.compressAndGetFile(
+      file.absolute.path,
+      targetPath,
+      quality: 70,
+      minWidth: 1024,
+      minHeight: 1024,
+    );
+
+    return result != null ? File(result.path) : file;
+  }
+  Future<image_upload_response_model> uploadImage(File imageFile) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://magskr.com/images/upload'),
+      );
+
+      // Add headers
+      request.headers['Authorization'] = 'Bearer $accessToken';
+      request.headers['accept'] = 'application/json';
+
+      // Add file
+      File compressedImage = await compressImage(imageFile);
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          compressedImage.path,
+          contentType: MediaType('image', 'jpeg'), // Add explicit content type
+        ),
+      );
+
+      print("Uploading file: ${imageFile.path}");
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      print("Upload Image Response: ${response.statusCode}");
+      print("Upload Image Body: ${response.body}");
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return image_upload_response_model.fromJson(jsonDecode(response.body));
+      } else {
+        throw Exception('Image upload failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      print("Image upload error: $e");
+      rethrow;
+    }
+  }
+
+
 
 }

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:food_app/models/add_new_product_category_response_model.dart';
 import 'package:get/get.dart';
@@ -7,7 +8,10 @@ import 'package:hive/hive.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:image/image.dart' as img;
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
+import '../../../models/iamge_upload_response_model.dart';
 import '../../../api/repository/api_repository.dart';
 import '../../../constants/constant.dart';
 import '../../../customView/CustomAppBar.dart';
@@ -84,7 +88,7 @@ class _CategoryState extends State<Category> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Select Image Source',
+              'select_image'.tr,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -114,7 +118,7 @@ class _CategoryState extends State<Category> {
                       }
                     } catch (e) {
                       print('Error picking image from camera: $e');
-                      Get.snackbar('Error', 'Failed to capture image');
+                      Get.snackbar('${'error'.tr}', '${'failed_capture'.tr}');
                     }
                   },
                   child: Column(
@@ -134,7 +138,7 @@ class _CategoryState extends State<Category> {
                       ),
                       SizedBox(height: 10),
                       Text(
-                        'Camera',
+                        'camera'.tr,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -183,7 +187,7 @@ class _CategoryState extends State<Category> {
                       ),
                       SizedBox(height: 10),
                       Text(
-                        'Gallery',
+                        'gallery'.tr,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -211,7 +215,7 @@ class _CategoryState extends State<Category> {
                 ),
                 child: Center(
                   child: Text(
-                    'Cancel',
+                    'cancel'.tr,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -227,6 +231,73 @@ class _CategoryState extends State<Category> {
       ),
     );
   }
+  Future<File> compressImage(File file) async {
+    try {
+      final bytes = await file.readAsBytes();
+      img.Image? image = img.decodeImage(bytes);
+
+      if (image == null) return file;
+
+      if (image.width > 1024 || image.height > 1024) {
+        image = img.copyResize(image, width: 1024);
+      }
+
+      final compressedBytes = img.encodeJpg(image, quality: 70);
+
+      final dir = await getTemporaryDirectory();
+      final targetPath = '${dir.path}/${DateTime.now().millisecondsSinceEpoch}_compressed.jpg';
+      final compressedFile = File(targetPath);
+      await compressedFile.writeAsBytes(compressedBytes);
+
+      return compressedFile;
+    } catch (e) {
+      print('Compression error: $e');
+      return file;
+    }
+  }
+  Future<String?> uploadCategoryImage(File imageFile) async {
+    try {
+      Get.dialog(
+        Center(
+            child: Lottie.asset(
+              'assets/animations/burger.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            )
+        ),
+        barrierDismissible: false,
+      );
+
+      image_upload_response_model response = await CallService().uploadImage(imageFile);
+
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+
+      if (response.url != null && response.url!.isNotEmpty) {
+        print("Image uploaded successfully: ${response.url}");
+        return response.url;
+      } else {
+        throw Exception('Image URL is empty');
+      }
+    } catch (e) {
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+      print('Image upload error: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to upload image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return null;
+    }
+  }
   @override
   void dispose() {
     _pageController.dispose();
@@ -237,7 +308,16 @@ class _CategoryState extends State<Category> {
     }
     super.dispose();
   }
+  String _getTrimmedImageUrl(String? url) {
+    if (url == null || url.isEmpty) return '';
 
+    // Remove query parameters (everything after '?')
+    int queryIndex = url.indexOf('?');
+    if (queryIndex != -1) {
+      return url.substring(0, queryIndex);
+    }
+    return url;
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -291,7 +371,7 @@ class _CategoryState extends State<Category> {
                            // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Container(
-                                width: MediaQuery.of(context).size.width * 0.43,
+                                width: MediaQuery.of(context).size.width * 0.38,
                                 child: Text('name'.tr,
                                   style: TextStyle(
                                       fontWeight: FontWeight.w800,
@@ -313,7 +393,7 @@ class _CategoryState extends State<Category> {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 15),
+                        const SizedBox(width: 10),
                         Container(
                           width: MediaQuery.of(context).size.width * 0.2,
                           child: Center(
@@ -370,10 +450,28 @@ class _CategoryState extends State<Category> {
                             scrollDirection: Axis.horizontal,
                             child: Row(
                               children: [
-                            Image.network(product.imageUrl.toString(),height: 40,width: 40,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Image.asset('assets/images/food.png',height: 40,width: 40,),),
+                                Container(
+                                  width: 50,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.grey.shade300, width: 1),
+                                  ),
+                                  child: ClipOval(
+                                    child: CachedNetworkImage(
+                                      imageUrl: _getTrimmedImageUrl(product.imageUrl),
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => Center(
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      ),
+                                      errorWidget: (context, url, error) => Icon(
+                                        Icons.image_not_supported,
+                                        color: Colors.grey,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                                 SizedBox(width: 5,),
                                 Container(
                                   // width: MediaQuery.of(context).size.width * 0.6,
@@ -654,13 +752,17 @@ class _CategoryState extends State<Category> {
                           height: 50,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: selectedImage != null ? Colors.transparent : Color(0xFFFCAE03),
-                            border: selectedImage != null ? Border.all(color: Colors.grey.shade300, width: 2) : null,
+                            color: (selectedImage != null || (isEditMode && editingCategory?.imageUrl != null))
+                                ? Colors.transparent
+                                : Color(0xFFFCAE03),
+                            border: (selectedImage != null || (isEditMode && editingCategory?.imageUrl != null))
+                                ? Border.all(color: Colors.grey.shade300, width: 2)
+                                : null,
                           ),
                           child: selectedImage != null
+
                               ? Stack(
                             children: [
-                              // Selected Image
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(22.5),
                                 child: Image.file(
@@ -887,12 +989,12 @@ class _CategoryState extends State<Category> {
                           String description = descriptionController.text.trim();
 
                           if (categoryName.isEmpty) {
-                            Get.snackbar('Error', 'Please enter category name');
+                            Get.snackbar('${'error'.tr}', '${'please_category'.tr}');
                             return;
                           }
 
                           if (selectedTaxId == null) {
-                            Get.snackbar('Error', 'Please select tax');
+                            Get.snackbar('${'error'.tr}', '${'please_tax'.tr}');
                             return;
                           }
 
@@ -990,13 +1092,13 @@ class _CategoryState extends State<Category> {
 
   Future<void> _saveProductCategory() async {
     if (sharedPreferences == null) {
-      Get.snackbar('Error', 'SharedPreferences not initialized');
+      Get.snackbar('${'error'.tr}', '${'shared'.tr}');
       return;
     }
 
     storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
     if (storeId == null) {
-      Get.snackbar('Error', 'Store ID not found');
+      Get.snackbar('${'error'.tr}', '${'storeId'.tr}');
       return;
     }
 
@@ -1014,12 +1116,20 @@ class _CategoryState extends State<Category> {
     );
 
     try {
+      String? uploadedImageUrl;
+      if (selectedImage != null) {
+        uploadedImageUrl = await uploadCategoryImage(selectedImage!);
+        if (uploadedImageUrl == null) {
+          return; // Exit if image upload failed
+        }
+      }
+
       var map = {
         "name": categoryNameController.text.trim(),
         "store_id": storeId,
         "tax_id": selectedTaxId,
-        "image_url": selectedImage,
-        "description": descriptionController.text ?? ''
+        "image_url": uploadedImageUrl ?? "",
+        "description": descriptionController.text.trim()
       };
 
       print("Add product Map: $map");
@@ -1047,7 +1157,7 @@ class _CategoryState extends State<Category> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Product category added successfully'),
+            content: Text('product_category'.tr),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
@@ -1064,7 +1174,7 @@ class _CategoryState extends State<Category> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to add product category: ${e.toString()}'),
+            content: Text('${'failed_category'.tr}: ${e.toString()}'),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 2),
           ),
@@ -1221,7 +1331,7 @@ class _CategoryState extends State<Category> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Product Category deleted successfully'),
+            content: Text('${'category_delete'.tr}'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
@@ -1238,7 +1348,7 @@ class _CategoryState extends State<Category> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to delete product'),
+            content: Text('failed_category_delete'.tr),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 2),
           ),
@@ -1249,13 +1359,13 @@ class _CategoryState extends State<Category> {
 
   Future<void> _updateProductCategory(String productId) async {
     if (sharedPreferences == null) {
-      Get.snackbar('Error', 'SharedPreferences not initialized');
+      Get.snackbar('${'error'.tr}', '${'shared'.tr}');
       return;
     }
 
     storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
     if (storeId == null) {
-      Get.snackbar('Error', 'Store ID not found');
+      Get.snackbar('${'error'.tr}', '${'storeId'.tr}');
       return;
     }
 
@@ -1273,11 +1383,22 @@ class _CategoryState extends State<Category> {
     );
 
     try {
+      String? finalImageUrl = editingCategory?.imageUrl; // Keep existing URL
+
+      // Upload new image if selected
+      if (selectedImage != null) {
+        String? uploadedImageUrl = await uploadCategoryImage(selectedImage!);
+        if (uploadedImageUrl == null) {
+          return; // Exit if image upload failed
+        }
+        finalImageUrl = uploadedImageUrl;
+      }
+
       var map = {
         "name": categoryNameController.text.trim(),
         "store_id": storeId,
         "tax_id": selectedTaxId,
-        "image_url": "",
+        "image_url": finalImageUrl ?? "",
         "description": descriptionController.text.trim()
       };
 
@@ -1306,7 +1427,7 @@ class _CategoryState extends State<Category> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Product category updated successfully'),
+            content: Text('category_update'.tr),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
@@ -1323,7 +1444,7 @@ class _CategoryState extends State<Category> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update product: ${e.toString()}'),
+            content: Text('${'upd_category'.tr}: ${e.toString()}'),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 2),
           ),

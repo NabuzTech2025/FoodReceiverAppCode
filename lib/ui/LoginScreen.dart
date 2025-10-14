@@ -1,14 +1,10 @@
 import 'dart:async';
-
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../api/Socket/reservation_socket_service.dart';
 import '../api/api.dart';
 import '../api/repository/api_repository.dart';
 import '../api/responses/userLogin_h.dart';
@@ -17,9 +13,7 @@ import '../customView/custom_button.dart';
 import '../customView/custom_text_form_prefiex.dart';
 import '../models/StoreSetting.dart';
 import '../utils/log_util.dart';
-import '../utils/my_application.dart';
 import '../utils/validators.dart';
-import 'ResetPasswordScreen.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -27,8 +21,7 @@ class LoginScreen extends StatefulWidget {
   _LoginScreenState createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
-    with TickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin {
   GlobalKey<FormState> _formKey = GlobalKey();
   late TextEditingController _EmailController = TextEditingController();
   late TextEditingController _PasswordController = TextEditingController();
@@ -289,8 +282,6 @@ class _LoginScreenState extends State<LoginScreen>
       });
 
       final result = await ApiRepo().loginApi(email, password, deviceToken);
-
-      // Cancel timer since we got a response
       _loginTimer?.cancel();
 
       Log.loga(title, "LoginData :: result >>>>> ${result?.toJson()}");
@@ -303,6 +294,8 @@ class _LoginScreenState extends State<LoginScreen>
         print("💾 Saving bearer token...");
         await freshPrefs.setString(valueShared_BEARER_KEY, result.access_token!);
         await Future.delayed(Duration(milliseconds: 50));
+        print("💾 Saving StoreType...");
+        await freshPrefs.setString(valueShared_STORE_TYPE, result.storeType!.toString());
         print("💾 Saving username...");
         await freshPrefs.setString(valueShared_USERNAME_KEY, _EmailController.text.toString());
         await Future.delayed(Duration(milliseconds: 50));
@@ -315,11 +308,12 @@ class _LoginScreenState extends State<LoginScreen>
         String? verifyToken = freshPrefs.getString(valueShared_BEARER_KEY);
         String? verifyStore = freshPrefs.getString(valueShared_STORE_KEY);
         String? verifyUsername = freshPrefs.getString(valueShared_USERNAME_KEY);
-
+        String? verifyStoreType = freshPrefs.getString(valueShared_STORE_TYPE);
         print("🔍 Verification Results:");
         print("🔑 Token: ${verifyToken?.substring(0, 20) ?? 'NULL'}...");
         print("🏪 Store: $verifyStore");
         print("👤 Username: $verifyUsername");
+        print("🏪 Store Type: $verifyStoreType");
 
         if (verifyToken != null && verifyToken == result.access_token) {
           print("✅ Token verification: PASSED");
@@ -339,8 +333,8 @@ class _LoginScreenState extends State<LoginScreen>
         Get.back();
         showSnackbar("Login Failed", "Invalid email or password");
       }
-    } catch (e) {
-      // Cancel timer since we got an error response
+    } catch (e)
+    {
       _loginTimer?.cancel();
 
       Log.loga(title, "Login Api:: e >>>>> $e");
@@ -349,7 +343,6 @@ class _LoginScreenState extends State<LoginScreen>
       String errorMessage = "";
       String errorString = e.toString().toLowerCase();
       if (errorString.contains("dioexception") && errorString.contains("401")) {
-        // Extract the actual error message from the response
         if (errorString.contains("invalid username or password") ||
             errorString.contains("invalid credentials")) {
           errorMessage = "Invalid email or password";
@@ -361,7 +354,7 @@ class _LoginScreenState extends State<LoginScreen>
           errorMessage = "Invalid email or password";
         }
       }
-      // Check for network/connection errors
+
       else if (errorString.contains("socketexception") ||
           errorString.contains("network is unreachable") ||
           errorString.contains("failed host lookup") ||
@@ -487,7 +480,6 @@ class _LoginScreenState extends State<LoginScreen>
       print("❌ Error refreshing background handler token: $e");
     }
   }
-
 
   Future<void> changeLanguage(String langCode) async {
     Locale locale = Locale(langCode);

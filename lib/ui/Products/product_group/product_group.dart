@@ -281,7 +281,7 @@ class _ProductGroupState extends State<ProductGroup> {
                               child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Container(
-                                   // width: MediaQuery.of(context).size.width*0.4,
+                                    width: MediaQuery.of(context).size.width*0.4,
                                     child:  Text(
                                       currentPageItems[index].product!.name.toString(),
                                       style: const TextStyle(
@@ -609,7 +609,7 @@ class _ProductGroupState extends State<ProductGroup> {
                             child: Container(
                               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                               decoration: BoxDecoration(
-                                color: Color(0xFF0EA5E9),
+                                color: Color(0xFFFCAE03),
                                 borderRadius: BorderRadius.circular(5),
                               ),
                               child: Text(
@@ -701,7 +701,8 @@ class _ProductGroupState extends State<ProductGroup> {
   Future<bool> addProductGroup({
     required String groupId,
     required String productId,
-  }) async {
+  }) async
+  {
     if (sharedPreferences == null) {
       Get.snackbar('Error', 'SharedPreferences not initialized',
           snackPosition: SnackPosition.BOTTOM);

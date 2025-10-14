@@ -22,9 +22,6 @@ class OrderHistoryDetails extends StatefulWidget {
 }
 
 class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
-  // Remove the late declaration and use widget.historyOrder instead
-  // late orderHistoryResponseModel historyOrder;
-
   int? orderType = 0;
   bool isPrint = false;
   bool isAutoAccept = false;
@@ -141,6 +138,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
     String guestAddress = historyOrder.guestShippingJson?.line1?.toString() ?? '';
     String guestName = historyOrder.guestShippingJson?.customerName?.toString() ?? '';
     String guestPhone = historyOrder.guestShippingJson?.phone?.toString() ?? '';
+    String guestEmail = historyOrder.guestShippingJson?.email?.toString() ?? '';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -270,6 +268,12 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                       '${'phone'.tr}: ${(historyOrder.shippingAddress?.phone != null && historyOrder.shippingAddress!.phone!.isNotEmpty)
                           ? historyOrder.shippingAddress!.phone!
                           : guestPhone}',
+                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                    ),
+                    Text(
+                      '${'email'.tr}: ${(historyOrder.user?.username != null && historyOrder.user!.username!.isNotEmpty)
+                          ? historyOrder.user?.username
+                          : guestEmail}',
                       style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
                     SizedBox(height: 2),

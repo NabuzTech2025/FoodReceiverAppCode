@@ -362,6 +362,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:food_app/models/Store.dart';
+import 'package:food_app/ui/Allergy/item_allergy.dart';
 import 'package:food_app/ui/Driver/driver_screen.dart';
 import 'package:food_app/ui/PostCode/postcode.dart';
 import 'package:food_app/ui/home_screen.dart';
@@ -372,6 +373,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../api/Socket/socket_service.dart';
 import '../api/repository/api_repository.dart';
 import '../constants/constant.dart';
+import '../ui/Allergy/add_allergy.dart';
 import '../ui/Discount/discount.dart';
 import '../ui/LoginScreen.dart';
 import '../ui/Products/Category/category.dart';
@@ -398,6 +400,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
   late SharedPreferences sharedPreferences;
   String? storeName;
   bool isProductExpanded = false;
+  bool isAllergyExpanded = false;
+  String? _storeType;
   @override
   initState() {
     initVar();
@@ -410,6 +414,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
     if (bearerKey != null) {
       await getStoredta(bearerKey);
     }
+    _storeType = sharedPreferences.getString(valueShared_STORE_TYPE);
   }
 
   Future<void> getStoredta(String bearerKey) async {
@@ -461,7 +466,6 @@ class _CustomDrawerState extends State<CustomDrawer> {
       width: MediaQuery.of(context).size.width * 0.75,
       child: Column(
         children: [
-
           Container(
             color: Colors.white,
             child: Column(
@@ -505,9 +509,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   _drawerItem('order'.tr,'assets/images/order.png', onTap: () {
                     _navigateToHomeScreenTab(0);
                   }),
-                  _drawerItem('reserv'.tr,'assets/images/reserv.png', onTap: () {
+                if (_storeType == '0')
+                 _drawerItem('reserv'.tr,'assets/images/reserv.png', onTap: () {
                     _navigateToHomeScreenTab(1);
                   }),
+
                   _drawerItem('reports'.tr,'assets/images/report.png', onTap: () {
                     _navigateToHomeScreenTab(2);
                   }),
@@ -521,7 +527,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     Navigator.of(context).pop();
                     Get.to(() => Discount());
                   }),
-                  _drawerItem('store'.tr,'assets/images/store.png', onTap: () {
+                 if (_storeType == '1'&& _storeType == '0')
+                _drawerItem('store'.tr,'assets/images/store.png', onTap: () {
                     Navigator.of(context).pop();
                     Get.to(() => StoreTiming());
                   }),
@@ -706,7 +713,6 @@ class _CustomDrawerState extends State<CustomDrawer> {
     }
   }
 
-
 // ✅ Complete logout cleanup WITHOUT clearing IP data
   Future<void> _forceCompleteLogoutCleanup() async {
     try {
@@ -842,27 +848,62 @@ class _CustomDrawerState extends State<CustomDrawer> {
             // Navigate to Items screen
              Get.to(() => Products());
           }),
+          if (_storeType != '2')
           _subDrawerItem('topping'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Toppings screen
             Get.to(() => ToppingsScreen());
           }),
+          if (_storeType != '2')
           _subDrawerItem('topping_group'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Topping Group screen
             Get.to(() => ToppingGroup());
           }),
+          if (_storeType != '2')
           _subDrawerItem('group'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Group Item screen
              Get.to(() => GroupItem());
           }),
+          if (_storeType != '2')
           _subDrawerItem('product_group'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Product Groups screen
              Get.to(() => ProductGroup());
           }),
         ],
+        ListTile(
+          leading: Image.asset('assets/images/product.png',color: Color(0xff757B8F),height: 20,width: 25,),
+          title: Row(
+            children: [
+              Text('allergy'.tr, style: const TextStyle(fontSize: 16)),
+              Spacer(),
+              Icon(
+                isAllergyExpanded ? Icons.expand_less : Icons.expand_more,
+                color: Colors.grey[600],
+              ),
+            ],
+          ),
+          onTap: () {
+            setState(() {
+              isAllergyExpanded = !isAllergyExpanded;
+            });
+          },
+          dense: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0),
+          visualDensity: VisualDensity.compact,
+        ),
+        if(isAllergyExpanded) ...[
+          _subDrawerItem('add_allergy'.tr, onTap: () {
+            Navigator.of(context).pop();
+            Get.to(() => AddAllergy());
+          }),
+          _subDrawerItem('item_allergy'.tr, onTap: () {
+            Navigator.of(context).pop();
+            Get.to(() => ItemAllergy());
+          }),
+        ]
       ],
     );
   }

@@ -22,6 +22,7 @@ String valueShared_STORE_KEY = 'STORE_KEY';
 String valueShared_BASEURL = 'BASEURL_KEY';
 String valueShared_LANGUAGE = 'LANGUAGE_KEY';
 String valueShared_STORE_NAME = 'STORE_NAME_KEY';
+String valueShared_STORE_TYPE = 'STORE_TYPE_KEY';
 
 /*
 // Save the list to SharedPreferences
