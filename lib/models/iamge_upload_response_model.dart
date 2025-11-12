@@ -10,9 +10,9 @@ class image_upload_response_model {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['filename'] = this.filename;
-    data['url'] = this.url;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['filename'] = filename;
+    data['url'] = url;
     return data;
   }
 }

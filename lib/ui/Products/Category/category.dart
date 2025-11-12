@@ -4,13 +4,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:food_app/models/add_new_product_category_response_model.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
 import '../../../models/iamge_upload_response_model.dart';
 import '../../../api/repository/api_repository.dart';
 import '../../../constants/constant.dart';
@@ -19,6 +17,7 @@ import '../../../customView/CustomDrawer.dart';
 import '../../../models/edit_existing_product_category_response_model.dart';
 import '../../../models/get_added_tax_response_model.dart';
 import '../../../models/get_product_category_list_response_model.dart';
+import '../../../utils/my_application.dart';
 class Category extends StatefulWidget {
   const Category({super.key});
 
@@ -33,10 +32,10 @@ class _CategoryState extends State<Category> {
   SharedPreferences? sharedPreferences;
   TextEditingController categoryNameController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
-  String? selectedTaxId; // To store selected tax ID
+  String? selectedTaxId;
   String? selectedTaxName;
-  File? selectedImage; // Add this for image selection
-  final ImagePicker _picker = ImagePicker(); // Add this for image picker
+  File? selectedImage;
+  final ImagePicker _picker = ImagePicker();
 
   void _openTab(int index) {
     if (_pageController.hasClients &&
@@ -65,37 +64,50 @@ class _CategoryState extends State<Category> {
   bool isResetting = false;
   bool isEditMode = false;
   GetProductCategoryList? editingCategory;
+
+  List<GetProductCategoryList> filteredCategoryList = [];
+  String currentSearchQuery = '';
+  int currentPage = 1;
+  int itemsPerPage = 8;
+  int totalPages = 0;
+  List<GetProductCategoryList> currentPageItems = [];
+
   @override
   void initState() {
     _pageController = PageController(initialPage: 0);
     _initializeSharedPreferences();
+
+    app.appController.registerCategoryFilter(_filterCategories);
+
+
     super.initState();
   }
+
   Future<void> _pickImage(StateSetter setModalState) async {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),
         ),
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               'select_image'.tr,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 fontFamily: 'Mulish',
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -118,7 +130,7 @@ class _CategoryState extends State<Category> {
                       }
                     } catch (e) {
                       print('Error picking image from camera: $e');
-                      Get.snackbar('${'error'.tr}', '${'failed_capture'.tr}');
+                      Get.snackbar('error'.tr, 'failed_capture'.tr);
                     }
                   },
                   child: Column(
@@ -127,19 +139,19 @@ class _CategoryState extends State<Category> {
                         width: 70,
                         height: 70,
                         decoration: BoxDecoration(
-                          color: Color(0xFFFCAE03),
+                          color: const Color(0xFFFCAE03),
                           borderRadius: BorderRadius.circular(15),
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.camera_alt,
                           color: Colors.white,
                           size: 30,
                         ),
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Text(
                         'camera'.tr,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           fontFamily: 'Mulish',
@@ -176,19 +188,19 @@ class _CategoryState extends State<Category> {
                         width: 70,
                         height: 70,
                         decoration: BoxDecoration(
-                          color: Color(0xFFFCAE03),
+                          color: const Color(0xFFFCAE03),
                           borderRadius: BorderRadius.circular(15),
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.photo_library,
                           color: Colors.white,
                           size: 30,
                         ),
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Text(
                         'gallery'.tr,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           fontFamily: 'Mulish',
@@ -199,7 +211,7 @@ class _CategoryState extends State<Category> {
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             // Cancel Button
             GestureDetector(
               onTap: () {
@@ -207,7 +219,7 @@ class _CategoryState extends State<Category> {
               },
               child: Container(
                 width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.grey.shade300),
@@ -231,6 +243,7 @@ class _CategoryState extends State<Category> {
       ),
     );
   }
+
   Future<File> compressImage(File file) async {
     try {
       final bytes = await file.readAsBytes();
@@ -255,6 +268,7 @@ class _CategoryState extends State<Category> {
       return file;
     }
   }
+
   Future<String?> uploadCategoryImage(File imageFile) async {
     try {
       Get.dialog(
@@ -298,8 +312,63 @@ class _CategoryState extends State<Category> {
       return null;
     }
   }
+
+  void _updatePagination() {
+    totalPages = (filteredCategoryList.length / itemsPerPage).ceil();
+    if (totalPages == 0) totalPages = 1;
+
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
+    int startIndex = (currentPage - 1) * itemsPerPage;
+    int endIndex = startIndex + itemsPerPage;
+    if (endIndex > filteredCategoryList.length) endIndex = filteredCategoryList.length;
+
+    currentPageItems = filteredCategoryList.sublist(startIndex, endIndex);
+  }
+
+  void _goToPage(int page) {
+    if (page >= 1 && page <= totalPages) {
+      setState(() {
+        currentPage = page;
+        _updatePagination();
+      });
+    }
+  }
+
+  List<int> _getPageNumbers() {
+    List<int> pages = [];
+
+    if (totalPages <= 5) {
+      for (int i = 1; i <= totalPages; i++) {
+        pages.add(i);
+      }
+    } else {
+      int start = currentPage - 2;
+      int end = currentPage + 2;
+
+      if (start < 1) {
+        start = 1;
+        end = 5;
+      }
+
+      if (end > totalPages) {
+        end = totalPages;
+        start = totalPages - 4;
+      }
+
+      for (int i = start; i <= end; i++) {
+        pages.add(i);
+      }
+    }
+
+    return pages;
+  }
+
+
   @override
   void dispose() {
+    app.appController.categoryFilterCallback = null;
     _pageController.dispose();
     categoryNameController.dispose();
     descriptionController.dispose();
@@ -308,6 +377,7 @@ class _CategoryState extends State<Category> {
     }
     super.dispose();
   }
+
   String _getTrimmedImageUrl(String? url) {
     if (url == null || url.isEmpty) return '';
 
@@ -318,12 +388,13 @@ class _CategoryState extends State<Category> {
     }
     return url;
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         backgroundColor: Colors.white,
         drawer: CustomDrawer(onSelectTab: _openTab),
-        appBar: CustomAppBar(),
+        appBar: const CustomAppBar(),
         body: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(12),
@@ -332,7 +403,7 @@ class _CategoryState extends State<Category> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('category'.tr, style: TextStyle(
+                      Text('category'.tr, style: const TextStyle(
                           fontFamily: 'Mulish', fontSize: 18, fontWeight: FontWeight.bold
                       )),
                       GestureDetector(
@@ -346,7 +417,7 @@ class _CategoryState extends State<Category> {
                             color: const Color(0xFFFCAE03),
                           ),
                           child:  Center(
-                            child: Text('add'.tr, style: TextStyle(
+                            child: Text('add'.tr, style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
                               fontSize: 12,
@@ -358,6 +429,22 @@ class _CategoryState extends State<Category> {
                     ],
                   ),
                   const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '${'showing'.tr} ${(currentPage - 1) * itemsPerPage + 1} to ${(currentPage - 1) * itemsPerPage + currentPageItems.length}'
+                            ' of ${filteredCategoryList.length} ${'entries'.tr}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontFamily: 'Mulish',
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.all(15),
                     decoration: const BoxDecoration(
@@ -366,14 +453,14 @@ class _CategoryState extends State<Category> {
                     child: Row(
                       children: [
                         Container(
-                          padding: EdgeInsets.only(left: 40),
+                          padding: const EdgeInsets.only(left: 40),
                           child: Row(
                            // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Container(
+                              SizedBox(
                                 width: MediaQuery.of(context).size.width * 0.38,
                                 child: Text('name'.tr,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontWeight: FontWeight.w800,
                                       fontSize: 13,
                                       fontFamily: 'Mulish'
@@ -383,7 +470,7 @@ class _CategoryState extends State<Category> {
                               Container(
                                 //width: MediaQuery.of(context).size.width * 0.2,
                                 child: Text('taxe'.tr,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                         fontWeight: FontWeight.w800,
                                         fontSize: 13,
                                         fontFamily: 'Mulish'
@@ -394,11 +481,11 @@ class _CategoryState extends State<Category> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        Container(
+                        SizedBox(
                           width: MediaQuery.of(context).size.width * 0.2,
                           child: Center(
                             child: Text('status'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 13,
                                   fontFamily: 'Mulish'
@@ -414,12 +501,12 @@ class _CategoryState extends State<Category> {
                       padding: const EdgeInsets.all(20),
                       child: const Center(),
                     )
-                  else if (productCategoryList.isEmpty)
+                  else if (filteredCategoryList.isEmpty)
                     Container(
                       padding: const EdgeInsets.all(20),
                       child: Text(
-                        'no'.tr,
-                        style: TextStyle(
+                        currentSearchQuery.isEmpty ? 'no'.tr : '${'no_categories'.tr} "$currentSearchQuery"',
+                        style: const TextStyle(
                           fontSize: 16,
                           fontFamily: 'Mulish',
                           color: Colors.grey,
@@ -430,9 +517,9 @@ class _CategoryState extends State<Category> {
                     ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: productCategoryList.length,
+                      itemCount: currentPageItems.length,
                       itemBuilder: (context, index) {
-                         final product = productCategoryList[index];
+                        final product = currentPageItems[index];//
                          var productId=product.id.toString();
                          print('Product Id IS$productId');
                         return Container(
@@ -461,10 +548,10 @@ class _CategoryState extends State<Category> {
                                     child: CachedNetworkImage(
                                       imageUrl: _getTrimmedImageUrl(product.imageUrl),
                                       fit: BoxFit.cover,
-                                      placeholder: (context, url) => Center(
+                                      placeholder: (context, url) => const Center(
                                         child: CircularProgressIndicator(strokeWidth: 2),
                                       ),
-                                      errorWidget: (context, url, error) => Icon(
+                                      errorWidget: (context, url, error) => const Icon(
                                         Icons.image_not_supported,
                                         color: Colors.grey,
                                         size: 20,
@@ -472,13 +559,13 @@ class _CategoryState extends State<Category> {
                                     ),
                                   ),
                                 ),
-                                SizedBox(width: 5,),
+                                const SizedBox(width: 5,),
                                 Container(
                                   // width: MediaQuery.of(context).size.width * 0.6,
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Container(
+                                      SizedBox(
                                         width: MediaQuery.of(context).size.width * 0.35,
                                         child: Column(crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
@@ -502,11 +589,11 @@ class _CategoryState extends State<Category> {
                                           ],
                                         ),
                                       ),
-                                      Container(
+                                      SizedBox(
                                         width: MediaQuery.of(context).size.width * 0.2,
                                         child: Center(
                                           child: Text(
-                                           " ${product.tax!.percentage.toString()}%",
+                                           "${product.tax?.percentage.toString()}%",
                                             style: const TextStyle(
                                                 fontWeight: FontWeight.w700,
                                                 fontSize: 14,
@@ -519,20 +606,28 @@ class _CategoryState extends State<Category> {
                                   ),
                                 ),
                                 const SizedBox(width: 5),
-                                Container(
-                                  height: 25,
-                                  width: 60,
-                                  decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(2),
-                                      color: (product.isActive == true) ? Color(0xff49B27A) : Color(0xffE25454)
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      (product.isActive == true) ? 'active'.tr : 'inactive'.tr,
-                                      style: TextStyle(
-                                          fontSize: 12,fontFamily: 'Mulish',fontWeight: FontWeight.w700,
-                                          color: Colors.white
-                                      ),),
+                                GestureDetector(
+                                  onTap: () {
+                                    _showStatusChangeDialog(context, product.name.toString(), product.id!, product.isActive ?? false);
+                                  },
+                                  child: Container(
+                                    height: 25,
+                                    width: 60,
+                                    decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(2),
+                                        color: (product.isActive == true) ? const Color(0xff49B27A) : const Color(0xffE25454)
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        (product.isActive == true) ? 'active'.tr : 'inactive'.tr,
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            fontFamily: 'Mulish',
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 15),
@@ -580,6 +675,102 @@ class _CategoryState extends State<Category> {
                           ),
                         );
                       },
+                    ),
+
+                  if (filteredCategoryList.isNotEmpty && totalPages > 1)
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.shade200,
+                              blurRadius: 5,
+                              offset: const Offset(0, -2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            GestureDetector(
+                              onTap: currentPage > 1 ? () => _goToPage(currentPage - 1) : null,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: currentPage > 1 ? Colors.white : Colors.grey.shade200,
+                                  border: Border.all(color: Colors.grey.shade300),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'previous'.tr,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontFamily: 'Mulish',
+                                    fontWeight: FontWeight.w600,
+                                    color: currentPage > 1 ? Colors.black87 : Colors.grey,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ...(_getPageNumbers().map((pageNum) {
+                              bool isActive = pageNum == currentPage;
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                child: GestureDetector(
+                                  onTap: () => _goToPage(pageNum),
+                                  child: Container(
+                                    width: 35,
+                                    height: 35,
+                                    decoration: BoxDecoration(
+                                      color: isActive ? const Color(0xFF0EA5E9) : Colors.white,
+                                      border: Border.all(
+                                        color: isActive ? const Color(0xFF0EA5E9) : Colors.grey.shade300,
+                                      ),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '$pageNum',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontFamily: 'Mulish',
+                                          fontWeight: FontWeight.w600,
+                                          color: isActive ? Colors.white : Colors.black87,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList()),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: currentPage < totalPages ? () => _goToPage(currentPage + 1) : null,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: currentPage < totalPages ? Colors.white : Colors.grey.shade200,
+                                  border: Border.all(color: Colors.grey.shade300),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'next'.tr,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontFamily: 'Mulish',
+                                    fontWeight: FontWeight.w600,
+                                    color: currentPage < totalPages ? Colors.black87 : Colors.grey,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                 ],
               ),
@@ -634,8 +825,12 @@ class _CategoryState extends State<Category> {
       if (mounted) {
         setState(() {
           productCategoryList = category;
-          // Initialize scroll controllers after getting data
-          scrollControllers = List.generate(category.length, (index) {
+          filteredCategoryList = category;
+          currentPage = 1;
+          _updatePagination();
+          print('category list length is ${filteredCategoryList.length}');
+
+          scrollControllers = List.generate(currentPageItems.length, (index) {
             ScrollController controller = ScrollController();
             controller.addListener(() {
               // Skip if we're programmatically resetting
@@ -650,7 +845,7 @@ class _CategoryState extends State<Category> {
                   if (scrollControllers[currentScrolledIndex!].hasClients) {
                     scrollControllers[currentScrolledIndex!].animateTo(
                       0.0,
-                      duration: Duration(milliseconds: 200),
+                      duration: const Duration(milliseconds: 200),
                       curve: Curves.easeInOut,
                     ).then((_) {
                       isResetting = false; // Reset flag after animation
@@ -680,6 +875,65 @@ class _CategoryState extends State<Category> {
         });
       }
     }
+  }
+
+  void _filterCategories(String query) {
+    setState(() {
+      currentSearchQuery = query.toLowerCase();
+      if (currentSearchQuery.isEmpty) {
+        filteredCategoryList = productCategoryList;
+      } else {
+        filteredCategoryList = productCategoryList.where((category) {
+          final name = category.name?.toLowerCase() ?? '';
+          final description = category.description?.toLowerCase() ?? '';
+          final tax = category.tax?.name?.toLowerCase() ?? '';
+
+          return name.contains(currentSearchQuery) ||
+              description.contains(currentSearchQuery) ||
+              tax.contains(currentSearchQuery);
+        }).toList();
+      }
+
+      currentPage = 1;
+      _updatePagination();
+
+      // ✅ CRITICAL FIX: Dispose old controllers before creating new ones
+      for (ScrollController controller in scrollControllers) {
+        controller.dispose();
+      }
+      scrollControllers.clear();
+
+      // ✅ Create scroll controllers for FILTERED list
+      scrollControllers = List.generate(currentPageItems.length, (index) {
+        ScrollController controller = ScrollController();
+        controller.addListener(() {
+          if (isResetting) return;
+
+          if (controller.offset > 10) {
+            if (currentScrolledIndex != null && currentScrolledIndex != index) {
+              isResetting = true;
+
+              if (currentScrolledIndex! < scrollControllers.length &&
+                  scrollControllers[currentScrolledIndex!].hasClients) {
+                scrollControllers[currentScrolledIndex!].animateTo(
+                  0.0,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                ).then((_) {
+                  isResetting = false;
+                });
+              } else {
+                isResetting = false;
+              }
+            }
+            currentScrolledIndex = index;
+          }
+        });
+        return controller;
+      });
+    });
+
+    print("🔍 Categories filtered: ${filteredCategoryList.length} results");
   }
 
   void _showAddCategoryBottomSheet(BuildContext context, {GetProductCategoryList? categoryToEdit}) {
@@ -732,7 +986,7 @@ class _CategoryState extends State<Category> {
                     Center(
                       child: Text(
                         isEditMode ? 'edit'.tr : 'new'.tr,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           fontFamily: 'Mulish',
@@ -752,15 +1006,14 @@ class _CategoryState extends State<Category> {
                           height: 50,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: (selectedImage != null || (isEditMode && editingCategory?.imageUrl != null))
+                            color: (selectedImage != null || (isEditMode && editingCategory?.imageUrl != null && editingCategory!.imageUrl!.isNotEmpty))
                                 ? Colors.transparent
-                                : Color(0xFFFCAE03),
-                            border: (selectedImage != null || (isEditMode && editingCategory?.imageUrl != null))
+                                : const Color(0xFFFCAE03),
+                            border: (selectedImage != null || (isEditMode && editingCategory?.imageUrl != null && editingCategory!.imageUrl!.isNotEmpty))
                                 ? Border.all(color: Colors.grey.shade300, width: 2)
                                 : null,
                           ),
                           child: selectedImage != null
-
                               ? Stack(
                             children: [
                               ClipRRect(
@@ -790,7 +1043,7 @@ class _CategoryState extends State<Category> {
                                       color: Colors.red,
                                       border: Border.all(color: Colors.white, width: 1),
                                     ),
-                                    child: Icon(
+                                    child: const Icon(
                                       Icons.close,
                                       color: Colors.white,
                                       size: 12,
@@ -800,7 +1053,56 @@ class _CategoryState extends State<Category> {
                               ),
                             ],
                           )
-                              : Icon(
+                              : (isEditMode && editingCategory?.imageUrl != null && editingCategory!.imageUrl!.isNotEmpty)
+                              ? Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(22.5),
+                                child: CachedNetworkImage(
+                                  imageUrl: _getTrimmedImageUrl(editingCategory!.imageUrl),
+                                  width: 45,
+                                  height: 45,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => const Center(
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                  errorWidget: (context, url, error) => const Icon(
+                                    Icons.image_not_supported,
+                                    color: Colors.grey,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                              // Close Icon for existing image
+                              Positioned(
+                                top: 0,
+                                right: -2,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setModalState(() {
+                                      // Clear the existing image
+                                      editingCategory!.imageUrl = null;
+                                    });
+                                  },
+                                  child: Container(
+                                    width: 20,
+                                    height: 20,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.red,
+                                      border: Border.all(color: Colors.white, width: 1),
+                                    ),
+                                    child: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                              : const Icon(
                             Icons.add,
                             color: Colors.white,
                             size: 24,
@@ -814,7 +1116,7 @@ class _CategoryState extends State<Category> {
 
                 Text(
                   'category_name'.tr,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     fontFamily: 'Mulish',
@@ -841,9 +1143,9 @@ class _CategoryState extends State<Category> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                      borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                     ),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -851,7 +1153,7 @@ class _CategoryState extends State<Category> {
                 // Tax Dropdown
                 Text(
                   'select'.tr,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     fontFamily: 'Mulish',
@@ -865,7 +1167,7 @@ class _CategoryState extends State<Category> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: DropdownButtonFormField<String>(
-                    value: selectedTaxId,
+                    initialValue: selectedTaxId,
                     hint: Text(
                       'select'.tr,
                       style: TextStyle(
@@ -874,7 +1176,7 @@ class _CategoryState extends State<Category> {
                         fontFamily: 'Mulish',
                       ),
                     ),
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 12),
                     ),
@@ -885,7 +1187,7 @@ class _CategoryState extends State<Category> {
                         value: tax.id.toString(),
                         child: Text(
                           '${tax.name} (${tax.percentage}%)',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 14,
                             fontFamily: 'Mulish',
                             color: Colors.black87,
@@ -908,7 +1210,7 @@ class _CategoryState extends State<Category> {
                 // Description Field
                 Text(
                   'desc'.tr,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     fontFamily: 'Mulish',
@@ -935,9 +1237,9 @@ class _CategoryState extends State<Category> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                      borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                     ),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
                   ),
                 ),
                 const SizedBox(height: 30),
@@ -955,7 +1257,7 @@ class _CategoryState extends State<Category> {
                           Navigator.pop(context);
                         },
                         child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: Colors.grey.shade300),
@@ -989,12 +1291,12 @@ class _CategoryState extends State<Category> {
                           String description = descriptionController.text.trim();
 
                           if (categoryName.isEmpty) {
-                            Get.snackbar('${'error'.tr}', '${'please_category'.tr}');
+                            Get.snackbar('error'.tr, 'please_category'.tr);
                             return;
                           }
 
                           if (selectedTaxId == null) {
-                            Get.snackbar('${'error'.tr}', '${'please_tax'.tr}');
+                            Get.snackbar('error'.tr, 'please_tax'.tr);
                             return;
                           }
 
@@ -1003,15 +1305,15 @@ class _CategoryState extends State<Category> {
                           print('Description: $description');
                         },
                         child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
-                            color: Color(0xFFFCAE03),
+                            color: const Color(0xFFFCAE03),
                           ),
                           child: Center(
                             child: Text(
                               isEditMode ? 'update'.tr : 'saved'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 fontFamily: 'Mulish',
@@ -1092,13 +1394,13 @@ class _CategoryState extends State<Category> {
 
   Future<void> _saveProductCategory() async {
     if (sharedPreferences == null) {
-      Get.snackbar('${'error'.tr}', '${'shared'.tr}');
+      Get.snackbar('error'.tr, 'shared'.tr);
       return;
     }
 
     storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
     if (storeId == null) {
-      Get.snackbar('${'error'.tr}', '${'storeId'.tr}');
+      Get.snackbar('error'.tr, 'storeId'.tr);
       return;
     }
 
@@ -1159,7 +1461,7 @@ class _CategoryState extends State<Category> {
           SnackBar(
             content: Text('product_category'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 1),
           ),
         );
       }
@@ -1176,7 +1478,7 @@ class _CategoryState extends State<Category> {
           SnackBar(
             content: Text('${'failed_category'.tr}: ${e.toString()}'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 1),
           ),
         );
       }
@@ -1207,7 +1509,7 @@ class _CategoryState extends State<Category> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(height: 20,),
+                    const SizedBox(height: 20,),
                     Text(
                       '${'are'.tr}"$productName"?',
                       style: const TextStyle(
@@ -1238,7 +1540,7 @@ class _CategoryState extends State<Category> {
                             ),
                             child:  Text(
                               'cancel'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -1267,7 +1569,7 @@ class _CategoryState extends State<Category> {
                             ),
                             child:  Text(
                               'delete'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -1331,9 +1633,9 @@ class _CategoryState extends State<Category> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${'category_delete'.tr}'),
+            content: Text('category_delete'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 1),
           ),
         );
       }
@@ -1350,7 +1652,7 @@ class _CategoryState extends State<Category> {
           SnackBar(
             content: Text('failed_category_delete'.tr),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 1),
           ),
         );
       }
@@ -1359,13 +1661,13 @@ class _CategoryState extends State<Category> {
 
   Future<void> _updateProductCategory(String productId) async {
     if (sharedPreferences == null) {
-      Get.snackbar('${'error'.tr}', '${'shared'.tr}');
+      Get.snackbar('error'.tr, 'shared'.tr);
       return;
     }
 
     storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
     if (storeId == null) {
-      Get.snackbar('${'error'.tr}', '${'storeId'.tr}');
+      Get.snackbar('error'.tr, 'storeId'.tr);
       return;
     }
 
@@ -1408,7 +1710,6 @@ class _CategoryState extends State<Category> {
 
       print("Product updated successfully");
 
-      // Clear form fields
       categoryNameController.clear();
       descriptionController.clear();
       selectedTaxId = null;
@@ -1416,20 +1717,16 @@ class _CategoryState extends State<Category> {
       selectedImage = null;
 
       await getProductCategory(showLoader: false);
-
-      // Close loader AFTER API completes
       Get.back();
 
-      // Close bottom sheet
       Navigator.pop(context);
 
-      // Show success using ScaffoldMessenger
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('category_update'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 1),
           ),
         );
       }
@@ -1446,7 +1743,217 @@ class _CategoryState extends State<Category> {
           SnackBar(
             content: Text('${'upd_category'.tr}: ${e.toString()}'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showStatusChangeDialog(BuildContext context, String categoryName, int categoryId, bool currentStatus) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.transparent,
+        child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 20),
+                    Text(
+                      currentStatus
+                          ? '${'deactivate_cat'.tr} "$categoryName"?'
+                          : '${'reactivate_cat'.tr} "$categoryName"?',
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black,
+                          fontFamily: 'Mulish'
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 30),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          height: 35,
+                          width: 70,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF8E9AAF),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: TextButton(
+                            onPressed: () => Get.back(),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                            child: Text(
+                              'cancel'.tr,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        Container(
+                          height: 35,
+                          width: 70,
+                          decoration: BoxDecoration(
+                            color: currentStatus ? const Color(0xFFE25454) : const Color(0xff49B27A),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: TextButton(
+                            onPressed: () {
+                              Get.back();
+                              _toggleCategoryStatus(categoryId, !currentStatus);
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                            child: Text(
+                              'yes'.tr,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: -20,
+                child: GestureDetector(
+                  onTap: () => Get.back(),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFED4C5C),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              )
+            ]
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleCategoryStatus(int categoryId, bool newStatus) async {
+    if (sharedPreferences == null) {
+      Get.snackbar('error'.tr, 'shared'.tr);
+      return;
+    }
+
+    storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
+    if (storeId == null) {
+      Get.snackbar('error'.tr, 'storeId'.tr);
+      return;
+    }
+
+    // Find the category to get its current data
+    GetProductCategoryList? category = productCategoryList.firstWhere(
+          (cat) => cat.id == categoryId,
+      orElse: () => GetProductCategoryList(),
+    );
+
+    if (category.id == null) {
+      Get.snackbar('error'.tr, 'category_not_found'.tr);
+      return;
+    }
+
+    // Show loader
+    Get.dialog(
+      Center(
+          child: Lottie.asset(
+            'assets/animations/burger.json',
+            width: 150,
+            height: 150,
+            repeat: true,
+          )
+      ),
+      barrierDismissible: false,
+    );
+
+    try {
+      // Prepare map with existing data + updated isActive status
+      var map = {
+        "name": category.name ?? '',
+        "store_id": storeId,
+        "tax_id": category.tax?.id?.toString() ?? '',
+        "image_url": category.imageUrl ?? "",
+        "description": category.description ?? '',
+        "isActive": newStatus,
+      };
+
+      print("Toggle Status Map: $map");
+
+      EditExistingProductCategoryResponseModel model =
+      await CallService().editProductCategory(map, categoryId.toString());
+
+      // Refresh category list
+      await getProductCategory(showLoader: false);
+
+      // Close loader
+      Get.back();
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(newStatus ? 'category_activated'.tr : 'category_deactivated'.tr),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+
+    } catch (e) {
+      // Close loader on error
+      Get.back();
+
+      print('Error toggling status: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('failed_status_change'.tr),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 1),
           ),
         );
       }

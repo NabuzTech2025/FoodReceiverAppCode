@@ -14,11 +14,11 @@ class editTaxResponseModel {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['percentage'] = this.percentage;
-    data['store_id'] = this.storeId;
-    data['id'] = this.id;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['percentage'] = percentage;
+    data['store_id'] = storeId;
+    data['id'] = id;
     return data;
   }
 }

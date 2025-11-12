@@ -227,18 +227,27 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                           key: ValueKey(index),
                           endActionPane: ActionPane(
                             motion: const ScrollMotion(),
-                            extentRatio: 0.502,
+                            extentRatio: item.isActive == false ? 0.335 : 0.502,
                             children: [
-                              Container(
-                                width: 60,
-                                height: double.infinity,
-                                decoration: BoxDecoration(
-                                  color: (item.isActive ?? false) ? Colors.green : Colors.red,   // ✅ container color condition
-
-                                ),
-                                child: Icon(
-                                  (item.isActive ?? false) ? Icons.airplanemode_active : Icons.airplanemode_inactive,
-                                  color: Colors.white,
+                              GestureDetector(
+                                onTap: () {
+                                  _showStatusChangeDialog(
+                                      context,
+                                      item.name ?? 'Topping',
+                                      item.id ?? 0,
+                                      item.isActive ?? false
+                                  );
+                                },
+                                child: Container(
+                                  width: 60,
+                                  height: double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: (item.isActive ?? false) ? Colors.green : Colors.red,
+                                  ),
+                                  child: Icon(
+                                    (item.isActive ?? false) ? Icons.airplanemode_active : Icons.airplanemode_inactive,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                               GestureDetector(
@@ -259,24 +268,25 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                                   ),
                                 ),
                               ),
-                              GestureDetector(
-                                onTap: (){
-                                  showDeleteTopping(context, item.name.toString(),
-                                      item.id.toString());
-                                },
-                                child: Container(
-                                  width: 60,
-                                  height: double.infinity,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xffE25454),
-                                  ),
-                                  child: Icon(
-                                    Icons.delete_outline,
-                                    color: Colors.white,
-                                    size: 25,
+                              if (item.isActive ?? true)
+                                GestureDetector(
+                                  onTap: (){
+                                    showDeleteTopping(context, item.name.toString(),
+                                        item.id.toString());
+                                  },
+                                  child: Container(
+                                    width: 60,
+                                    height: double.infinity,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xffE25454),
+                                    ),
+                                    child: Icon(
+                                      Icons.delete_outline,
+                                      color: Colors.white,
+                                      size: 25,
+                                    ),
                                   ),
                                 ),
-                              ),
                             ],
                           ),
                           child: Container(
@@ -469,8 +479,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
   }
 
 
-  void showAddToppingBottomSheet({
-    bool isEditMode = false,
+  void showAddToppingBottomSheet({bool isEditMode = false,
     GetToppingsResponseModel? toppingData,
   })
   {
@@ -892,11 +901,17 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
     );
 
     try {
+      GetToppingsResponseModel? topping = toppingsList.firstWhere(
+            (t) => t.id == toppingId,
+        orElse: () => GetToppingsResponseModel(),
+      );
+
       var map = {
         "name": name,
         "description": description,
         "price": double.parse(price),
-        "store_id": int.parse(storeId!)
+        "store_id": int.parse(storeId!),
+        "isActive": topping.isActive ?? true,  // ✅ ADD THIS LINE
       };
       print("Edit Toppings Map: $map");
       EditStoreToppingsResponseModel model = await CallService().editToppings(map,toppingId.toString());
@@ -1093,6 +1108,207 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
     );
   }
 
+  void _showStatusChangeDialog(BuildContext context, String toppingName, int toppingId, bool currentStatus) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.transparent,
+        child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 20),
+                    Text(
+                      currentStatus
+                          ? '${'deactivate_cat'.tr} "$toppingName"?'
+                          : '${'reactivate_cat'.tr} "$toppingName"?',
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black,
+                          fontFamily: 'Mulish'
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 30),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          height: 35,
+                          width: 70,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF8E9AAF),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: TextButton(
+                            onPressed: () => Get.back(),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                            child: Text(
+                              'cancel'.tr,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        Container(
+                          height: 35,
+                          width: 70,
+                          decoration: BoxDecoration(
+                            color: currentStatus ? const Color(0xFFE25454) : const Color(0xff49B27A),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: TextButton(
+                            onPressed: () {
+                              Get.back();
+                              _toggleToppingStatus(toppingId, !currentStatus);
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                            child: Text(
+                              'yes'.tr,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: -20,
+                child: GestureDetector(
+                  onTap: () => Get.back(),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFED4C5C),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              )
+            ]
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleToppingStatus(int toppingId, bool newStatus) async {
+    if (sharedPreferences == null) {
+      Get.snackbar('Error', 'SharedPreferences not initialized');
+      return;
+    }
+
+    storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
+    if (storeId == null) {
+      Get.snackbar('Error', 'Store ID not found');
+      return;
+    }
+
+    // Find the topping
+    GetToppingsResponseModel? topping = toppingsList.firstWhere(
+          (t) => t.id == toppingId,
+      orElse: () => GetToppingsResponseModel(),
+    );
+
+    if (topping.id == null) {
+      Get.snackbar('Error', 'Topping not found');
+      return;
+    }
+
+    Get.dialog(
+      Center(
+          child: Lottie.asset(
+            'assets/animations/burger.json',
+            width: 150,
+            height: 150,
+            repeat: true,
+          )
+      ),
+      barrierDismissible: false,
+    );
+
+    try {
+      var map = {
+        "name": topping.name ?? '',
+        "description": topping.description ?? '',
+        "price": topping.price ?? 0,
+        "store_id": int.parse(storeId!),
+        "isActive": newStatus,  // ✅ Updated status
+      };
+
+      print("Toggle Topping Status Map: $map");
+
+      EditStoreToppingsResponseModel model =
+      await CallService().editToppings(map, toppingId.toString());
+
+      await getToppings(showLoader: false);
+
+      Get.back();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(newStatus ? 'topping_activated'.tr : 'topping_deactivated'.tr),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+
+    } catch (e) {
+      Get.back();
+      print('Error toggling topping status: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('failed_status_change'.tr),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
 
 
 }

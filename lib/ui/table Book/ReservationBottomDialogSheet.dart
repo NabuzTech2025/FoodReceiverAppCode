@@ -129,6 +129,12 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
     final reportMap = _getReportsForMonth(month, year);
     final totalCells = ((startWeekday + totalDays + 6) ~/ 7) * 7;
 
+    int totalReservationsForMonth = 0;
+    for (int day = 1; day <= totalDays; day++) {
+      String dateKey = DateFormat('yyyy-MM-dd').format(DateTime(year, month, day));
+      totalReservationsForMonth += reservationCounts[dateKey] ?? 0;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -170,25 +176,35 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
             ),
           ],
         ),
-        RichText(
-          text: TextSpan(
+        Padding(
+          padding: const EdgeInsets.only(right: 8.0),
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              TextSpan(
-                text: DateFormat('MMMM').format(DateTime(year, month)) + ', ',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
+              RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: DateFormat('MMMM').format(DateTime(year, month)) + ', ',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextSpan(
+                      text: year.toString(),
+                      style: const TextStyle(
+                        color: Colors.green,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              TextSpan(
-                text: year.toString(),
-                style: const TextStyle(
-                  color: Colors.green,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              Text('${'total_reserv'.tr} : $totalReservationsForMonth',style: TextStyle(
+                fontFamily: 'Mulish',fontSize: 15,fontWeight: FontWeight.w600
+              ),)
             ],
           ),
         ),
@@ -393,7 +409,13 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
         isLoading = false;
       });
 
-      Get.back();
+      // ✅ Close loading dialog using Navigator instead of Get.back()
+      if (Get.isDialogOpen == true) {
+        Navigator.of(Get.overlayContext!).pop();
+      }
+
+      // ✅ Wait a bit to ensure dialog is closed
+      await Future.delayed(Duration(milliseconds: 300));
 
       // Return selected date and close bottom sheet
       if (_selectedDate != null) {
@@ -406,7 +428,10 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
         isLoading = false;
       });
 
-      Get.back();
+      // ✅ Close loading dialog using Navigator instead of Get.back()
+      if (Get.isDialogOpen == true) {
+        Navigator.of(Get.overlayContext!).pop();
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

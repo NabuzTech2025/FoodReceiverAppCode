@@ -24,13 +24,13 @@ class AddStorePostCodesResponseModel {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['postcode'] = this.postcode;
-    data['minimum_order_amount'] = this.minimumOrderAmount;
-    data['delivery_fee'] = this.deliveryFee;
-    data['delivery_time'] = this.deliveryTime;
-    data['id'] = this.id;
-    data['store_id'] = this.storeId;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['postcode'] = postcode;
+    data['minimum_order_amount'] = minimumOrderAmount;
+    data['delivery_fee'] = deliveryFee;
+    data['delivery_time'] = deliveryTime;
+    data['id'] = id;
+    data['store_id'] = storeId;
     return data;
   }
 }

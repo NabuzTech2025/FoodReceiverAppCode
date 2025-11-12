@@ -8,7 +8,7 @@ class CustomButton extends StatelessWidget {
   final Color textColor;
   final FontWeight fontWeigt;
 
-  CustomButton({
+  const CustomButton({super.key, 
     required this.myText,
     required this.onPressed,
     required this.fontSize,
@@ -41,7 +41,7 @@ class CustomButton extends StatelessWidget {
               myText,
               style: TextStyle(
                 fontSize: 17.0,
-                color: textColor ?? Color(0xffdb1514),
+                color: textColor ?? const Color(0xffdb1514),
                 fontWeight: fontWeigt,
               ),
             ),

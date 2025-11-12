@@ -51,22 +51,22 @@ class GetHistoryReservationResponseModel {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['store_id'] = this.storeId;
-    data['user_id'] = this.userId;
-    data['guest_count'] = this.guestCount;
-    data['reserved_for'] = this.reservedFor;
-    data['reserved_until'] = this.reservedUntil;
-    data['status'] = this.status;
-    data['table_number'] = this.tableNumber;
-    data['customer_name'] = this.customerName;
-    data['customer_phone'] = this.customerPhone;
-    data['customer_email'] = this.customerEmail;
-    data['note'] = this.note;
-    data['isActive'] = this.isActive;
-    data['id'] = this.id;
-    data['created_at'] = this.createdAt;
-    data['user'] = this.user;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['store_id'] = storeId;
+    data['user_id'] = userId;
+    data['guest_count'] = guestCount;
+    data['reserved_for'] = reservedFor;
+    data['reserved_until'] = reservedUntil;
+    data['status'] = status;
+    data['table_number'] = tableNumber;
+    data['customer_name'] = customerName;
+    data['customer_phone'] = customerPhone;
+    data['customer_email'] = customerEmail;
+    data['note'] = note;
+    data['isActive'] = isActive;
+    data['id'] = id;
+    data['created_at'] = createdAt;
+    data['user'] = user;
     return data;
   }
 }

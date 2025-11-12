@@ -1,7 +1,5 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../constants/constant.dart';
 
 class CustomTextFormPrefix extends StatelessWidget {
   final TextInputType keyboardType;
@@ -15,7 +13,7 @@ class CustomTextFormPrefix extends StatelessWidget {
   final VoidCallback? onTogglePassword;
   final bool isPasswordField; // New parameter to identify password fields
 
-  CustomTextFormPrefix({
+  CustomTextFormPrefix({super.key, 
     required this.myLabelText,
     required this.keyboardType,
     required this.controller,
@@ -31,7 +29,7 @@ class CustomTextFormPrefix extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.fromLTRB(0, 12, 0, 12),
+      margin: const EdgeInsets.fromLTRB(0, 12, 0, 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
@@ -40,7 +38,7 @@ class CustomTextFormPrefix extends StatelessWidget {
             color: Colors.black.withOpacity(0.1),
             spreadRadius: 1,
             blurRadius: 6,
-            offset: Offset(0, 3),
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -53,12 +51,12 @@ class CustomTextFormPrefix extends StatelessWidget {
         obscureText: obscureText,
         decoration: InputDecoration(
           prefixIcon: icon,
-          prefixIconColor: MaterialStateColor.resolveWith((states) =>
-          states.contains(MaterialState.focused)
+          prefixIconColor: WidgetStateColor.resolveWith((states) =>
+          states.contains(WidgetState.focused)
               ? Colors.green
               : Colors.green),
           hintText: myLabelText,
-          contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
           border: InputBorder.none,
           suffixIcon: isPasswordField // Show toggle icon for password fields only
               ? IconButton(

@@ -138,7 +138,7 @@ class _AddAllergyState extends State<AddAllergy> {
     return Scaffold(
       backgroundColor: Colors.white,
       drawer: CustomDrawer(onSelectTab: _openTab),
-      appBar: CustomAppBar(),
+      appBar: const CustomAppBar(),
       body: Column(
         children: [
           Expanded(
@@ -151,7 +151,7 @@ class _AddAllergyState extends State<AddAllergy> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('allergy'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontFamily: 'Mulish',
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold)),
@@ -167,7 +167,7 @@ class _AddAllergyState extends State<AddAllergy> {
                             ),
                             child: Center(
                               child: Text('add'.tr,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
                                     fontSize: 12,
@@ -179,7 +179,7 @@ class _AddAllergyState extends State<AddAllergy> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 15),
+                  const SizedBox(height: 15),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Align(
@@ -195,7 +195,7 @@ class _AddAllergyState extends State<AddAllergy> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
 
                   Container(
                     padding: const EdgeInsets.all(15),
@@ -204,19 +204,19 @@ class _AddAllergyState extends State<AddAllergy> {
                     ),
                     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(
+                        SizedBox(
                           width: MediaQuery.of(context).size.width * 0.43,
                           child: Text('allergy_name'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 13,
                                 fontFamily: 'Mulish'),
                           ),
                         ),
-                        Container(
+                        SizedBox(
                           width: MediaQuery.of(context).size.width * 0.32,
                           child: Text('desc'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 13,
                                   fontFamily: 'Mulish')),
@@ -264,10 +264,10 @@ class _AddAllergyState extends State<AddAllergy> {
                                 child: Container(
                                   width: 60,
                                   height: double.infinity,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xffE25454),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xffE25454),
                                   ),
-                                  child: Icon(
+                                  child: const Icon(
                                     Icons.delete_outline,
                                     color: Colors.white,
                                     size: 25,
@@ -289,7 +289,7 @@ class _AddAllergyState extends State<AddAllergy> {
                             ),
                             child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Container(
+                                SizedBox(
                                   width: MediaQuery.of(context).size.width * 0.43,
                                   child:  Text(
                                     currentPageItems[index].name ?? 'N/A',
@@ -300,7 +300,7 @@ class _AddAllergyState extends State<AddAllergy> {
                                     //overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                Container(
+                                SizedBox(
                                   width: MediaQuery.of(context).size.width * 0.32,
                                   child:Text(
                                     _stripHtmlTags(currentPageItems[index].description),
@@ -333,7 +333,7 @@ class _AddAllergyState extends State<AddAllergy> {
                     BoxShadow(
                       color: Colors.grey.shade200,
                       blurRadius: 5,
-                      offset: Offset(0, -2),
+                      offset: const Offset(0, -2),
                     ),
                   ],
                 ),
@@ -367,7 +367,7 @@ class _AddAllergyState extends State<AddAllergy> {
                       ),
                     ),
 
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
                     // Page Numbers
                     ...(_getPageNumbers().map((pageNum) {
@@ -380,10 +380,10 @@ class _AddAllergyState extends State<AddAllergy> {
                             width: 35,
                             height: 35,
                             decoration: BoxDecoration(
-                              color: isActive ? Color(0xFF0EA5E9) : Colors
+                              color: isActive ? const Color(0xFF0EA5E9) : Colors
                                   .white,
                               border: Border.all(
-                                color: isActive ? Color(0xFF0EA5E9) : Colors
+                                color: isActive ? const Color(0xFF0EA5E9) : Colors
                                     .grey.shade300,
                               ),
                               borderRadius: BorderRadius.circular(4),
@@ -405,7 +405,7 @@ class _AddAllergyState extends State<AddAllergy> {
                       );
                     }).toList()),
 
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
                     // Next Button
                     GestureDetector(
@@ -462,7 +462,7 @@ class _AddAllergyState extends State<AddAllergy> {
 
     Get.bottomSheet(
       Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(20),
@@ -486,7 +486,7 @@ class _AddAllergyState extends State<AddAllergy> {
                   children: [
                     Text(
                       isEditMode ? 'edit_allergy'.tr : 'add_new_allergy'.tr,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'Mulish',
@@ -494,22 +494,22 @@ class _AddAllergyState extends State<AddAllergy> {
                     ),
                     GestureDetector(
                       onTap: () => Get.back(),
-                      child: Icon(Icons.close, size: 24),
+                      child: const Icon(Icons.close, size: 24),
                     ),
                   ],
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
 
                 // Allergy Name
                 Text(
                   'allergy_name'.tr,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     fontFamily: 'Mulish',
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 TextField(
                   controller: _nameController,
                   decoration: InputDecoration(
@@ -525,26 +525,26 @@ class _AddAllergyState extends State<AddAllergy> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                      borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                     ),
-                    contentPadding: EdgeInsets.symmetric(
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 15,
                       vertical: 12,
                     ),
                   ),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
 
                 // Description
                 Text(
                   'desc'.tr,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     fontFamily: 'Mulish',
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 TextField(
                   controller: _descriptionController,
                   maxLines: 4,
@@ -561,15 +561,15 @@ class _AddAllergyState extends State<AddAllergy> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                      borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                     ),
-                    contentPadding: EdgeInsets.symmetric(
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 15,
                       vertical: 12,
                     ),
                   ),
                 ),
-                SizedBox(height: 30),
+                const SizedBox(height: 30),
 
                 // Buttons
                 Row(
@@ -578,7 +578,7 @@ class _AddAllergyState extends State<AddAllergy> {
                       child: GestureDetector(
                         onTap: () => Get.back(),
                         child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
                             color: Colors.grey[300],
                             borderRadius: BorderRadius.circular(8),
@@ -586,7 +586,7 @@ class _AddAllergyState extends State<AddAllergy> {
                           child: Center(
                             child: Text(
                               'cancel'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 fontFamily: 'Mulish',
@@ -597,7 +597,7 @@ class _AddAllergyState extends State<AddAllergy> {
                         ),
                       ),
                     ),
-                    SizedBox(width: 15),
+                    const SizedBox(width: 15),
                     Expanded(
                       child: GestureDetector(
                         onTap: () async {
@@ -619,15 +619,15 @@ class _AddAllergyState extends State<AddAllergy> {
                           }
                         },
                         child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
-                            color: Color(0xFFFCAE03),
+                            color: const Color(0xFFFCAE03),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Center(
                             child: Text(
                               isEditMode ? 'update_allergy'.tr : 'add_allergy'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 fontFamily: 'Mulish',
@@ -640,7 +640,7 @@ class _AddAllergyState extends State<AddAllergy> {
                     ),
                   ],
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -760,7 +760,7 @@ class _AddAllergyState extends State<AddAllergy> {
           SnackBar(
             content: Text('created_allergy'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -776,7 +776,7 @@ class _AddAllergyState extends State<AddAllergy> {
           SnackBar(
             content: Text('${'failed_allergy'.tr}: ${e.toString()}'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -865,7 +865,7 @@ class _AddAllergyState extends State<AddAllergy> {
           SnackBar(
             content: Text('delete_allergy'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -879,7 +879,7 @@ class _AddAllergyState extends State<AddAllergy> {
           SnackBar(
             content: Text('faile_allergy'.tr),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -910,7 +910,7 @@ class _AddAllergyState extends State<AddAllergy> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(height: 20,),
+                    const SizedBox(height: 20,),
                     Text(
                       '${'are'.tr}"$toppingName"?',
                       style: const TextStyle(
@@ -941,7 +941,7 @@ class _AddAllergyState extends State<AddAllergy> {
                             ),
                             child:  Text(
                               'cancel'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -970,7 +970,7 @@ class _AddAllergyState extends State<AddAllergy> {
                             ),
                             child:  Text(
                               'delete'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),

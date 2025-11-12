@@ -58,6 +58,17 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
     }
   }
 
+  // Helper method to show snackbar
+  void _showSnackbar(String message, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   // Initialize SharedPreferences
   Future<void> _initializeSharedPreferences() async {
     try {
@@ -199,23 +210,23 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
   void _onSave() {
     // Validate inputs
     if (_storeNameController.text.trim().isEmpty) {
-      Get.snackbar('error'.tr, 'please_enter'.tr);
+      _showSnackbar('please_enter'.tr);
       return;
     }
 
     if (_selectedOpeningTime == null) {
-      Get.snackbar('error'.tr, 'please_select'.tr);
+      _showSnackbar('please_select'.tr);
       return;
     }
 
     if (_selectedClosingTime == null) {
-      Get.snackbar('error'.tr, 'please_select_close'.tr);
+      _showSnackbar('please_select_close'.tr);
       return;
     }
 
     List<int> selectedDays = _getSelectedDayIndices();
     if (selectedDays.isEmpty) {
-      Get.snackbar('error'.tr, 'please_select_day'.tr);
+      _showSnackbar('please_select_day'.tr);
       return;
     }
 
@@ -225,13 +236,13 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
 
   Future<void> _saveStoreHours(List<int> selectedDays) async {
     if (sharedPreferences == null) {
-      Get.snackbar('error'.tr, 'shared'.tr);
+      _showSnackbar('shared'.tr);
       return;
     }
 
     storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
     if (storeId == null) {
-      Get.snackbar('error'.tr, 'storeId'.tr);
+      _showSnackbar('storeId'.tr);
       return;
     }
 
@@ -239,19 +250,23 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
       isLoading = true;
     });
 
-    try {
-      Get.dialog(
-        Center(
-            child: Lottie.asset(
-              'assets/animations/burger.json',
-              width: 150,
-              height: 150,
-              repeat: true,
-            )
-        ),
-        barrierDismissible: false,
-      );
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Center(
+          child: Lottie.asset(
+            'assets/animations/burger.json',
+            width: 150,
+            height: 150,
+            repeat: true,
+          ),
+        );
+      },
+    );
 
+    try {
       // Save store hours for each selected day
       for (int dayIndex in selectedDays) {
         var map = {
@@ -268,24 +283,42 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
         print("Store timing added for day $dayIndex: ${model.toString()}");
       }
 
-      setState(() {
-        isLoading = false;
-      });
+      // Close loading dialog first
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
 
-      Get.back(); // Close loading dialog
-      Navigator.pop(context); // Close bottom sheet
-      Get.snackbar('success'.tr, 'store_hours'.tr);
+      // Close bottom sheet
+      if (mounted) {
+        Navigator.pop(context);
+      }
+
+      // Show success message
+      if (mounted) {
+        _showSnackbar('store_hours'.tr, isError: false);
+      }
+
+      // Call callback
       if (widget.onDataAdded != null) {
         widget.onDataAdded!();
       }
 
     } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      Get.back(); // Close loading dialog
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
       print('Adding error: $e');
-      Get.snackbar('error'.tr, '${'failed_store_hours'.tr}: ${e.toString()}');
+      if (mounted) {
+        _showSnackbar('${'failed_store_hours'.tr}: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -333,7 +366,7 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                     const SizedBox(height: 30),
 
                     // Store Hours Name
-                 Text(
+                    Text(
                       'store_name'.tr,
                       style: TextStyle(
                         fontSize: 14,
@@ -373,7 +406,7 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                             Text(
+                              Text(
                                 'opening'.tr,
                                 style: TextStyle(
                                   fontSize: 14,
@@ -420,7 +453,7 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                               Text(
+                              Text(
                                 'closing'.tr,
                                 style: TextStyle(
                                   fontSize: 14,
@@ -468,7 +501,7 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                         Text(
+                        Text(
                           'days'.tr,
                           style: TextStyle(
                             fontSize: 14,
@@ -487,7 +520,7 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
-                             Text(
+                            Text(
                               'all'.tr,
                               style: TextStyle(
                                 fontSize: 14,

@@ -38,8 +38,8 @@ class GetTodayReport {
     int? code,
     String? mess,
   })
-      : this.code = code,
-        this.mess = mess;
+      : code = code,
+        mess = mess;
 
   GetTodayReport.fromJson(Map<String, dynamic> json) {
     totalSales = json['total_sales']?.toDouble();
@@ -51,58 +51,58 @@ class GetTodayReport {
     totalTax = json['total_tax']?.toDouble();
     netTotal = json['net_total']?.toDouble();
     taxBreakdown = json['tax_breakdown'] != null
-        ? new TaxBreakdown.fromJson(json['tax_breakdown'])
+        ? TaxBreakdown.fromJson(json['tax_breakdown'])
         : null;
     paymentMethods = json['payment_methods'] != null
-        ? new PaymentMethods.fromJson(json['payment_methods'])
+        ? PaymentMethods.fromJson(json['payment_methods'])
         : null;
     orderTypes = json['order_types'] != null
-        ? new OrderTypes.fromJson(json['order_types'])
+        ? OrderTypes.fromJson(json['order_types'])
         : null;
     approvalStatuses = json['approval_statuses'] != null
-        ? new ApprovalStatuses.fromJson(json['approval_statuses'])
+        ? ApprovalStatuses.fromJson(json['approval_statuses'])
         : null;
     if (json['top_items'] != null) {
       topItems = <TopItems>[];
       json['top_items'].forEach((v) {
-        topItems!.add(new TopItems.fromJson(v));
+        topItems!.add(TopItems.fromJson(v));
       });
     }
     byCategory = json['by_category'] != null
-        ? new ByCategory.fromJson(json['by_category'])
+        ? ByCategory.fromJson(json['by_category'])
         : null;
     totalSalesDelivery = json['total_sales + delivery']?.toDouble();
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['total_sales'] = this.totalSales;
-    data['total_orders'] = this.totalOrders;
-    data['cash_total'] = this.cashTotal;
-    data['online_total'] = this.onlineTotal;
-    data['discount_total'] = this.discountTotal;
-    data['delivery_total'] = this.deliveryTotal;
-    data['total_tax'] = this.totalTax;
-    data['net_total'] = this.netTotal;
-    if (this.taxBreakdown != null) {
-      data['tax_breakdown'] = this.taxBreakdown!.toJson();
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['total_sales'] = totalSales;
+    data['total_orders'] = totalOrders;
+    data['cash_total'] = cashTotal;
+    data['online_total'] = onlineTotal;
+    data['discount_total'] = discountTotal;
+    data['delivery_total'] = deliveryTotal;
+    data['total_tax'] = totalTax;
+    data['net_total'] = netTotal;
+    if (taxBreakdown != null) {
+      data['tax_breakdown'] = taxBreakdown!.toJson();
     }
-    if (this.paymentMethods != null) {
-      data['payment_methods'] = this.paymentMethods!.toJson();
+    if (paymentMethods != null) {
+      data['payment_methods'] = paymentMethods!.toJson();
     }
-    if (this.orderTypes != null) {
-      data['order_types'] = this.orderTypes!.toJson();
+    if (orderTypes != null) {
+      data['order_types'] = orderTypes!.toJson();
     }
-    if (this.approvalStatuses != null) {
-      data['approval_statuses'] = this.approvalStatuses!.toJson();
+    if (approvalStatuses != null) {
+      data['approval_statuses'] = approvalStatuses!.toJson();
     }
-    if (this.topItems != null) {
-      data['top_items'] = this.topItems!.map((v) => v.toJson()).toList();
+    if (topItems != null) {
+      data['top_items'] = topItems!.map((v) => v.toJson()).toList();
     }
-    if (this.byCategory != null) {
-      data['by_category'] = this.byCategory!.toJson();
+    if (byCategory != null) {
+      data['by_category'] = byCategory!.toJson();
     }
-    data['total_sales + delivery'] = this.totalSalesDelivery;
+    data['total_sales + delivery'] = totalSalesDelivery;
     return data;
   }
 }
@@ -119,9 +119,9 @@ class TaxBreakdown {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['7'] = this.d7;
-    data['19'] = this.d19;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['7'] = d7;
+    data['19'] = d19;
     return data;
   }
 }
@@ -136,8 +136,8 @@ class PaymentMethods {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['cash'] = this.cash;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['cash'] = cash;
     return data;
   }
 }
@@ -156,10 +156,10 @@ class OrderTypes {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['delivery'] = this.delivery;
-    data['pickup'] = this.pickup;
-    data['dine_in'] = this.dineIn;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['delivery'] = delivery;
+    data['pickup'] = pickup;
+    data['dine_in'] = dineIn;
     return data;
   }
 }
@@ -178,10 +178,10 @@ class ApprovalStatuses {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['pending'] = this.pending;
-    data['accepted'] = this.accepted;
-    data['declined'] = this.declined;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['pending'] = pending;
+    data['accepted'] = accepted;
+    data['declined'] = declined;
     return data;
   }
 }
@@ -200,10 +200,10 @@ class TopItems {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['qty'] = this.qty;
-    data['revenue'] = this.revenue;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['qty'] = qty;
+    data['revenue'] = revenue;
     return data;
   }
 }
@@ -234,13 +234,13 @@ class ByCategory {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['Pizza ca 29 O'] = this.pizzaCa29O;
-    data['Fingerfood'] = this.fingerfood;
-    data['Alkoholfreie Getränke'] = this.alkoholfreieGetrNke;
-    data['Für 2 Personen'] = this.fR2Personen;
-    data['Fleischgerichte'] = this.fleischgerichte;
-    data['Frische Salate'] = this.frischeSalate;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['Pizza ca 29 O'] = pizzaCa29O;
+    data['Fingerfood'] = fingerfood;
+    data['Alkoholfreie Getränke'] = alkoholfreieGetrNke;
+    data['Für 2 Personen'] = fR2Personen;
+    data['Fleischgerichte'] = fleischgerichte;
+    data['Frische Salate'] = frischeSalate;
     return data;
   }
 }

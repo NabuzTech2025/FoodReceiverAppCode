@@ -359,11 +359,10 @@
 //     }
 //   }
 // }
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:food_app/models/Store.dart';
 import 'package:food_app/ui/Allergy/item_allergy.dart';
-import 'package:food_app/ui/Driver/driver_screen.dart';
+import 'package:food_app/ui/Category%20Availability/category_management.dart';
 import 'package:food_app/ui/PostCode/postcode.dart';
 import 'package:food_app/ui/home_screen.dart';
 import 'package:get/get.dart';
@@ -390,7 +389,7 @@ import '../utils/my_application.dart';
 class CustomDrawer extends StatefulWidget {
   final Function(int) onSelectTab;
 
-  const CustomDrawer({Key? key, required this.onSelectTab}) : super(key: key);
+  const CustomDrawer({super.key, required this.onSelectTab});
 
   @override
   _CustomDrawerState createState() => _CustomDrawerState();
@@ -422,17 +421,13 @@ class _CustomDrawerState extends State<CustomDrawer> {
       String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
       final result = await ApiRepo().getStoreData(bearerKey, storeID!);
 
-      if (result != null) {
-        Store store = result;
-        if (mounted) {
-          setState(() {
-            storeName = store.name.toString();
-            print("StoreName2 $storeName");
-          });
-        }} else {
-        showSnackbar("Error", "Failed to get store data");
-      }
-    } catch (e) {
+      Store store = result;
+      if (mounted) {
+        setState(() {
+          storeName = store.name.toString();
+          print("StoreName2 $storeName");
+        });
+      }    } catch (e) {
       Log.loga(title, "Login Api:: e >>>>> $e");
       showSnackbar("Api Error", "An error occurred: $e");
     }
@@ -454,7 +449,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
       widget.onSelectTab(tabIndex);
     } else {
       // If on different screen, navigate back to HomeScreen with specific tab
-      Get.off(() => HomeScreen(), arguments: {'initialTab': tabIndex});
+      Get.off(() => const HomeScreen(), arguments: {'initialTab': tabIndex});
     }
   }
 
@@ -493,7 +488,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                       )
                           : Text(
                         storeName.toString(),
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                       )
                     ],
                   ),
@@ -525,16 +520,21 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
                   _drawerItem('discount'.tr,'assets/images/discount.png', onTap: () {
                     Navigator.of(context).pop();
-                    Get.to(() => Discount());
+                    Get.to(() => const Discount());
                   }),
-                 if (_storeType == '1'&& _storeType == '0')
+                  if (_storeType == '0')
+                  _drawerItem('category'.tr,'assets/images/discount.png', onTap: () {
+                    Navigator.of(context).pop();
+                    Get.to(() => const CategoryManagement());
+                  }),
+                  if (_storeType != '2')
                 _drawerItem('store'.tr,'assets/images/store.png', onTap: () {
                     Navigator.of(context).pop();
-                    Get.to(() => StoreTiming());
+                    Get.to(() => const StoreTiming());
                   }),
                   _drawerItem('manage'.tr,'assets/images/tax.png', onTap: () {
                     Navigator.of(context).pop();
-                    Get.to(() => Taxmanagement());
+                    Get.to(() => const Taxmanagement());
                   }),
                   _drawerItem('postcode'.tr,'assets/images/postcode.png', onTap: () {
                     Navigator.of(context).pop();
@@ -556,8 +556,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   }),
                 ),
                 Padding(
-                  padding: EdgeInsets.only(left: 15.0),
-                  child: Text('${'version'.tr}:1.15.0', style: TextStyle(
+                  padding: const EdgeInsets.only(left: 15.0),
+                  child: Text('${'version'.tr}:1.15.0', style: const TextStyle(
                       fontWeight: FontWeight.w300,
                       fontSize: 15
                   ),),
@@ -578,8 +578,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
       title: Text(title, style: const TextStyle(fontSize: 16)),
       onTap: onTap,
         dense: true,
-        leading: Image.asset(imagePath,color: Color(0xff757B8F),height: 20,width: 25,),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0), // Add this line
+        leading: Image.asset(imagePath,color: const Color(0xff757B8F),height: 20,width: 25,),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0), // Add this line
         visualDensity: VisualDensity.compact
     );
   }
@@ -600,33 +600,29 @@ class _CustomDrawerState extends State<CustomDrawer> {
       print("🚪 Starting logout process...");
 
       final result = await ApiRepo().logoutAPi(bearerKey);
-      if (result != null) {
-        print("✅ Logout API successful");
-        await _disconnectSocket();
-        // ✅ STEP 1: Save IP data before clearing everything
-        await _preserveUserIPData();
+      print("✅ Logout API successful");
+      await _disconnectSocket();
+      // ✅ STEP 1: Save IP data before clearing everything
+      await _preserveUserIPData();
 
-        // ✅ STEP 2: Force complete logout cleanup (without clearing IP data)
-        await _forceCompleteLogoutCleanup();
+      // ✅ STEP 2: Force complete logout cleanup (without clearing IP data)
+      await _forceCompleteLogoutCleanup();
 
-        // ✅ STEP 3: Clear app controller
-        app.appController.clearOnLogout();
+      // ✅ STEP 3: Clear app controller
+      app.appController.clearOnLogout();
 
-        // ✅ STEP 4: Force background handler to clear token cache
-        await _forceBackgroundHandlerClearCache();
+      // ✅ STEP 4: Force background handler to clear token cache
+      await _forceBackgroundHandlerClearCache();
 
-        // ✅ STEP 5: Close drawer
-        Navigator.of(context).pop();
+      // ✅ STEP 5: Close drawer
+      Navigator.of(context).pop();
 
-        // ✅ STEP 6: Navigate to login with complete reset
-        Get.offAll(() => LoginScreen());
+      // ✅ STEP 6: Navigate to login with complete reset
+      Get.offAll(() => const LoginScreen());
 
-        print("✅ Logout completed successfully");
+      print("✅ Logout completed successfully");
 
-      } else {
-        showSnackbar("Error", "Failed to logout");
-      }
-    } catch (e) {
+        } catch (e) {
       Log.loga(title, "Logout Api:: e >>>>> $e");
       showSnackbar("Api Error", "An error occurred: $e");
     }
@@ -636,7 +632,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
       print("🔌 Disconnecting socket...");
       // Assuming you have a socket service - adjust the class name accordingly
        SocketService().disconnect();
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 100));
       print("✅ Socket disconnected");
     } catch (e) {
       print("⚠️ Error disconnecting socket: $e");
@@ -746,7 +742,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
         for (String key in keysToRemove) {
           await prefs.remove(key);
-          await Future.delayed(Duration(milliseconds: 20));
+          await Future.delayed(const Duration(milliseconds: 20));
           print("🗑️ Removed: $key");
         }
 
@@ -758,9 +754,9 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
         // ✅ Force multiple reloads to ensure changes are committed
         await prefs.reload();
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
         await prefs.reload();
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
 
         // ✅ Verify cleanup for this attempt
         String? testToken = prefs.getString(valueShared_BEARER_KEY);
@@ -795,7 +791,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
       print("🔄 Forcing background handler cache clear...");
 
       // Additional delay to ensure background handler gets the cleared preferences
-      await Future.delayed(Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 300));
 
       // Create a test instance to verify background handler will get null token
       SharedPreferences testPrefs = await SharedPreferences.getInstance();
@@ -817,11 +813,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
     return Column(
       children: [
         ListTile(
-          leading: Image.asset('assets/images/product.png',color: Color(0xff757B8F),height: 20,width: 25,),
+          leading: Image.asset('assets/images/product.png',color: const Color(0xff757B8F),height: 20,width: 25,),
           title: Row(
             children: [
               Text('product'.tr, style: const TextStyle(fontSize: 16)),
-              Spacer(),
+              const Spacer(),
               Icon(
                 isProductExpanded ? Icons.expand_less : Icons.expand_more,
                 color: Colors.grey[600],
@@ -834,51 +830,51 @@ class _CustomDrawerState extends State<CustomDrawer> {
             });
           },
             dense: true, // Add this line
-            contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0), // Add this line
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0), // Add this line
             visualDensity: VisualDensity.compact,
         ),
         if (isProductExpanded) ...[
           _subDrawerItem('category'.tr, onTap: () {
             Navigator.of(context).pop();
-            // Navigate to Category screen
-             Get.to(() => Category());
+            // Use named route for proper route detection
+            Get.to(() => const Category(), routeName: '/Category');
           }),
           _subDrawerItem('product'.tr, onTap: () {
             Navigator.of(context).pop();
-            // Navigate to Items screen
-             Get.to(() => Products());
+            // Use named route for proper route detection
+            Get.to(() => const Products(), routeName: '/Products');
           }),
           if (_storeType != '2')
           _subDrawerItem('topping'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Toppings screen
-            Get.to(() => ToppingsScreen());
+            Get.to(() => const ToppingsScreen());
           }),
           if (_storeType != '2')
           _subDrawerItem('topping_group'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Topping Group screen
-            Get.to(() => ToppingGroup());
+            Get.to(() => const ToppingGroup());
           }),
           if (_storeType != '2')
           _subDrawerItem('group'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Group Item screen
-             Get.to(() => GroupItem());
+             Get.to(() => const GroupItem());
           }),
           if (_storeType != '2')
           _subDrawerItem('product_group'.tr, onTap: () {
             Navigator.of(context).pop();
             // Navigate to Product Groups screen
-             Get.to(() => ProductGroup());
+             Get.to(() => const ProductGroup());
           }),
         ],
         ListTile(
-          leading: Image.asset('assets/images/product.png',color: Color(0xff757B8F),height: 20,width: 25,),
+          leading: Image.asset('assets/images/product.png',color: const Color(0xff757B8F),height: 20,width: 25,),
           title: Row(
             children: [
               Text('allergy'.tr, style: const TextStyle(fontSize: 16)),
-              Spacer(),
+              const Spacer(),
               Icon(
                 isAllergyExpanded ? Icons.expand_less : Icons.expand_more,
                 color: Colors.grey[600],
@@ -891,17 +887,17 @@ class _CustomDrawerState extends State<CustomDrawer> {
             });
           },
           dense: true,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0),
           visualDensity: VisualDensity.compact,
         ),
         if(isAllergyExpanded) ...[
           _subDrawerItem('add_allergy'.tr, onTap: () {
             Navigator.of(context).pop();
-            Get.to(() => AddAllergy());
+            Get.to(() => const AddAllergy());
           }),
           _subDrawerItem('item_allergy'.tr, onTap: () {
             Navigator.of(context).pop();
-            Get.to(() => ItemAllergy());
+            Get.to(() => const ItemAllergy());
           }),
         ]
       ],
@@ -913,7 +909,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
       padding: const EdgeInsets.only(left: 30.0),
       child: ListTile(
         title: Text(
-         '- ${title}',
+         '- $title',
           style: TextStyle(
             fontSize: 14,
             color: Colors.grey[700],
@@ -922,7 +918,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
         ),
         onTap: onTap,
         dense: true,
-        contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0), // Add this line
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0), // Add this line
         visualDensity: VisualDensity.compact, //
       ),
     );

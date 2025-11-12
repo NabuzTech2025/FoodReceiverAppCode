@@ -66,8 +66,8 @@ class Order {
   Order.withError({
     int? code,
     String? mess,
-  })  : this.code = code,
-        this.mess = mess;
+  })  : code = code,
+        mess = mess;
 
   factory Order.fromJson(Map<String, dynamic> json) {
     print("Tax Summary Raw: ${json["tax_summary"]}");
@@ -175,15 +175,15 @@ class GuestShippingJson {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['zip'] = this.zip;
-    data['city'] = this.city;
-    data['type'] = this.type;
-    data['email'] = this.email;
-    data['line1'] = this.line1;
-    data['phone'] = this.phone;
-    data['country'] = this.country;
-    data['customer_name'] = this.customerName;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['zip'] = zip;
+    data['city'] = city;
+    data['type'] = type;
+    data['email'] = email;
+    data['line1'] = line1;
+    data['phone'] = phone;
+    data['country'] = country;
+    data['customer_name'] = customerName;
     return data;
   }
 }

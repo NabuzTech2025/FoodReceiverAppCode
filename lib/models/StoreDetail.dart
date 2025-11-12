@@ -27,8 +27,8 @@ class StoreDetail {
   StoreDetail.withError({
     int? code,
     String? mess,
-  })  : this.code = code,
-        this.mess = mess;
+  })  : code = code,
+        mess = mess;
 
   factory StoreDetail.fromJson(Map<String, dynamic> json)
   {

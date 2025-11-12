@@ -24,13 +24,13 @@ class AddNewStoreTimingResponseModel {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['id'] = this.id;
-    data['day_of_week'] = this.dayOfWeek;
-    data['opening_time'] = this.openingTime;
-    data['closing_time'] = this.closingTime;
-    data['store_id'] = this.storeId;
-    data['name'] = this.name;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['id'] = id;
+    data['day_of_week'] = dayOfWeek;
+    data['opening_time'] = openingTime;
+    data['closing_time'] = closingTime;
+    data['store_id'] = storeId;
+    data['name'] = name;
     return data;
   }
 }

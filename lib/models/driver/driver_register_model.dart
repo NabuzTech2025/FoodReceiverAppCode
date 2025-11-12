@@ -14,11 +14,11 @@ class DriverRegisterModel {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['message'] = this.message;
-    data['driver_id'] = this.driverId;
-    data['user_id'] = this.userId;
-    data['store_id'] = this.storeId;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['message'] = message;
+    data['driver_id'] = driverId;
+    data['user_id'] = userId;
+    data['store_id'] = storeId;
     return data;
   }
 }

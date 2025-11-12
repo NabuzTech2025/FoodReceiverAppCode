@@ -15,6 +15,8 @@ import 'api/api.dart';
 /*import '../database/database_source.dart';
 import 'login_register/login_screen.dart';*/
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
   _SplashScreenState createState() => _SplashScreenState();
 }
@@ -47,19 +49,19 @@ class _SplashScreenState extends State<SplashScreen> {
           // Clear the stored preference
           _prefs.remove('notification_initial_tab');
           // Navigate with the tab preference
-          Get.off(() => HomeScreen(), arguments: {'initialTab': int.parse(notificationTab)});
+          Get.off(() => const HomeScreen(), arguments: {'initialTab': int.parse(notificationTab)});
         } else {
           // Check if we have navigation arguments from Get.arguments
           final arguments = Get.arguments;
           if (arguments != null && arguments['initialTab'] != null) {
-            Get.off(() => HomeScreen(), arguments: arguments);
+            Get.off(() => const HomeScreen(), arguments: arguments);
           } else {
             // Normal navigation to default tab
-            Get.off(() => HomeScreen());
+            Get.off(() => const HomeScreen());
           }
         }
       } else {
-        Get.off(() => LoginScreen());
+        Get.off(() => const LoginScreen());
       }
     });
   }

@@ -6,7 +6,6 @@ import 'package:food_app/customView/CustomDrawer.dart';
 import 'package:food_app/models/driver/get_deliver_driver_response_model.dart';
 import 'package:food_app/ui/Driver/create_driver.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../constants/constant.dart';
@@ -50,14 +49,14 @@ class _DriverScreenState extends State<DriverScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
        drawer: CustomDrawer(onSelectTab: _openTab),
-      appBar: CustomAppBar(),
+      appBar: const CustomAppBar(),
       body: Padding(
-        padding:  EdgeInsets.all(10.0),
+        padding:  const EdgeInsets.all(10.0),
         child: Column(
           children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
+                const Row(
                   children: [
                     Text('23july, 2025',
                       style: TextStyle(fontSize: 12,fontFamily: 'Mulish',fontWeight: FontWeight.w800),
@@ -69,13 +68,13 @@ class _DriverScreenState extends State<DriverScreen> {
                   children: [
                     GestureDetector(
                       onTap: (){
-                        Get.to(()=>DeliveryOrder());
+                        Get.to(()=>const DeliveryOrder());
                       },
                       child: Container(
-                        padding: EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(10),
                         decoration:BoxDecoration(
                           borderRadius: BorderRadius.circular(3),
-                          color: Color(0xFFFCAE03),
+                          color: const Color(0xFFFCAE03),
                         ) ,
                         child: const Center(
                           child: Text('Delivery Order',style: TextStyle(color: Colors.white,
@@ -87,13 +86,13 @@ class _DriverScreenState extends State<DriverScreen> {
                     const SizedBox(width: 8,),
                     GestureDetector(
                       onTap: (){
-                        Get.to(()=>CreateDriver());
+                        Get.to(()=>const CreateDriver());
                       },
                       child: Container(
-                        padding: EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(10),
                         decoration:BoxDecoration(
                           borderRadius: BorderRadius.circular(3),
-                          color: Color(0xFF49B27A),
+                          color: const Color(0xFF49B27A),
                         ) ,
                         child: const Center(
                           child: Text('Create Driver',style: TextStyle(color: Colors.white,
@@ -107,12 +106,12 @@ class _DriverScreenState extends State<DriverScreen> {
 
               ],
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(3,),
@@ -121,17 +120,17 @@ class _DriverScreenState extends State<DriverScreen> {
                         color: Colors.black.withOpacity(0.1),
                         spreadRadius: 0,
                         blurRadius: 4,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                  child: Text('Total Amount : 20',style: TextStyle(
+                  child: const Text('Total Amount : 20',style: TextStyle(
                       fontFamily: "Mulish",fontWeight: FontWeight.w700,fontSize: 10,color: Colors.black
                   ),),
                 ),
-                SizedBox(width: 3,),
+                const SizedBox(width: 3,),
                 Container(
-                  padding: EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(3,),
@@ -140,7 +139,7 @@ class _DriverScreenState extends State<DriverScreen> {
                         color: Colors.black.withOpacity(0.1),
                         spreadRadius: 0,
                         blurRadius: 4,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -148,9 +147,9 @@ class _DriverScreenState extends State<DriverScreen> {
                       fontFamily: "Mulish",fontWeight: FontWeight.w700,fontSize: 10,color: Colors.black
                   ),),
                 ),
-                SizedBox(width: 3,),
+                const SizedBox(width: 3,),
                 Container(
-                  padding: EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(3,),
@@ -159,7 +158,7 @@ class _DriverScreenState extends State<DriverScreen> {
                         color: Colors.black.withOpacity(0.1),
                         spreadRadius: 0,
                         blurRadius: 4,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -170,12 +169,12 @@ class _DriverScreenState extends State<DriverScreen> {
                 const SizedBox(width: 3,),
               ],
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(3,),
@@ -184,17 +183,17 @@ class _DriverScreenState extends State<DriverScreen> {
                         color: Colors.black.withOpacity(0.1),
                         spreadRadius: 0,
                         blurRadius: 4,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                  child: Text('Total Driver : 20',style: TextStyle(
+                  child: const Text('Total Driver : 20',style: TextStyle(
                       fontFamily: "Mulish",fontWeight: FontWeight.w700,fontSize: 10,color: Colors.black
                   ),),
                 ),
-                SizedBox(width: 3,),
+                const SizedBox(width: 3,),
                 Container(
-                  padding: EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(3,),
@@ -203,7 +202,7 @@ class _DriverScreenState extends State<DriverScreen> {
                         color: Colors.black.withOpacity(0.1),
                         spreadRadius: 0,
                         blurRadius: 4,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -211,9 +210,9 @@ class _DriverScreenState extends State<DriverScreen> {
                       fontFamily: "Mulish",fontWeight: FontWeight.w700,fontSize: 10,color: Colors.black
                   ),),
                 ),
-                SizedBox(width: 3,),
+                const SizedBox(width: 3,),
                 Container(
-                  padding: EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(3,),
@@ -222,7 +221,7 @@ class _DriverScreenState extends State<DriverScreen> {
                         color: Colors.black.withOpacity(0.1),
                         spreadRadius: 0,
                         blurRadius: 4,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -233,12 +232,12 @@ class _DriverScreenState extends State<DriverScreen> {
                 const SizedBox(width: 3,),
               ],
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Container(
-                  padding: EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(3,),
@@ -247,17 +246,17 @@ class _DriverScreenState extends State<DriverScreen> {
                         color: Colors.black.withOpacity(0.1),
                         spreadRadius: 0,
                         blurRadius: 4,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                  child: Text('Order Assigned: 20',style: TextStyle(
+                  child: const Text('Order Assigned: 20',style: TextStyle(
                       fontFamily: "Mulish",fontWeight: FontWeight.w700,fontSize: 10,color: Colors.black
                   ),),
                 ),
-                SizedBox(width: 10,),
+                const SizedBox(width: 10,),
                 Container(
-                  padding: EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(3,),
@@ -266,7 +265,7 @@ class _DriverScreenState extends State<DriverScreen> {
                         color: Colors.black.withOpacity(0.1),
                         spreadRadius: 0,
                         blurRadius: 4,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -274,18 +273,18 @@ class _DriverScreenState extends State<DriverScreen> {
                       fontFamily: "Mulish",fontWeight: FontWeight.w700,fontSize: 10,color: Colors.black
                   ),),
                 ),
-                SizedBox(width: 3,),
+                const SizedBox(width: 3,),
               ],
             ),
             ListView.builder(
               itemCount: 3,
               padding: EdgeInsets.zero,
-              physics: NeverScrollableScrollPhysics(),
+              physics: const NeverScrollableScrollPhysics(),
               shrinkWrap: true,
               itemBuilder: (context,index){
               return Container(
-                padding: EdgeInsets.all(10),
-                margin: EdgeInsets.all(10),
+                padding: const EdgeInsets.all(10),
+                margin: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(5),
@@ -294,7 +293,7 @@ class _DriverScreenState extends State<DriverScreen> {
                       color: Colors.black.withOpacity(0.1),
                       spreadRadius: 0,
                       blurRadius: 4,
-                      offset: Offset(0, 2),
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
@@ -334,14 +333,14 @@ class _DriverScreenState extends State<DriverScreen> {
                         ),
                         Row(
                           children: [
-                            Text('ON THE WAY',style: TextStyle(
+                            const Text('ON THE WAY',style: TextStyle(
                               color: Color(0xFF49B27A),
                                 fontWeight: FontWeight.w800,fontFamily: 'Mulish',fontSize: 10
                             ),),
-                            SizedBox(width: 10,),
+                            const SizedBox(width: 10,),
                             Container(
                               height: 32,width: 32,
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 color: Colors.black,
                                 shape: BoxShape.circle,
                               ),
@@ -369,15 +368,15 @@ class _DriverScreenState extends State<DriverScreen> {
                         ),),
                       ],
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 25.0),
+                    const Padding(
+                      padding: EdgeInsets.only(left: 25.0),
                       child: Center(
                         child: Text('Cancelled  : 20',style: TextStyle(
                             fontFamily: "Mulish",fontWeight: FontWeight.w800,fontSize: 12,color: Colors.black
                         ),),
                       ),
                     ),
-                    Divider(color: Colors.black,thickness: 2,),
+                    const Divider(color: Colors.black,thickness: 2,),
                     const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Total Amount  : 200',style: TextStyle(

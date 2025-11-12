@@ -17,12 +17,12 @@ class AddAllergyResponseModel {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['description'] = this.description;
-    data['store_id'] = this.storeId;
-    data['image_url'] = this.imageUrl;
-    data['id'] = this.id;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['description'] = description;
+    data['store_id'] = storeId;
+    data['image_url'] = imageUrl;
+    data['id'] = id;
     return data;
   }
 }

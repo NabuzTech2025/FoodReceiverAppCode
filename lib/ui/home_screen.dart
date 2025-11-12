@@ -1,6 +1,5 @@
 import 'dart:io' show Platform;
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -22,6 +21,8 @@ import 'OrderScreen.dart';
 import 'ReportScreen.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -47,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final arguments = Get.arguments;
     if (arguments != null && arguments['initialTab'] != null) {
       final int initialTab = arguments['initialTab'];
-      Future.delayed(Duration(milliseconds: 100), () {
+      Future.delayed(const Duration(milliseconds: 100), () {
         _openTab(initialTab);
       });
     }
@@ -57,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _setupLocalNotificationTap() {
     // Listen for local notification taps when app is in foreground
     flutterLocalNotificationsPlugin.initialize(
-      InitializationSettings(
+      const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
         iOS: DarwinInitializationSettings(),
       ),
@@ -91,7 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _fcmInitialized = true;
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print("DataNotification " + message.notification.toString());
+      print("DataNotification ${message.notification}");
       print('Foreground message received: Home Screen ${message.notification?.title}');
       print('Message body: ${message.notification?.body}');
 
@@ -109,7 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           bool isNewOrder = _lastProcessedOrderId != orderNumber;
           bool isTimedOut = _lastProcessedTime == null ||
-              now.difference(_lastProcessedTime!) > Duration(seconds: 3);
+              now.difference(_lastProcessedTime!) > const Duration(seconds: 3);
 
           if (isNewOrder || isTimedOut) {
             _lastProcessedOrderId = orderNumber;
@@ -162,14 +163,14 @@ class _HomeScreenState extends State<HomeScreen> {
       onWillPop: _onWillPop,
       child: Scaffold(
         drawer: CustomDrawer(onSelectTab: _openTab),
-        appBar: CustomAppBar(),
+        appBar: const CustomAppBar(),
         resizeToAvoidBottomInset: true,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        floatingActionButton: !_isDataLoaded ? SizedBox.shrink() : Obx(() {
+        floatingActionButton: !_isDataLoaded ? const SizedBox.shrink() : Obx(() {
           if (app.appController.selectedTabIndex == 1) {
             return floatingButton(context);
           }
-          return SizedBox.shrink();
+          return const SizedBox.shrink();
         }),
         bottomNavigationBar: _buildBottomBar(),
         body: _isDataLoaded ? _buildBody() : Center(
@@ -185,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget floatingButton(BuildContext context) {
     if (_storeType == '1' || _storeType == '2') {
-      return SizedBox.shrink();
+      return const SizedBox.shrink();
     }
     return Container(
       height: 55,
@@ -193,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: Colors.orange,
         borderRadius: BorderRadius.circular(27.5),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Colors.black26,
             blurRadius: 5,
@@ -210,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
               app.appController.triggerAddReservation.value = !app.appController.triggerAddReservation.value;
             }
           },
-          child: Center(
+          child: const Center(
             child: AnimatedRotation(
               turns: 0.0,
               duration: Duration(milliseconds: 200),
@@ -235,7 +236,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBottomBar() {
     // Don't show bottom bar until data is loaded
     if (!_isDataLoaded) {
-      return SizedBox.shrink();
+      return const SizedBox.shrink();
     }
 
     double bottomBarHeight = Platform.isIOS ? 90 : 75;
@@ -313,38 +314,52 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBody() {
     return PageView(
       controller: _pageController,
-      physics: NeverScrollableScrollPhysics(),
+      physics: const NeverScrollableScrollPhysics(),
       onPageChanged: (index) {
         print("Page changedto: $index");
       },
       children: [
         // KeepAlivePage(child: HomeTab()),
-        KeepAlivePage(child: OrderScreenNew()),
-        KeepAlivePage(child: Reservation()),
+        KeepAlivePage(child: const OrderScreenNew()),
+        KeepAlivePage(child: const Reservation()),
         KeepAlivePage(child: ReportScreen()),
-        KeepAlivePage(child: PrinterSettingsScreen()),
+        KeepAlivePage(child: const PrinterSettingsScreen()),
       ],
     );
   }
 
+  // ✅ _openTab method me changes
   void _openTab(int index) {
     if (_pageController.hasClients &&
         _pageController.page == index.toDouble()) {
       print("Already on tab $index. Skipping.");
+
+      // ✅ Add this - force refresh even if already on tab
+      if (index == 3) {
+        // Trigger refresh for PrinterSettingsScreen
+        Future.delayed(const Duration(milliseconds: 100), () {
+          // This will trigger didChangeDependencies in PrinterSettingsScreen
+          setState(() {});
+        });
+      }
       return;
     }
 
-    print("Switching to Tab 1 : " + index.toString());
+    print("Switching to Tab 1 : $index");
     _pageController.jumpToPage(index);
 
-    Future.delayed(Duration(milliseconds: 50), () {
-      print("Switching to Tab 2 : " + index.toString());
+    Future.delayed(const Duration(milliseconds: 50), () {
+      print("Switching to Tab 2 : $index");
       app.appController.onTabChanged(index);
       if (index == 2) {
         app.appController.reportRefreshTrigger.refresh();
       }
+      // ✅ Add this for PrinterSettingsScreen
+      if (index == 3) {
+        // Notify PrinterSettingsScreen to refresh
+        setState(() {});
+      }
     });
-
   }
 
 

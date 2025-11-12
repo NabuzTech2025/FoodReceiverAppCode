@@ -20,21 +20,21 @@ class GetGroupItemResponseModel {
     displayOrder = json['display_order'];
     id = json['id'];
     topping =
-    json['topping'] != null ? new Topping.fromJson(json['topping']) : null;
-    group = json['group'] != null ? new Group.fromJson(json['group']) : null;
+    json['topping'] != null ? Topping.fromJson(json['topping']) : null;
+    group = json['group'] != null ? Group.fromJson(json['group']) : null;
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['topping_group_id'] = this.toppingGroupId;
-    data['topping_id'] = this.toppingId;
-    data['display_order'] = this.displayOrder;
-    data['id'] = this.id;
-    if (this.topping != null) {
-      data['topping'] = this.topping!.toJson();
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['topping_group_id'] = toppingGroupId;
+    data['topping_id'] = toppingId;
+    data['display_order'] = displayOrder;
+    data['id'] = id;
+    if (topping != null) {
+      data['topping'] = topping!.toJson();
     }
-    if (this.group != null) {
-      data['group'] = this.group!.toJson();
+    if (group != null) {
+      data['group'] = group!.toJson();
     }
     return data;
   }
@@ -66,13 +66,13 @@ class Topping {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['description'] = this.description;
-    data['price'] = this.price;
-    data['store_id'] = this.storeId;
-    data['id'] = this.id;
-    data['isActive'] = this.isActive;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['description'] = description;
+    data['price'] = price;
+    data['store_id'] = storeId;
+    data['id'] = id;
+    data['isActive'] = isActive;
     return data;
   }
 }
@@ -106,14 +106,14 @@ class Group {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['min_select'] = this.minSelect;
-    data['max_select'] = this.maxSelect;
-    data['is_required'] = this.isRequired;
-    data['store_id'] = this.storeId;
-    data['id'] = this.id;
-    data['isActive'] = this.isActive;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['min_select'] = minSelect;
+    data['max_select'] = maxSelect;
+    data['is_required'] = isRequired;
+    data['store_id'] = storeId;
+    data['id'] = id;
+    data['isActive'] = isActive;
     return data;
   }
 }

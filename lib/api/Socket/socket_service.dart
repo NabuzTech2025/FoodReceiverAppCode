@@ -17,7 +17,7 @@ class SocketService {
   Function(Map<String, dynamic>)? onNewOrder;
   Function(Map<String, dynamic>)? onOrderUpdate;
   Function()? onConnected;
-  Function()? onDisconnected;
+  Function()  ? onDisconnected;
 
   bool get isConnected => _isConnected;
 

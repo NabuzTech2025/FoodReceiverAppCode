@@ -24,8 +24,8 @@ class StoreSetting {
   StoreSetting.withError({
     int? code,
     String? mess,
-  })  : this.code = code,
-        this.mess = mess;
+  })  : code = code,
+        mess = mess;
 
   factory StoreSetting.fromJson(Map<String, dynamic> json) => StoreSetting(
         auto_accept_orders_remote: json["auto_accept_orders_remote"],

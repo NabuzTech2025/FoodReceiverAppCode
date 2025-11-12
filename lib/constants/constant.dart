@@ -1,4 +1,3 @@
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -73,8 +72,8 @@ Future<List<int>> getIntList(String key) async {
 void showSnackbar(String title, String msg) {
   Get.snackbar(title, msg,
       snackPosition: SnackPosition.BOTTOM,
-      margin: EdgeInsets.all(10),
-      padding: EdgeInsets.all(10),
+      margin: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(10),
       backgroundColor: Colors.white.withOpacity(0.5),
       colorText: Colors.black);
 }
@@ -84,12 +83,12 @@ appbarColor() {
     decoration: BoxDecoration(
       gradient: LinearGradient(
           colors: [
-            appColor.backgroundBlueLightColor,
-            appColor.backgroundBlueDarkColor,
+            AppColor.backgroundBlueLightColor,
+            AppColor.backgroundBlueDarkColor,
           ],
           begin: const FractionalOffset(0.0, 0.0),
           end: const FractionalOffset(1.0, 0.0),
-          stops: [0.0, 1.0],
+          stops: const [0.0, 1.0],
           tileMode: TileMode.clamp),
     ),
   );
@@ -98,12 +97,12 @@ appbarColor() {
 gradientContainer() {
   return LinearGradient(
       colors: [
-        appColor.backgroundBlueLightColor,
-        appColor.backgroundBlueDarkColor,
+        AppColor.backgroundBlueLightColor,
+        AppColor.backgroundBlueDarkColor,
       ],
       begin: const FractionalOffset(0.0, 0.0),
       end: const FractionalOffset(1.0, 0.0),
-      stops: [0.0, 1.0],
+      stops: const [0.0, 1.0],
       tileMode: TileMode.clamp);
 }
 

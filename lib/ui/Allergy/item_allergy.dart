@@ -32,7 +32,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
   int totalPages = 0;
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  bool _isEditMode = false;
+  final bool _isEditMode = false;
   List<GetStoreProducts> productList = [];
   List<GetAllergyResponseModel> allergyList = [];
   @override
@@ -129,7 +129,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
     return Scaffold(
       backgroundColor: Colors.white,
       drawer: CustomDrawer(onSelectTab: _openTab),
-      appBar: CustomAppBar(),
+      appBar: const CustomAppBar(),
       body: Column(
         children: [
           Expanded(
@@ -142,7 +142,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('allergy'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontFamily: 'Mulish',
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold)),
@@ -158,7 +158,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
                             ),
                             child: Center(
                               child: Text('add'.tr,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
                                     fontSize: 12,
@@ -170,7 +170,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 15),
+                  const SizedBox(height: 15),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Align(
@@ -186,7 +186,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
 
                   Container(
                     padding: const EdgeInsets.all(15),
@@ -195,19 +195,19 @@ class _ItemAllergyState extends State<ItemAllergy> {
                     ),
                     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(
+                        SizedBox(
                           width: MediaQuery.of(context).size.width * 0.43,
                           child: Text('Product Name'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 13,
                                 fontFamily: 'Mulish'),
                           ),
                         ),
-                        Container(
+                        SizedBox(
                           width: MediaQuery.of(context).size.width * 0.32,
                           child: Text('allergy_name'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 13,
                                   fontFamily: 'Mulish')),
@@ -255,10 +255,10 @@ class _ItemAllergyState extends State<ItemAllergy> {
                                 child: Container(
                                   width: 60,
                                   height: double.infinity,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xffE25454),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xffE25454),
                                   ),
-                                  child: Icon(
+                                  child: const Icon(
                                     Icons.delete_outline,
                                     color: Colors.white,
                                     size: 25,
@@ -280,7 +280,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
                             ),
                             child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Container(
+                                SizedBox(
                                   width: MediaQuery.of(context).size.width * 0.43,
                                   child:  Text(
                                     currentPageItems[index].productName ?? 'N/A',
@@ -291,7 +291,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
                                     //overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                Container(
+                                SizedBox(
                                   width: MediaQuery.of(context).size.width * 0.32,
                                   child:Text(
                                     currentPageItems[index].allergyName.toString(),
@@ -324,7 +324,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
                     BoxShadow(
                       color: Colors.grey.shade200,
                       blurRadius: 5,
-                      offset: Offset(0, -2),
+                      offset: const Offset(0, -2),
                     ),
                   ],
                 ),
@@ -358,7 +358,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
                       ),
                     ),
 
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
                     // Page Numbers
                     ...(_getPageNumbers().map((pageNum) {
@@ -371,10 +371,10 @@ class _ItemAllergyState extends State<ItemAllergy> {
                             width: 35,
                             height: 35,
                             decoration: BoxDecoration(
-                              color: isActive ? Color(0xFF0EA5E9) : Colors
+                              color: isActive ? const Color(0xFF0EA5E9) : Colors
                                   .white,
                               border: Border.all(
-                                color: isActive ? Color(0xFF0EA5E9) : Colors
+                                color: isActive ? const Color(0xFF0EA5E9) : Colors
                                     .grey.shade300,
                               ),
                               borderRadius: BorderRadius.circular(4),
@@ -396,7 +396,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
                       );
                     }).toList()),
 
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
                     // Next Button
                     GestureDetector(
@@ -437,7 +437,8 @@ class _ItemAllergyState extends State<ItemAllergy> {
   void showAddAllergyBottomSheet({
     bool isEditMode = false,
     get_item_allergy_link_response_model? allergyData,
-  }) {
+  })
+  {
     GetStoreProducts? selectedProduct;
     GetAllergyResponseModel? selectedAllergy;
 
@@ -446,7 +447,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
               (p) => p.id.toString() == allergyData.productId.toString()
       );
       selectedAllergy = allergyList.firstWhereOrNull(
-              (a) => a.id.toString() == allergyData..toString()
+              (a) => a.id.toString() == allergyData.allergyItemId.toString()
       );
     }
 
@@ -454,11 +455,11 @@ class _ItemAllergyState extends State<ItemAllergy> {
       StatefulBuilder(
         builder: (context, setModalState) {
           return Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
-            padding: EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -468,7 +469,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
                   children: [
                     Text(
                       isEditMode ? 'Edit Product Allergy' : 'Add Product Allergy',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'Mulish',
@@ -476,17 +477,17 @@ class _ItemAllergyState extends State<ItemAllergy> {
                     ),
                     IconButton(
                       onPressed: () => Get.back(),
-                      icon: Icon(Icons.close),
+                      icon: const Icon(Icons.close),
                     ),
                   ],
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
 
                 // Product Dropdown
-                Text('Select Product *', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                SizedBox(height: 8),
+                const Text('Select Product *', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.grey.shade300),
                     borderRadius: BorderRadius.circular(8),
@@ -494,7 +495,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<GetStoreProducts>(
                       isExpanded: true,
-                      hint: Text('Choose a product...'),
+                      hint: const Text('Choose a product...'),
                       value: selectedProduct,
                       items: productList.map((product) {
                         return DropdownMenuItem(
@@ -511,13 +512,13 @@ class _ItemAllergyState extends State<ItemAllergy> {
                   ),
                 ),
 
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
 
                 // Allergy Dropdown
-                Text('Select Allergy *', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                SizedBox(height: 8),
+                const Text('Select Allergy *', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.grey.shade300),
                     borderRadius: BorderRadius.circular(8),
@@ -525,7 +526,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<GetAllergyResponseModel>(
                       isExpanded: true,
-                      hint: Text('Choose an allergy...'),
+                      hint: const Text('Choose an allergy...'),
                       value: selectedAllergy,
                       items: allergyList.map((allergy) {
                         return DropdownMenuItem(
@@ -542,7 +543,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
                   ),
                 ),
 
-                SizedBox(height: 24),
+                const SizedBox(height: 24),
 
                 // Buttons
                 Row(
@@ -550,16 +551,30 @@ class _ItemAllergyState extends State<ItemAllergy> {
                   children: [
                     TextButton(
                       onPressed: () => Get.back(),
-                      child: Text('Cancel', style: TextStyle(color: Colors.grey)),
+                      child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
                     ),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     ElevatedButton(
                       onPressed: () {
                         if (selectedProduct == null || selectedAllergy == null) {
-                          Get.snackbar('Error', 'Please select both product and allergy');
+                          String message = '';
+                          if (selectedProduct == null && selectedAllergy == null) {
+                            message = 'Please select both product and allergy';
+                          } else if (selectedProduct == null) {
+                            message = 'Please select a product';
+                          } else {
+                            message = 'Please select an allergy';
+                          }
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(message),
+                              backgroundColor: Colors.red,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
                           return;
                         }
-
                         if (isEditMode) {
                           editAllergyLinkWithData(
                             allergyData!.allergyItemId.toString(),
@@ -574,11 +589,11 @@ class _ItemAllergyState extends State<ItemAllergy> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFFFCAE03),
+                        backgroundColor: const Color(0xFFFCAE03),
                       ),
                       child: Text(
                         isEditMode ? 'Update' : 'Add',
-                        style: TextStyle(color: Colors.white),
+                        style: const TextStyle(color: Colors.white),
                       ),
                     ),
                   ],
@@ -854,7 +869,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
           SnackBar(
             content: Text('delete_allergy'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -868,7 +883,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
           SnackBar(
             content: Text('faile_allergy'.tr),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -899,7 +914,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(height: 20,),
+                    const SizedBox(height: 20,),
                     Text(
                       '${'are'.tr}"$allergyLinkName"?',
                       style: const TextStyle(
@@ -930,7 +945,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
                             ),
                             child:  Text(
                               'cancel'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -959,7 +974,7 @@ class _ItemAllergyState extends State<ItemAllergy> {
                             ),
                             child:  Text(
                               'delete'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),

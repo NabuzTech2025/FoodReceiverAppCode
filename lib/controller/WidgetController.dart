@@ -1,7 +1,7 @@
 
 import 'package:get/get.dart';
 
-final title = "WidgetController";
+const title = "WidgetController";
 
 class WidgetController extends GetxController {
 

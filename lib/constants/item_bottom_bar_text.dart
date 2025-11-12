@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'app_color.dart';
 
 class ItemTextBottomBar extends StatelessWidget {
   final String icon;
@@ -10,7 +9,7 @@ class ItemTextBottomBar extends StatelessWidget {
   final int badgeValue;
   final VoidCallback onPressed;
 
-  ItemTextBottomBar({
+  const ItemTextBottomBar({super.key, 
     required this.icon,
     required this.name,
     this.selected = false,
@@ -21,7 +20,7 @@ class ItemTextBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget _tabIcon = Container(
+    Widget tabIcon = Container(
       child: Column(
         children: [
           IconButton(
@@ -36,7 +35,7 @@ class ItemTextBottomBar extends StatelessWidget {
           ),
           Text(
             name,
-            style: TextStyle(
+            style: const TextStyle(
                 fontSize: 15.0,
                 color: Colors.black,
                 fontWeight: FontWeight.w400),
@@ -45,6 +44,6 @@ class ItemTextBottomBar extends StatelessWidget {
       ),
     );
 
-    return _tabIcon;
+    return tabIcon;
   }
 }

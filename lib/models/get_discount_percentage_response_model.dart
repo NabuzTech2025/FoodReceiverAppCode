@@ -33,13 +33,13 @@ class GetDiscountPercentageResponseModel {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['code'] = this.code;
-    data['type'] = this.type;
-    data['value'] = this.value;
-    data['expires_at'] = this.expiresAt;
-    data['store_id'] = this.storeId;
-    data['id'] = this.id;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['code'] = code;
+    data['type'] = type;
+    data['value'] = value;
+    data['expires_at'] = expiresAt;
+    data['store_id'] = storeId;
+    data['id'] = id;
     return data;
   }
 

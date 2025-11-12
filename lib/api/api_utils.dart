@@ -1,14 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import '../utils/log_util.dart';
-import 'custom_log_interceptor.dart';
 
-final title = "ApiUtils";
+const title = "ApiUtils";
 
 ApiUtils apiUtils = ApiUtils();
 
 class ApiUtils {
-  static ApiUtils _apiUtils = ApiUtils._i();
+  static final ApiUtils _apiUtils = ApiUtils._i();
   final Dio _dio = Dio();
 
   ApiUtils._i() {
@@ -125,38 +124,38 @@ class ApiUtils {
 
     Log.loga(title, "handleError:: error >> $error");
 
-    if (error is DioError) {
+    if (error is DioException) {
       Log.loga(title, '************************ DioError ************************');
 
-      DioError dioError = error as DioError;
+      DioException dioError = error;
       Log.loga(title, 'dioError:: $dioError');
       if (dioError.response != null) {
-        Log.loga(title, "dioError:: response >> " + dioError.response.toString());
+        Log.loga(title, "dioError:: response >> ${dioError.response}");
       }
 
       switch (dioError.type) {
-        case DioErrorType.cancel:
+        case DioExceptionType.cancel:
           errorDescription = "Request to API server was cancelled";
           break;
-        case DioErrorType.receiveTimeout:
+        case DioExceptionType.receiveTimeout:
           errorDescription = "Receive timeout in connection with API server";
           break;
-        case DioErrorType.sendTimeout:
+        case DioExceptionType.sendTimeout:
           errorDescription = "Send timeout in connection with API server";
           break;
-        case DioErrorType.connectionTimeout:
+        case DioExceptionType.connectionTimeout:
           errorDescription = "Connection timeout with API server";
           break;
-        case DioErrorType.badCertificate:
+        case DioExceptionType.badCertificate:
           errorDescription = 'Caused by an incorrect certificate';
           break;
-        case DioErrorType.badResponse:
+        case DioExceptionType.badResponse:
           errorDescription = "Received invalid status code: ${dioError.response?.statusCode}";
           break;
-        case DioErrorType.connectionError:
+        case DioExceptionType.connectionError:
           errorDescription = 'Caused for example by a `xhr.onError` or SocketExceptions.';
           break;
-        case DioErrorType.unknown:
+        case DioExceptionType.unknown:
           errorDescription = "Connection to API server failed due to internet connection";
           break;
       }

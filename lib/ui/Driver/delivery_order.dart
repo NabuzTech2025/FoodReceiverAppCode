@@ -32,7 +32,7 @@ class _DeliveryOrderState extends State<DeliveryOrder> {
     return Scaffold(
       backgroundColor: Colors.white,
       drawer: CustomDrawer(onSelectTab: _openTab),
-      appBar: CustomAppBar(),
+      appBar: const CustomAppBar(),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -50,11 +50,11 @@ class _DeliveryOrderState extends State<DeliveryOrder> {
           ),
           Expanded(
             child: ListView.builder(
-              padding: EdgeInsets.symmetric(horizontal: 12.0),
+              padding: const EdgeInsets.symmetric(horizontal: 12.0),
               itemCount: 5,
               itemBuilder: (context, index) {
                 return Container(
-                  margin: EdgeInsets.only(bottom: 12),
+                  margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(7),
@@ -63,12 +63,12 @@ class _DeliveryOrderState extends State<DeliveryOrder> {
                         color: Colors.black.withOpacity(0.1),
                         spreadRadius: 0,
                         blurRadius: 4,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
                   child: Padding(
-                    padding: EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(10),
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       //onTap: () => Get.to(() => OrderDetailEnglish(order)),
@@ -93,7 +93,7 @@ class _DeliveryOrderState extends State<DeliveryOrder> {
                                       color: Colors.white,
                                     ),
                                   ),
-                                  SizedBox(width: 6),
+                                  const SizedBox(width: 6),
                                   const Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [

@@ -15,11 +15,11 @@ class EditGroupItemResponseModel {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['id'] = this.id;
-    data['topping_id'] = this.toppingId;
-    data['topping_group_id'] = this.toppingGroupId;
-    data['display_order'] = this.displayOrder;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['id'] = id;
+    data['topping_id'] = toppingId;
+    data['topping_group_id'] = toppingGroupId;
+    data['display_order'] = displayOrder;
     return data;
   }
 }

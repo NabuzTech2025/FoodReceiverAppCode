@@ -1,6 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:get/get.dart';
 
 import '../utils/global.dart';
 
@@ -8,7 +7,7 @@ class NotificationService {
   static Future<void> initialize() async {
     print('push Notification Logs');
     FirebaseMessaging messaging = FirebaseMessaging.instance;
-    final AudioPlayer _audioPlayer = AudioPlayer();
+    final AudioPlayer audioPlayer = AudioPlayer();
     // 🔐 Request notification permissions
     NotificationSettings settings = await messaging.requestPermission(
       alert: true,
@@ -27,7 +26,7 @@ class NotificationService {
 
     // 🔔 Listen for foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      print("NotificationSettings " + message.toString());
+      print("NotificationSettings $message");
       print('📬 Foreground notification: ${message.notification?.title}');
       // await _audioPlayer.play(AssetSource('alarm.mp3'));
       // Future.delayed(Duration(seconds: 5), () {

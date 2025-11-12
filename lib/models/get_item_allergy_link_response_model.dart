@@ -15,11 +15,11 @@ class get_item_allergy_link_response_model {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['product_id'] = this.productId;
-    data['product_name'] = this.productName;
-    data['allergy_item_id'] = this.allergyItemId;
-    data['allergy_name'] = this.allergyName;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['product_id'] = productId;
+    data['product_name'] = productName;
+    data['allergy_item_id'] = allergyItemId;
+    data['allergy_name'] = allergyName;
     return data;
   }
 }

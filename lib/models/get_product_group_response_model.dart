@@ -13,20 +13,20 @@ class GetProductGroupResponseModel {
     toppingGroupId = json['topping_group_id'];
     id = json['id'];
     product =
-    json['product'] != null ? new Product.fromJson(json['product']) : null;
-    group = json['group'] != null ? new Group.fromJson(json['group']) : null;
+    json['product'] != null ? Product.fromJson(json['product']) : null;
+    group = json['group'] != null ? Group.fromJson(json['group']) : null;
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['product_id'] = this.productId;
-    data['topping_group_id'] = this.toppingGroupId;
-    data['id'] = this.id;
-    if (this.product != null) {
-      data['product'] = this.product!.toJson();
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['product_id'] = productId;
+    data['topping_group_id'] = toppingGroupId;
+    data['id'] = id;
+    if (product != null) {
+      data['product'] = product!.toJson();
     }
-    if (this.group != null) {
-      data['group'] = this.group!.toJson();
+    if (group != null) {
+      data['group'] = group!.toJson();
     }
     return data;
   }
@@ -82,34 +82,34 @@ class Product {
     id = json['id'];
     ownerId = json['owner_id'];
     category = json['category'] != null
-        ? new Category.fromJson(json['category'])
+        ? Category.fromJson(json['category'])
         : null;
 
-    tax = json['tax'] != null ? new Tax.fromJson(json['tax']) : null;
+    tax = json['tax'] != null ? Tax.fromJson(json['tax']) : null;
 
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['item_code'] = this.itemCode;
-    data['category_id'] = this.categoryId;
-    data['image_url'] = this.imageUrl;
-    data['type'] = this.type;
-    data['price'] = this.price;
-    data['store_id'] = this.storeId;
-    data['tax_id'] = this.taxId;
-    data['isActive'] = this.isActive;
-    data['description'] = this.description;
-    data['display_order'] = this.displayOrder;
-    data['id'] = this.id;
-    data['owner_id'] = this.ownerId;
-    if (this.category != null) {
-      data['category'] = this.category!.toJson();
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['item_code'] = itemCode;
+    data['category_id'] = categoryId;
+    data['image_url'] = imageUrl;
+    data['type'] = type;
+    data['price'] = price;
+    data['store_id'] = storeId;
+    data['tax_id'] = taxId;
+    data['isActive'] = isActive;
+    data['description'] = description;
+    data['display_order'] = displayOrder;
+    data['id'] = id;
+    data['owner_id'] = ownerId;
+    if (category != null) {
+      data['category'] = category!.toJson();
     }
 
-    if (this.tax != null) {
-      data['tax'] = this.tax!.toJson();
+    if (tax != null) {
+      data['tax'] = tax!.toJson();
     }
     return data;
   }
@@ -148,22 +148,22 @@ class Category {
     description = json['description'];
     displayOrder = json['display_order'];
     id = json['id'];
-    tax = json['tax'] != null ? new Tax.fromJson(json['tax']) : null;
+    tax = json['tax'] != null ? Tax.fromJson(json['tax']) : null;
 
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['store_id'] = this.storeId;
-    data['tax_id'] = this.taxId;
-    data['image_url'] = this.imageUrl;
-    data['isActive'] = this.isActive;
-    data['description'] = this.description;
-    data['display_order'] = this.displayOrder;
-    data['id'] = this.id;
-    if (this.tax != null) {
-      data['tax'] = this.tax!.toJson();
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['store_id'] = storeId;
+    data['tax_id'] = taxId;
+    data['image_url'] = imageUrl;
+    data['isActive'] = isActive;
+    data['description'] = description;
+    data['display_order'] = displayOrder;
+    data['id'] = id;
+    if (tax != null) {
+      data['tax'] = tax!.toJson();
     }
     return data;
   }
@@ -185,11 +185,11 @@ class Tax {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['percentage'] = this.percentage;
-    data['store_id'] = this.storeId;
-    data['id'] = this.id;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['percentage'] = percentage;
+    data['store_id'] = storeId;
+    data['id'] = id;
     return data;
   }
 }
@@ -223,14 +223,14 @@ class Group {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['min_select'] = this.minSelect;
-    data['max_select'] = this.maxSelect;
-    data['is_required'] = this.isRequired;
-    data['store_id'] = this.storeId;
-    data['id'] = this.id;
-    data['isActive'] = this.isActive;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['min_select'] = minSelect;
+    data['max_select'] = maxSelect;
+    data['is_required'] = isRequired;
+    data['store_id'] = storeId;
+    data['id'] = id;
+    data['isActive'] = isActive;
     return data;
   }
 }

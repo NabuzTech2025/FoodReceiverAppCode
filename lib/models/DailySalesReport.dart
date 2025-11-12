@@ -41,8 +41,8 @@ class DailySalesReport {
     int? code,
     String? mess,
   })
-      : this.code = code,
-        this.mess = mess;
+      : code = code,
+        mess = mess;
 
   factory DailySalesReport.fromJson(Map<String, dynamic> json) {
     print("=== Parsing DailySalesReport ===");
@@ -258,9 +258,9 @@ class TaxBreakdown {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['7'] = this.d7;
-    data['19'] = this.d19;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['7'] = d7;
+    data['19'] = d19;
     return data;
   }
 }
@@ -277,9 +277,9 @@ class PaymentMethods {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['cash'] = this.cash;
-    data['online'] = this.online;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['cash'] = cash;
+    data['online'] = online;
     return data;
   }
 }
@@ -298,10 +298,10 @@ class ApprovalStatuses {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['pending'] = this.pending;
-    data['accepted'] = this.accepted;
-    data['declined'] = this.declined;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['pending'] = pending;
+    data['accepted'] = accepted;
+    data['declined'] = declined;
     return data;
   }
 }

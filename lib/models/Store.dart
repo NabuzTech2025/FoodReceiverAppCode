@@ -17,8 +17,8 @@ class Store {
   Store.withError({
     int? code,
     String? mess,
-  })  : this.code = code,
-        this.mess = mess;
+  })  : code = code,
+        mess = mess;
 
   factory Store.fromJson(Map<String, dynamic> json) => Store(
     name: json["name"],

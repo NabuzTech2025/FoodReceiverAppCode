@@ -78,7 +78,7 @@ class _DiscountState extends State<Discount> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: Colors.blue, // header background color
               onPrimary: Colors.white, // header text color
               onSurface: Colors.black, // body text color
@@ -101,14 +101,14 @@ class _DiscountState extends State<Discount> {
     return Scaffold(
       backgroundColor: Colors.white,
       drawer: CustomDrawer(onSelectTab: _openTab),
-      appBar: CustomAppBar(),
+      appBar: const CustomAppBar(),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(12.0),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('managee'.tr,
-                style: TextStyle(fontSize: 18,fontWeight: FontWeight.w800,fontFamily: 'Mulish'),),
+                style: const TextStyle(fontSize: 18,fontWeight: FontWeight.w800,fontFamily: 'Mulish'),),
               const SizedBox(height: 20),
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -116,12 +116,12 @@ class _DiscountState extends State<Discount> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                      Text('${'delivery_discount'.tr} (%)',
-                        style: TextStyle(fontFamily: 'Mulish',fontWeight: FontWeight.w700,fontSize: 13),),
+                        style: const TextStyle(fontFamily: 'Mulish',fontWeight: FontWeight.w700,fontSize: 13),),
                       const SizedBox(height: 8),
                       Container(
                         width: 150,
                         height: 44,
-                        padding: EdgeInsets.only(left: 12,bottom: 3),
+                        padding: const EdgeInsets.only(left: 12,bottom: 3),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
@@ -130,7 +130,7 @@ class _DiscountState extends State<Discount> {
                               color: Colors.black.withOpacity(0.1),
                               spreadRadius: 0,
                               blurRadius: 4,
-                              offset: Offset(0, 2),
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
@@ -161,12 +161,12 @@ class _DiscountState extends State<Discount> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('${'pickup_discount'.tr} (%)',
-                        style: TextStyle(fontFamily: 'Mulish',fontWeight: FontWeight.w700,fontSize: 13),),
+                        style: const TextStyle(fontFamily: 'Mulish',fontWeight: FontWeight.w700,fontSize: 13),),
                       const SizedBox(height: 8),
                       Container(
                         width: 150,
                         height: 44,
-                        padding: EdgeInsets.only(left: 12,bottom: 3),
+                        padding: const EdgeInsets.only(left: 12,bottom: 3),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
@@ -175,7 +175,7 @@ class _DiscountState extends State<Discount> {
                               color: Colors.black.withOpacity(0.1),
                               spreadRadius: 0,
                               blurRadius: 4,
-                              offset: Offset(0, 2),
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
@@ -206,13 +206,13 @@ class _DiscountState extends State<Discount> {
               ),
               const SizedBox(height: 20),
               Text('expiry'.tr,
-                style: TextStyle(fontSize: 13,fontWeight: FontWeight.w700,fontFamily: 'Mulish'),),
-              SizedBox(height: 10),
+                style: const TextStyle(fontSize: 13,fontWeight: FontWeight.w700,fontFamily: 'Mulish'),),
+              const SizedBox(height: 10),
               GestureDetector(
                 onTap: _selectDate, // Add tap functionality
                 child: Container(
                   height: 44,
-                  padding: EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
@@ -221,7 +221,7 @@ class _DiscountState extends State<Discount> {
                         color: Colors.black.withOpacity(0.1),
                         spreadRadius: 0,
                         blurRadius: 4,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -229,51 +229,51 @@ class _DiscountState extends State<Discount> {
                     children: [
                       Text(
                         DateFormat('dd/MM/yyyy').format(_selectedDate), // Format selected date
-                        style: TextStyle(fontFamily: 'Mulish',fontSize: 15,fontWeight: FontWeight.w500),
+                        style: const TextStyle(fontFamily: 'Mulish',fontSize: 15,fontWeight: FontWeight.w500),
                       ),
-                      Icon(Icons.calendar_month_rounded,color: Colors.black,)
+                      const Icon(Icons.calendar_month_rounded,color: Colors.black,)
                     ],
                   ),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               GestureDetector(
                 onTap: (){
                   _saveDiscounts();
                 },
                 child: Container(
-                  padding: EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(10),
                   decoration:BoxDecoration(
                     borderRadius: BorderRadius.circular(3),
-                    color: Color(0xFF0C831F),
+                    color: const Color(0xFF0C831F),
                   ) ,
                   child:Center(
-                    child: Text('saved'.tr,style: TextStyle(color: Colors.white,
+                    child: Text('saved'.tr,style: const TextStyle(color: Colors.white,
                       fontWeight: FontWeight.w700,fontSize: 20,fontFamily: 'Mulish',
                     ),),
                   ),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               Text('current'.tr,
-                style: TextStyle(fontSize: 14,fontWeight: FontWeight.w800,fontFamily: 'Mulish'),),
-              SizedBox(height: 10),
+                style: const TextStyle(fontSize: 14,fontWeight: FontWeight.w800,fontFamily: 'Mulish'),),
+              const SizedBox(height: 10),
               Column(
                 children: [
                   Container(
-                    padding: EdgeInsets.all(15),
+                    padding: const EdgeInsets.all(15),
                     decoration: const BoxDecoration(
                       color: Color(0xFFECF8FF),
                     ),
                     child: Row(
                       children: [
-                        Container(
+                        SizedBox(
                           width: MediaQuery.of(context).size.width*0.5,
-                          child:  Text('type'.tr,style: TextStyle(
+                          child:  Text('type'.tr,style: const TextStyle(
                               fontWeight: FontWeight.w700,fontSize: 13,fontFamily: 'Mulish'
                           ),),
                         ) ,
-                        Text('value'.tr,style: TextStyle(
+                        Text('value'.tr,style: const TextStyle(
                             fontWeight: FontWeight.w700,fontSize: 13,fontFamily: 'Mulish'
                         ),)
                       ],
@@ -282,19 +282,19 @@ class _DiscountState extends State<Discount> {
                   // Dynamically build discount rows from API data
                   if (currentDiscounts.isEmpty)
                     Container(
-                      padding: EdgeInsets.all(15),
+                      padding: const EdgeInsets.all(15),
                       child: Text('no_current'.tr,
-                        style: TextStyle(fontFamily: 'Mulish', fontSize: 12),
+                        style: const TextStyle(fontFamily: 'Mulish', fontSize: 12),
                       ),
                     )
                   else
                     ...currentDiscounts.map((discount) => Column(
                       children: [
                         Container(
-                          padding: EdgeInsets.all(15),
+                          padding: const EdgeInsets.all(15),
                           child: Row(
                             children: [
-                              Container(
+                              SizedBox(
                                 width: MediaQuery.of(context).size.width*0.5,
                                 child: Text(discount.code ?? 'Unknown',style: const TextStyle(
                                     fontWeight: FontWeight.w500,fontSize: 12,fontFamily: 'Mulish'
@@ -307,9 +307,9 @@ class _DiscountState extends State<Discount> {
                           ),
                         ),
                         if (discount != currentDiscounts.last)
-                          Divider(color: Color(0xFFAEC2DF)),
+                          const Divider(color: Color(0xFFAEC2DF)),
                       ],
-                    )).toList(),
+                    )),
                 ],
               )
             ],
@@ -369,11 +369,11 @@ class _DiscountState extends State<Discount> {
             if (discount.code?.toLowerCase().contains('delivery') == true) {
               _discountDeliveryController.text = '${discount.valueAsInt}';
               deliveryDiscountId = discount.id?.toString(); // Convert to string
-              print('Setting delivery discount: ${discount.valueAsInt}, ID: ${deliveryDiscountId}');
+              print('Setting delivery discount: ${discount.valueAsInt}, ID: $deliveryDiscountId');
             } else if (discount.code?.toLowerCase().contains('pickup') == true) {
               _pickUpDiscountController.text = '${discount.valueAsInt}';
               pickupDiscountId = discount.id?.toString(); // Convert to string
-              print('Setting pickup discount: ${discount.valueAsInt}, ID: ${pickupDiscountId}');
+              print('Setting pickup discount: ${discount.valueAsInt}, ID: $pickupDiscountId');
             }
           }
         }

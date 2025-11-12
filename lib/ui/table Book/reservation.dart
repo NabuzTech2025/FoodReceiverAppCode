@@ -1,22 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:food_app/ui/table%20Book/reservation_details.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../api/Socket/socket_service.dart';
+import '../../api/Socket/reservation_socket_service.dart';
 import '../../api/repository/api_repository.dart';
 import '../../constants/constant.dart';
 import '../../models/reservation/add_new_reservation_response_model.dart';
 import '../../models/reservation/get_user_reservation_details.dart';
-import '../../utils/global.dart';
-import '../../utils/log_util.dart';
 import '../../utils/my_application.dart';
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
-
 import '../LoginScreen.dart';
 import '../OrderScreen.dart';
 import 'ReservationBottomDialogSheet.dart';
@@ -36,7 +33,9 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
   bool _isDialogShowing = false;
   Timer? _reservationTimer;
   final SocketService _socketService = SocketService();
-
+  Map<String, dynamic>? storeStatusData;
+  List<Map<String, String>> availableTimeSlots = [];
+  bool isStoreOpen = false;
   Color getStatusColor(String? status) {
     if (status == null) return Colors.grey;
 
@@ -104,10 +103,17 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
     try {
       sharedPreferences = await SharedPreferences.getInstance();
       storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
+
+      // ✅ Start listening to store status after getting storeId
+      if (storeId != null && mounted) {
+        _listenToStoreStatus();
+      }
     } catch (e) {
       print('Error initializing SharedPreferences: $e');
     }
   }
+
+
   Future<void> _offlineLogout() async {
     try {
       Get.dialog(
@@ -367,23 +373,117 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       _isDialogShowing = false;
     });
   }
+
   @override
   void initState() {
     super.initState();
-    _initializeSharedPreferences();
+
+    // ✅ Initialize and connect socket first
+    _initializeSocketConnection();
+
     WidgetsBinding.instance.addObserver(this);
+
     ever(app.appController.triggerAddReservation, (_) {
       if (mounted) {
         showAddReservationForm();
       }
     });
-    // ✅ Start internet monitoring
+
     _startInternetMonitoring();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       loadExistingReservations();
     });
   }
+
+  Future<void> _initializeSocketConnection() async {
+    try {
+      await _initializeSharedPreferences();
+
+      // ✅ Connect to socket
+      await _socketService.connect();
+
+      // ✅ Wait for connection to establish
+      await Future.delayed(Duration(milliseconds: 2000));
+
+      // ✅ Start listening to store status
+      if (storeId != null && mounted) {
+        _listenToStoreStatus();
+      } else {
+        print("⚠️ Socket connection failed or storeId is null");
+      }
+    } catch (e) {
+      print("❌ Error initializing socket: $e");
+    }
+  }
+
+  void _listenToStoreStatus() {
+    if (storeId == null) {
+      print("⚠️ Store ID is null, cannot listen to store status");
+      return;
+    }
+
+    // ✅ Tell socket service to listen with this storeId (for compatibility)
+    _socketService.listenToStoreStatus(storeId!);
+
+    // ✅ Subscribe to the stream
+    _socketService.storeStatusStream.listen((data) {
+      if (data != null && mounted) {
+        setState(() {
+          storeStatusData = data;
+          isStoreOpen = data['is_open'] ?? false;
+          availableTimeSlots = _parseTimeSlots(data['today_hours']);
+        });
+        print("📡 Store status updated: Open=$isStoreOpen, Slots=${availableTimeSlots.length}");
+      }
+    }, onError: (error) {
+      print("❌ Store status stream error: $error");
+    });
+  }
+
+  List<Map<String, String>> _parseTimeSlots(List<dynamic>? todayHours) {
+    List<Map<String, String>> slots = [];
+
+    if (todayHours == null || todayHours.isEmpty) {
+      print("⚠️ No today_hours data available");
+      return slots;
+    }
+
+    for (var timeSlot in todayHours) {
+      String? openTime = timeSlot['open_time'];
+      String? closeTime = timeSlot['close_time'];
+
+      if (openTime != null && closeTime != null) {
+        List<String> openParts = openTime.split(':');
+        List<String> closeParts = closeTime.split(':');
+
+        int openHour = int.parse(openParts[0]);
+        int openMinute = int.parse(openParts[1]);
+        int closeHour = int.parse(closeParts[0]);
+        int closeMinute = int.parse(closeParts[1]);
+
+        DateTime currentSlot = DateTime(2023, 1, 1, openHour, openMinute);
+        DateTime endTime = DateTime(2023, 1, 1, closeHour, closeMinute);
+
+        while (currentSlot.isBefore(endTime) || currentSlot.isAtSameMomentAs(endTime)) {
+          String time24 = '${currentSlot.hour.toString().padLeft(2, '0')}:${currentSlot.minute.toString().padLeft(2, '0')}';
+          String time12 = DateFormat('h:mm a').format(currentSlot);
+
+          slots.add({
+            'time24': time24,
+            'time12': time12, // Keep for reference but won't use
+          });
+
+          currentSlot = currentSlot.add(Duration(minutes: 20));
+        }
+      }
+    }
+
+    print("✅ Generated ${slots.length} time slots from WebSocket data");
+    return slots;
+  }
+
+
 
   String formatDateTime(String? dateTimeString) {
     if (dateTimeString == null || dateTimeString.isEmpty) {
@@ -464,36 +564,55 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      // Add Today button
-                      if (dateSeleted.isNotEmpty && dateSeleted != DateFormat('d MMMM, y').format(DateTime.now()))
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              dateSeleted = "";
-                            });
-                          },
-                          child: Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.blue, width: 1),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.today, size: 14, color: Colors.blue),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Today',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.blue,
+                        Padding(
+                          padding: const EdgeInsets.only(right: 10.0,top: 5),
+                          child: Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  openCalendarScreen();
+                                },
+                                child: Row(
+                                  children: [
+                                    Text('history'.tr, style: TextStyle(fontFamily: "Mulish", fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xff1F1E1E))),
+                                    SizedBox(width: 5),
+                                    SvgPicture.asset('assets/images/dropdown.svg', height: 5, width: 11),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(width: 10,),
+                              if (dateSeleted.isNotEmpty && dateSeleted != DateFormat('d MMMM, y').format(DateTime.now()))
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    dateSeleted = "";
+                                  });
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.blue, width: 1),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.today, size: 14, color: Colors.blue),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Today',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.blue,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       Row(
@@ -516,7 +635,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                               icon: const Icon(Icons.refresh),
                               onPressed: () async {
                                 await getReservationsInBackground();
-                              })
+                              }),
                         ],
                       ),
                     ],
@@ -706,19 +825,23 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       isLoading = true;
     });
 
-    Get.dialog(
-      Center(
-          child: Lottie.asset(
-            'assets/animations/burger.json',
-            width: 150,
-            height: 150,
-            repeat: true,
-          )),
-      barrierDismissible: false,
-    );
+    // Only show dialog if not already open
+    if (!(Get.isDialogOpen ?? false)) {
+      Get.dialog(
+        Center(
+            child: Lottie.asset(
+              'assets/animations/burger.json',
+              width: 150,
+              height: 150,
+              repeat: true,
+            )),
+        barrierDismissible: false,
+      );
+    }
+
     _reservationTimer = Timer(Duration(seconds: 7), () {
       if (Get.isDialogOpen ?? false) {
-        Get.back();
+        Navigator.of(Get.overlayContext!).pop();
         showSnackbar("order Timeout", "get Details request timed out. Please try again.");
       }
     });
@@ -728,7 +851,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       if (connectivityResult == ConnectivityResult.none) {
         // Close loader immediately
         if (Get.isDialogOpen == true) {
-          Get.back();
+          Navigator.of(Get.overlayContext!).pop();
         }
 
         setState(() {
@@ -746,24 +869,20 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       await CallService().getReservationDetailsList();
       _reservationTimer?.cancel();
       if (Get.isDialogOpen == true) {
-        Get.back(); // Close dialog
+        Navigator.of(Get.overlayContext!).pop();
       }
       setState(() {
         hasInternet = true;
         isLoading = false;
-      });// Close dialog
-      app.appController.setReservations(reservations);
-
-      setState(() {
-        isLoading = false;
       });
+      app.appController.setReservations(reservations);
 
       print('✅ Loaded ${reservations.length} reservations into controller');
     } catch (e) {
       _reservationTimer?.cancel();
       // ✅ Always close loader in catch block
       if (Get.isDialogOpen == true) {
-        Get.back();
+        Navigator.of(Get.overlayContext!).pop();
       }
 
       setState(() {
@@ -784,11 +903,15 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
         });
       } else {
         print('❌ Error getting reservation details: $e');
-        Get.snackbar(
-          'error'.tr,
-          'load'.tr,
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${'error'.tr} - ${'load'.tr}'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
       }
     }
   }
@@ -875,145 +998,148 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
     final TextEditingController noteController = TextEditingController();
 
     return Stack(
-      clipBehavior: Clip.none,
-      children:[
-        Container(
-        height: Get.height * 0.85,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(35),
-            topRight: Radius.circular(35),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 10,
-              offset: Offset(0, -5),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              margin: EdgeInsets.only(top: 12),
-              width: 50,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
+        clipBehavior: Clip.none,
+        children:[
+          Container(
+            height: Get.height * 0.85,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(35),
+                topRight: Radius.circular(35),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 10,
+                  offset: Offset(0, -5),
+                ),
+              ],
             ),
-            Container(
-               width: double.infinity,
-               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-               margin: EdgeInsets.all(8),
-              child: Center(
-                child: Text(
-                  'new_reservation'.tr,
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    fontFamily: 'Mulish',
+            child: Column(
+              children: [
+                Container(
+                  margin: EdgeInsets.only(top: 12),
+                  width: 50,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 10),
-                physics: BouncingScrollPhysics(),
-                child: Column(
-                  children: [
-                    _buildAddReservationField('customer_name'.tr, nameController, Icons.person),
-                    _buildAddReservationField('phone_number'.tr, phoneController, Icons.phone),
-                    _buildAddReservationField('email_address'.tr, emailController, Icons.email),
-                    _buildAddReservationField('guest_count'.tr, guestController, Icons.group),
-                    _buildAddReservationField('reservation_date'.tr, reservationController, Icons.calendar_today, isDateField: true),
-                    _buildAddReservationField('special_note'.tr, noteController, Icons.note, maxLines: 3),
-
-                    SizedBox(height: 15),
-                    Row(
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                  margin: EdgeInsets.all(8),
+                  child: Center(
+                    child: Text(
+                      'new_reservation'.tr,
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Mulish',
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(horizontal: 10),
+                    physics: BouncingScrollPhysics(),
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () => Get.back(),
-                            child: Text('cancel'.tr,style: TextStyle(
-                              fontFamily: 'Mulish',fontWeight: FontWeight.w700,fontSize: 16,),),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.grey[300],
-                              foregroundColor: Colors.black87,
-                              minimumSize: Size(0, 50),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(3),
+                        _buildAddReservationField('customer_name'.tr, nameController, Icons.person),
+                        _buildAddReservationField('phone_number'.tr, phoneController, Icons.phone),
+                        _buildAddReservationField('email_address'.tr, emailController, Icons.email),
+                        _buildAddReservationField('guest_count'.tr, guestController, Icons.group),
+                        _buildAddReservationField('reservation_date'.tr, reservationController, Icons.calendar_today, isDateField: true),
+                        _buildAddReservationField('special_note'.tr, noteController, Icons.note, maxLines: 3),
+
+                        SizedBox(height: 15),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  // Close bottom sheet without triggering Get.back() multiple times
+                                  Navigator.of(context).pop();
+                                },
+                                child: Text('cancel'.tr,style: TextStyle(
+                                  fontFamily: 'Mulish',fontWeight: FontWeight.w700,fontSize: 16,),),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.grey[300],
+                                  foregroundColor: Colors.black87,
+                                  minimumSize: Size(0, 50),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                        SizedBox(width: 15),
-                        Expanded(
-                          //flex: 2,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              _createNewReservation(
-                                nameController.text,
-                                phoneController.text,
-                                emailController.text,
-                                guestController.text,
-                                reservationController.text,
-                                noteController.text,
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xff0C831F),
-                              foregroundColor: Colors.white,
-                              minimumSize: Size(0, 50),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(3),
+                            SizedBox(width: 15),
+                            Expanded(
+                              //flex: 2,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  _createNewReservation(
+                                    nameController.text,
+                                    phoneController.text,
+                                    emailController.text,
+                                    guestController.text,
+                                    reservationController.text,
+                                    noteController.text,
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Color(0xff0C831F),
+                                  foregroundColor: Colors.white,
+                                  minimumSize: Size(0, 50),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
+                                child:  Center(child: Text('book'.tr,style: TextStyle(
+                                  fontFamily: 'Mulish',fontWeight: FontWeight.w700,fontSize: 16,
+                                ),)),
                               ),
                             ),
-                            child:  Center(child: Text('book'.tr,style: TextStyle(
-                              fontFamily: 'Mulish',fontWeight: FontWeight.w700,fontSize: 16,
-                            ),)),
-                          ),
+                          ],
                         ),
+
+                        SizedBox(height: 20),
                       ],
                     ),
-
-                    SizedBox(height: 20),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
-        Positioned(
-          top: -60,
-          right: 0,
-          left: 0,
-          child: Center(
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 6,
-                    )
-                  ],
+          ),
+          Positioned(
+            top: -60,
+            right: 0,
+            left: 0,
+            child: Center(
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 6,
+                      )
+                    ],
+                  ),
+                  child: const Icon(Icons.close, size: 20, color: Colors.black),
                 ),
-                child: const Icon(Icons.close, size: 20, color: Colors.black),
               ),
             ),
           ),
-        ),
-      ]
+        ]
     );
   }
 
@@ -1140,258 +1266,324 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
   }
 
   Future<void> _selectNewTimeSlot(DateTime selectedDate, TextEditingController controller) async {
-    // Get day of week (1 = Monday, 7 = Sunday)
-    int weekday = selectedDate.weekday;
+    List<Map<String, String>> timeSlots = [];
 
-    List<TimeSlot> timeSlots = [];
+    // ✅ Check if WebSocket data is available
+    if (availableTimeSlots.isEmpty) {
+      print("⚠️ No time slots from WebSocket. Trying to reconnect...");
 
-    // Generate time slots based on restaurant opening hours
-    if (weekday >= 2 && weekday <= 5) {
-      // Tuesday - Friday: 11:00 - 22:45
-      timeSlots = _generateTimeSlots(11, 0, 22, 45);
-    } else if (weekday == 6) {
-      // Saturday: 12:00 - 22:45
-      timeSlots = _generateTimeSlots(12, 0, 22, 45);
-    } else if (weekday == 7 || weekday == 1) {
-      // Sunday/Monday (Public Holidays): 11:00 - 22:45
-      timeSlots = _generateTimeSlots(11, 0, 22, 45);
+      await _socketService.ensureConnected();
+      await Future.delayed(Duration(milliseconds: 1500));
+
+      if (availableTimeSlots.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('⚠️ Store timing data not available. Using default timings.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+
+        timeSlots = _generateDefaultTimeSlots();
+      } else {
+        timeSlots = List.from(availableTimeSlots);
+      }
+    } else {
+      timeSlots = List.from(availableTimeSlots);
     }
 
-    // Filter time slots based on current time if selected date is today
-    List<TimeSlot> availableSlots = timeSlots;
+    // ✅ Filter time slots based on Germany time
+    List<Map<String, String>> availableSlots = timeSlots;
     bool isToday = selectedDate.day == DateTime.now().day &&
         selectedDate.month == DateTime.now().month &&
         selectedDate.year == DateTime.now().year;
 
     if (isToday) {
-      DateTime currentTime = DateTime.now();
+      // ✅ Get current time in UTC
+      DateTime nowUtc = DateTime.now().toUtc();
+
+      // ✅ Germany timezone offset (check if DST is active)
+      bool isDST = _isDaylightSavingTime(nowUtc);
+      int germanyOffset = isDST ? 2 : 1; // UTC+2 in summer, UTC+1 in winter
+
+      // ✅ Get current Germany time
+      DateTime nowGermany = nowUtc.add(Duration(hours: germanyOffset));
+
+      // ✅ CRITICAL FIX: Get current Germany hour and minute for comparison
+      int currentHour = nowGermany.hour;
+      int currentMinute = nowGermany.minute;
+
+      print("⏰ Current Germany time: ${currentHour.toString().padLeft(2, '0')}:${currentMinute.toString().padLeft(2, '0')}");
+      print("🌍 UTC time: ${DateFormat('HH:mm').format(nowUtc)}");
+      print("☀️ DST Active: $isDST (Offset: +$germanyOffset hours)");
 
       availableSlots = timeSlots.where((slot) {
-        List<String> timeParts = slot.time.split(':');
+        List<String> timeParts = slot['time24']!.split(':');
         int slotHour = int.parse(timeParts[0]);
         int slotMinute = int.parse(timeParts[1]);
 
-        DateTime slotDateTime = DateTime(
-          selectedDate.year,
-          selectedDate.month,
-          selectedDate.day,
-          slotHour,
-          slotMinute,
-        );
+        // ✅ FIXED: Compare slot time directly with current Germany time
+        // Convert to total minutes for accurate comparison
+        int slotTotalMinutes = (slotHour * 60) + slotMinute;
+        int currentTotalMinutes = (currentHour * 60) + currentMinute;
 
-        return slotDateTime.isAfter(currentTime);
+        // ✅ Slot must be after current Germany time
+        bool isAvailable = slotTotalMinutes > currentTotalMinutes;
+
+        if (!isAvailable) {
+          print("❌ Slot ${slot['time24']} is in past (${slotTotalMinutes} <= ${currentTotalMinutes})");
+        } else {
+          print("✅ Slot ${slot['time24']} is available (${slotTotalMinutes} > ${currentTotalMinutes})");
+        }
+
+        return isAvailable;
       }).toList();
 
+      print("✅ Available slots after filtering: ${availableSlots.length}");
+
       if (availableSlots.isEmpty) {
-        Get.snackbar(
-          'closed'.tr,
-          'slot'.tr,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-          duration: Duration(seconds: 1),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${'closed'.tr} - No available time slots for today'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
         return;
       }
     }
 
-    // Show day info
-    String dayInfo = _getDayInfo(weekday);
+    String dayInfo = isStoreOpen
+        ? '✅ Store is Open - ${availableSlots.length} slots available'
+        : '⚠️ Store is Closed - Showing available slots';
 
-    // Show time slot picker
-    await Get.bottomSheet(
-      Container(
-        height: Get.height * 0.7,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-        ),
-        child: Column(
-          children: [
-            // Header
-            Container(
-              padding: EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.orange.shade600, Colors.orange.shade800], // Blue se Orange
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                ),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.access_time, color: Colors.white),
-                      SizedBox(width: 10),
-                      Text(
-                        'time_slot'.tr,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Mulish',
-                        ),
-                      ),
-                      Spacer(),
-                      IconButton(
-                        icon: Icon(Icons.close, color: Colors.white),
-                        onPressed: () => Get.back(),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    dayInfo,
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    final scaffoldContext = context;
 
-            // Date Display
-            Container(
-              padding: EdgeInsets.all(16),
-              child:Text(
-                '${'date'.tr}: ${DateFormat('dd-MM-yyyy (EEEE)').format(selectedDate)}',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'Mulish',
-                  color: Colors.orange.shade800, // Blue se Orange
-                ),
-              ),
-            ),
-
-            // Time Slots Grid
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: GridView.builder(
-                  physics: BouncingScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 2.2,
-                  ),
-                  itemCount: availableSlots.length,
-                  itemBuilder: (context, index) {
-                    TimeSlot slot = availableSlots[index];
-                    return GestureDetector(
-                      onTap: () {
-                        List<String> timeParts = slot.time.split(':');
-                        DateTime finalDateTime = DateTime(
-                          selectedDate.year,
-                          selectedDate.month,
-                          selectedDate.day,
-                          int.parse(timeParts[0]),
-                          int.parse(timeParts[1]),
-                        );
-
-                        String formattedDateTime = DateFormat('yyyy-MM-dd HH:mm:ss').format(finalDateTime);
-                        controller.text = formattedDateTime;
-
-                        Get.back(); // Close time picker
-                        Get.snackbar(
-                          'time_selected'.tr,
-                          '${'updated'.tr} ${slot.displayTime}',
-                          backgroundColor: Colors.green,
-                          colorText: Colors.white,
-                          snackPosition: SnackPosition.BOTTOM,
-                          duration: Duration(seconds: 1),
-                        );
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.green.shade100, Colors.green.shade200],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.green.shade300),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.green.withOpacity(0.2),
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: Text(
-                            slot.displayTime,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.green.shade800,
-                              fontFamily: 'Mulish',
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-
-            SizedBox(height: 20),
-          ],
-        ),
-      ),
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
       isDismissible: true,
       enableDrag: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext bottomSheetContext) {
+        return Container(
+          height: Get.height * 0.7,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.orange.shade600, Colors.orange.shade800],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.access_time, color: Colors.white),
+                        SizedBox(width: 10),
+                        Text(
+                          'time_slot'.tr,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Mulish',
+                          ),
+                        ),
+                        Spacer(),
+                        IconButton(
+                          icon: Icon(Icons.close, color: Colors.white),
+                          onPressed: () => Navigator.pop(bottomSheetContext),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      dayInfo,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Container(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  '${'date'.tr}: ${DateFormat('dd-MM-yyyy (EEEE)').format(selectedDate)}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Mulish',
+                    color: Colors.orange.shade800,
+                  ),
+                ),
+              ),
+
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: GridView.builder(
+                    physics: BouncingScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: 2.2,
+                    ),
+                    itemCount: availableSlots.length,
+                    itemBuilder: (context, index) {
+                      var slot = availableSlots[index];
+                      return GestureDetector(
+                        onTap: () {
+                          List<String> timeParts = slot['time24']!.split(':');
+                          DateTime finalDateTime = DateTime(
+                            selectedDate.year,
+                            selectedDate.month,
+                            selectedDate.day,
+                            int.parse(timeParts[0]),
+                            int.parse(timeParts[1]),
+                          );
+
+                          String formattedDateTime = DateFormat('yyyy-MM-dd HH:mm:ss').format(finalDateTime);
+                          controller.text = formattedDateTime;
+
+                          Navigator.pop(bottomSheetContext);
+
+                          Future.delayed(Duration(milliseconds: 400), () {
+                            if (mounted) {
+                              try {
+                                ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                                  SnackBar(
+                                    content: Text('${'time_selected'.tr}: ${slot['time24']}'),
+                                    backgroundColor: Colors.green,
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              } catch (e) {
+                                print('Error showing snackbar: $e');
+                              }
+                            }
+                          });
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Colors.green.shade100, Colors.green.shade200],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.green.shade300),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.green.withOpacity(0.2),
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              slot['time24']!,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.green.shade800,
+                                fontFamily: 'Mulish',
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  List<TimeSlot> _generateTimeSlots(int startHour, int startMinute, int endHour, int endMinute) {
-    List<TimeSlot> slots = [];
-    DateTime startTime = DateTime(2023, 1, 1, startHour, startMinute);
-    DateTime endTime = DateTime(2023, 1, 1, endHour, endMinute);
+// ✅ NEW: Check if Daylight Saving Time is active in Germany
+  bool _isDaylightSavingTime(DateTime dateTime) {
+    // Germany DST: Last Sunday of March to Last Sunday of October
+    int year = dateTime.year;
 
-    // Generate slots every 30 minutes
+    // Find last Sunday of March
+    DateTime marchEnd = DateTime.utc(year, 3, 31);
+    while (marchEnd.weekday != DateTime.sunday) {
+      marchEnd = marchEnd.subtract(Duration(days: 1));
+    }
+
+    // Find last Sunday of October
+    DateTime octoberEnd = DateTime.utc(year, 10, 31);
+    while (octoberEnd.weekday != DateTime.sunday) {
+      octoberEnd = octoberEnd.subtract(Duration(days: 1));
+    }
+
+    // DST starts at 2:00 AM on last Sunday of March
+    DateTime dstStart = DateTime.utc(year, marchEnd.month, marchEnd.day, 2, 0);
+
+    // DST ends at 3:00 AM on last Sunday of October
+    DateTime dstEnd = DateTime.utc(year, octoberEnd.month, octoberEnd.day, 3, 0);
+
+    bool isDST = dateTime.isAfter(dstStart) && dateTime.isBefore(dstEnd);
+
+    return isDST;
+  }
+
+  List<Map<String, String>> _generateDefaultTimeSlots() {
+    List<Map<String, String>> slots = [];
+
+    // Default timing: 10:00 AM to 10:00 PM, 20 min intervals
+    DateTime startTime = DateTime(2023, 1, 1, 10, 0);
+    DateTime endTime = DateTime(2023, 1, 1, 22, 0);
+
     DateTime currentSlot = startTime;
 
     while (currentSlot.isBefore(endTime) || currentSlot.isAtSameMomentAs(endTime)) {
       String time24 = '${currentSlot.hour.toString().padLeft(2, '0')}:${currentSlot.minute.toString().padLeft(2, '0')}';
       String time12 = DateFormat('h:mm a').format(currentSlot);
 
-      slots.add(TimeSlot(time24, time12));
+      slots.add({
+        'time24': time24,
+        'time12': time12,
+      });
+
       currentSlot = currentSlot.add(Duration(minutes: 20));
     }
 
+    print("✅ Generated ${slots.length} default time slots as fallback");
     return slots;
   }
 
-  String _getDayInfo(int weekday) {
-    switch (weekday) {
-      case 2:
-      case 3:
-      case 4:
-      case 5:
-        return 'Tuesday - Friday: 11:00 AM - 10:45 PM';
-      case 6:
-        return 'Saturday: 12:00 PM - 10:45 PM';
-      case 7:
-      case 1:
-        return 'Sunday/Monday: 11:00 AM - 10:45 PM';
-      default:
-        return '';
-    }
-  }
 
   Future<void> _createNewReservation(String name, String phone, String email, String guestCount, String reservationDate, String note) async {
     if (sharedPreferences == null) {
@@ -1451,39 +1643,71 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
 
       print("Create Reservation Map: $map");
       AddNewReservationResponseModel model = await CallService().addReservation(map);
+
       setState(() {
         isLoading = false;
       });
 
-      Get.back();
-      Get.back();
+      // ✅ Close loading dialog first
+      if (Get.isDialogOpen == true) {
+        Navigator.of(Get.overlayContext!).pop();
+      }
 
+      // Wait a bit to ensure dialog is closed
+      await Future.delayed(Duration(milliseconds: 300));
+
+      // ✅ Close the add reservation bottom sheet FIRST
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
+
+      // ✅ Wait for bottom sheet to close completely
+      await Future.delayed(Duration(milliseconds: 400));
+
+      // Refresh reservations
       await getReservationDetails();
 
-      Get.snackbar(
-        'success'.tr,
-        'created'.tr,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-        duration: Duration(seconds: 1),
-      );
+      // ✅ Show success snackbar AFTER everything is closed and we're back to main screen
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${'success'.tr} - ${'created'.tr}'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
 
     } catch (e) {
       setState(() {
         isLoading = false;
       });
-      Get.back(); // Close loading dialog
+
+      // ✅ Close loading dialog if open
+      if (Get.isDialogOpen == true) {
+        Navigator.of(Get.overlayContext!).pop();
+      }
+
       print('Create reservation error: $e');
-      Get.snackbar(
-        'error'.tr,
-        '${'create_reserv'.tr}: ${e.toString()}',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-        duration: Duration(seconds: 1),
-      );
+
+      // ✅ Use ScaffoldMessenger instead of Get.snackbar for error too
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${'error'.tr} - ${'create_reserv'.tr}: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
+}
+
+class TimeSlot {
+  final String time;
+  final String displayTime;
+
+  TimeSlot(this.time, this.displayTime);
 }

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
@@ -17,15 +16,17 @@ import '../utils/validators.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin {
-  GlobalKey<FormState> _formKey = GlobalKey();
-  late TextEditingController _EmailController = TextEditingController();
-  late TextEditingController _PasswordController = TextEditingController();
-  bool _obscureText = true;
+  final GlobalKey<FormState> _formKey = GlobalKey();
+  late final TextEditingController _EmailController = TextEditingController();
+  late final TextEditingController _PasswordController = TextEditingController();
+  final bool _obscureText = true;
   late UserLoginH userData;
   late SharedPreferences sharedPreferences;
   String? token;
@@ -49,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
   Future<void> getDeviceToken() async {
     token = await FirebaseMessaging.instance.getToken();
-    print("DeviceToken " + token.toString());
+    print("DeviceToken $token");
   }
 
   Future<void> initVar() async {
@@ -95,20 +96,20 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                     isDense: true,
                     selectedItemBuilder: (BuildContext context) {
                       return [
-                        Text('Prod', style: TextStyle(fontSize: 16,color: Colors.black)),
-                        Text('Test', style: const TextStyle(fontSize: 16,color: Colors.black)),
+                        const Text('Prod', style: TextStyle(fontSize: 16,color: Colors.black)),
+                        const Text('Test', style: TextStyle(fontSize: 16,color: Colors.black)),
                       ];
                     },
-                    items: [
+                    items: const [
                       DropdownMenuItem(
                         value: 'Prod',
                         child: Text('Prod',
-                            style: const TextStyle(fontSize: 16)),
+                            style: TextStyle(fontSize: 16)),
                       ),
                       DropdownMenuItem(
                         value: 'Test',
                         child:
-                            Text('Test', style: const TextStyle(fontSize: 16)),
+                            Text('Test', style: TextStyle(fontSize: 16)),
                       ),
                     ],
                     onChanged: (value) {
@@ -125,32 +126,32 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                     isDense: true,
                     selectedItemBuilder: (BuildContext context) {
                       return [
-                        Text('English', style: const TextStyle(fontSize: 16)),
-                        Text('German', style: const TextStyle(fontSize: 16)),
-                        Text('India', style: const TextStyle(fontSize: 16)),
-                        Text('CHF', style: const TextStyle(fontSize: 16)),
+                        const Text('English', style: TextStyle(fontSize: 16)),
+                        const Text('German', style: TextStyle(fontSize: 16)),
+                        const Text('India', style: TextStyle(fontSize: 16)),
+                        const Text('CHF', style: TextStyle(fontSize: 16)),
                       ];
                     },
-                    items: [
+                    items: const [
                       DropdownMenuItem(
                         value: 'en',
                         child: Text('English',
-                            style: const TextStyle(fontSize: 16)),
+                            style: TextStyle(fontSize: 16)),
                       ),
                       DropdownMenuItem(
                         value: 'de',
                         child: Text('German',
-                            style: const TextStyle(fontSize: 16)),
+                            style: TextStyle(fontSize: 16)),
                       ),
                       DropdownMenuItem(
                         value: 'hi',
                         child:
-                            Text('India', style: const TextStyle(fontSize: 16)),
+                            Text('India', style: TextStyle(fontSize: 16)),
                       ),
                       DropdownMenuItem(
                         value: 'ch',
                         child:
-                            Text('CHF', style: const TextStyle(fontSize: 16)),
+                            Text('CHF', style: TextStyle(fontSize: 16)),
                       ),
                     ],
                     onChanged: (value) {
@@ -161,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
               ],
             ),
             body: Container(
-              margin: EdgeInsets.all(10),
+              margin: const EdgeInsets.all(10),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -170,7 +171,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                     alignment: Alignment.center,
                     children: [
                       Transform.translate(
-                        offset: Offset(-10, 25),
+                        offset: const Offset(-10, 25),
                         child: const Text(
                           "Login!",
                           style: TextStyle(
@@ -182,7 +183,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                       ),
                     ],
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 20,
                   ),
                   Form(
@@ -193,7 +194,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                             keyboardType: TextInputType.emailAddress,
                             myLabelText: "Username...",
                             controller: _EmailController,
-                            icon: Icon(Icons.person,color: Colors.black,),
+                            icon: const Icon(Icons.person,color: Colors.black,),
                             validate: (value) => validateFieldCustomText(
                                 value, "Please enter username"),
                             valueChanged: (value) {},
@@ -202,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                           keyboardType: TextInputType.visiblePassword,
                           myLabelText: "Password...",
                           controller: _PasswordController,
-                          icon: Icon(Icons.lock,color: Colors.black,),
+                          icon: const Icon(Icons.lock,color: Colors.black,),
                           validate: (value) => validateFieldCustomText(
                               value, "Please enter password"),
                           valueChanged: (value) {},
@@ -211,14 +212,14 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                       ],
                     ),
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 10,
                   ),
                   GestureDetector(onTap:(){
                      showPasswordResetDialog(context);
                     /*Get.to(() => ResetPasswordScreen());*/
                   },child:
-                  Text(
+                  const Text(
                     "Forget Password",
                     style: TextStyle(
                       fontSize: 17,
@@ -229,7 +230,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                           TextDecorationStyle.solid, // Underline the text
                     ),
                   ),),
-                  SizedBox(
+                  const SizedBox(
                     height: 20,
                   ),
                   CustomButton(
@@ -251,7 +252,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     final FormState? form = _formKey.currentState;
     //getHiveData();
     if (form!.validate()) {
-      print('Form is valid ' + _EmailController.text);
+      print('Form is valid ${_EmailController.text}');
       postloginData(_EmailController.text, _PasswordController.text, token!);
     } else {
       print('Form is invalid');
@@ -274,7 +275,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
         barrierDismissible: false,
       );
 
-      _loginTimer = Timer(Duration(seconds: 7), () {
+      _loginTimer = Timer(const Duration(seconds: 7), () {
         if (Get.isDialogOpen ?? false) {
           Get.back();
           showSnackbar("Login Timeout", "Login request timed out. Please try again.");
@@ -284,26 +285,26 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       final result = await ApiRepo().loginApi(email, password, deviceToken);
       _loginTimer?.cancel();
 
-      Log.loga(title, "LoginData :: result >>>>> ${result?.toJson()}");
+      Log.loga(title, "LoginData :: result >>>>> ${result.toJson()}");
 
-      if (result != null && result.access_token != null && result.access_token!.isNotEmpty) {
+      if (result.access_token != null && result.access_token!.isNotEmpty) {
         print("🔐 Login successful, clearing old data and saving new token...");
         await _forceCompleteCleanup();
-        await Future.delayed(Duration(milliseconds: 50));
+        await Future.delayed(const Duration(milliseconds: 50));
         SharedPreferences freshPrefs = await SharedPreferences.getInstance();
         print("💾 Saving bearer token...");
         await freshPrefs.setString(valueShared_BEARER_KEY, result.access_token!);
-        await Future.delayed(Duration(milliseconds: 50));
+        await Future.delayed(const Duration(milliseconds: 50));
         print("💾 Saving StoreType...");
         await freshPrefs.setString(valueShared_STORE_TYPE, result.storeType!.toString());
         print("💾 Saving username...");
         await freshPrefs.setString(valueShared_USERNAME_KEY, _EmailController.text.toString());
-        await Future.delayed(Duration(milliseconds: 50));
+        await Future.delayed(const Duration(milliseconds: 50));
         print("💾 Saving password...");
         await freshPrefs.setString(valueShared_PASSWORD_KEY, _PasswordController.text.toString());
-        await Future.delayed(Duration(milliseconds: 50));
+        await Future.delayed(const Duration(milliseconds: 50));
         await freshPrefs.reload();
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
         await freshPrefs.reload();
         String? verifyToken = freshPrefs.getString(valueShared_BEARER_KEY);
         String? verifyStore = freshPrefs.getString(valueShared_STORE_KEY);
@@ -323,7 +324,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           await _forceBackgroundHandlerTokenRefresh();
           await SettingsSync.syncSettingsAfterLogin();
           Get.back();
-          Get.to(() => HomeScreen());
+          Get.to(() => const HomeScreen());
         } else {
           print("❌ Token verification failed!");
           Get.back(); // Close loader on verification failure
@@ -398,22 +399,18 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
         // Get settings from server
         final result = await ApiRepo().getStoreSetting(bearerKey, storeID);
 
-        if (result != null) {
-          StoreSetting store = result;
+        StoreSetting store = result;
 
-          // Save to SharedPreferences
-          await prefs.setBool('auto_order_accept', store.auto_accept_orders_local ?? false);
-          await prefs.setBool('auto_order_print', store.auto_print_orders_local ?? false);
-          await prefs.setBool('auto_order_remote_accept', store.auto_accept_orders_remote ?? false);
-          await prefs.setBool('auto_order_remote_print', store.auto_print_orders_remote ?? false);
+        // Save to SharedPreferences
+        await prefs.setBool('auto_order_accept', store.auto_accept_orders_local ?? false);
+        await prefs.setBool('auto_order_print', store.auto_print_orders_local ?? false);
+        await prefs.setBool('auto_order_remote_accept', store.auto_accept_orders_remote ?? false);
+        await prefs.setBool('auto_order_remote_print', store.auto_print_orders_remote ?? false);
 
-          print("✅ Settings synced after login:");
-          print("🔍 Auto Accept: ${store.auto_accept_orders_local ?? false}");
-          print("🔍 Auto Print: ${store.auto_print_orders_local ?? false}");
-        } else {
-          print("❌ Failed to sync settings after login");
-        }
-      }
+        print("✅ Settings synced after login:");
+        print("🔍 Auto Accept: ${store.auto_accept_orders_local ?? false}");
+        print("🔍 Auto Print: ${store.auto_print_orders_local ?? false}");
+            }
     } catch (e) {
       print("❌ Error syncing settings after login: $e");
     }
@@ -435,7 +432,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
         for (String key in keysToRemove) {
           await prefs.remove(key);
-          await Future.delayed(Duration(milliseconds: 20));
+          await Future.delayed(const Duration(milliseconds: 20));
         }
 
         // Clear printer settings
@@ -444,7 +441,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
         }
 
         await prefs.reload();
-        await Future.delayed(Duration(milliseconds: 50));
+        await Future.delayed(const Duration(milliseconds: 50));
       }
 
       print("✅ Complete cleanup finished");
@@ -473,7 +470,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           break;
         }
 
-        await Future.delayed(Duration(milliseconds: 200));
+        await Future.delayed(const Duration(milliseconds: 200));
       }
 
     } catch (e) {
@@ -500,7 +497,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
     // ✅ Save to SharedPreferences with multiple verification
     await sharedPreferences.setString(valueShared_BASEURL, newBaseUrl);
-    await Future.delayed(Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 100));
     await sharedPreferences.reload();
 
     // ✅ Verify it was saved correctly
@@ -531,7 +528,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(
+          title: const Text(
             'Password Reset',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
@@ -540,7 +537,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Colors.black,
               ),
-              children: [
+              children: const [
                 TextSpan(text: 'For password reset assistance, please contact our support team at '),
                 TextSpan(
                   text: 'support@magskr.com',
@@ -553,7 +550,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('OK', style: TextStyle(color: Colors.blue)),
+              child: const Text('OK', style: TextStyle(color: Colors.blue)),
             ),
           ],
         );
@@ -591,40 +588,36 @@ class SettingsSync {
       // Get settings from server
       final result = await ApiRepo().getStoreSetting(bearerKey, storeID);
 
-      if (result != null) {
-        StoreSetting store = result;
+      StoreSetting store = result;
 
-        // ✅ Save all settings to SharedPreferences with proper keys
-        await prefs.setBool('auto_order_accept', store.auto_accept_orders_local ?? false);
-        await prefs.setBool('auto_order_print', store.auto_print_orders_local ?? false);
-        await prefs.setBool('auto_order_remote_accept', store.auto_accept_orders_remote ?? false);
-        await prefs.setBool('auto_order_remote_print', store.auto_print_orders_remote ?? false);
+      // ✅ Save all settings to SharedPreferences with proper keys
+      await prefs.setBool('auto_order_accept', store.auto_accept_orders_local ?? false);
+      await prefs.setBool('auto_order_print', store.auto_print_orders_local ?? false);
+      await prefs.setBool('auto_order_remote_accept', store.auto_accept_orders_remote ?? false);
+      await prefs.setBool('auto_order_remote_print', store.auto_print_orders_remote ?? false);
 
-        // ✅ Force save to disk
-        await prefs.reload();
+      // ✅ Force save to disk
+      await prefs.reload();
 
-        print("✅ Settings synced successfully after login:");
-        print("🔍 Auto Accept Local: ${store.auto_accept_orders_local ?? false}");
-        print("🔍 Auto Print Local: ${store.auto_print_orders_local ?? false}");
-        print("🔍 Auto Accept Remote: ${store.auto_accept_orders_remote ?? false}");
-        print("🔍 Auto Print Remote: ${store.auto_print_orders_remote ?? false}");
+      print("✅ Settings synced successfully after login:");
+      print("🔍 Auto Accept Local: ${store.auto_accept_orders_local ?? false}");
+      print("🔍 Auto Print Local: ${store.auto_print_orders_local ?? false}");
+      print("🔍 Auto Accept Remote: ${store.auto_accept_orders_remote ?? false}");
+      print("🔍 Auto Print Remote: ${store.auto_print_orders_remote ?? false}");
 
-        // ✅ Verify the saved values
-        bool savedAccept = prefs.getBool('auto_order_accept') ?? false;
-        bool savedPrint = prefs.getBool('auto_order_print') ?? false;
-        bool savedRemoteAccept = prefs.getBool('auto_order_remote_accept') ?? false;
-        bool savedRemotePrint = prefs.getBool('auto_order_remote_print') ?? false;
+      // ✅ Verify the saved values
+      bool savedAccept = prefs.getBool('auto_order_accept') ?? false;
+      bool savedPrint = prefs.getBool('auto_order_print') ?? false;
+      bool savedRemoteAccept = prefs.getBool('auto_order_remote_accept') ?? false;
+      bool savedRemotePrint = prefs.getBool('auto_order_remote_print') ?? false;
 
-        print("✅ Verified saved values:");
-        print("🔍 Saved Auto Accept: $savedAccept");
-        print("🔍 Saved Auto Print: $savedPrint");
-        print("🔍 Saved Remote Accept: $savedRemoteAccept");
-        print("🔍 Saved Remote Print: $savedRemotePrint");
+      print("✅ Verified saved values:");
+      print("🔍 Saved Auto Accept: $savedAccept");
+      print("🔍 Saved Auto Print: $savedPrint");
+      print("🔍 Saved Remote Accept: $savedRemoteAccept");
+      print("🔍 Saved Remote Print: $savedRemotePrint");
 
-      } else {
-        print("❌ Failed to get store settings from server");
-      }
-    } catch (e) {
+        } catch (e) {
       print("❌ Error syncing settings after login: $e");
     }
   }

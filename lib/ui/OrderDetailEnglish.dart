@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:food_app/api/repository/api_repository.dart';
 import 'package:food_app/constants/constant.dart';
@@ -19,7 +18,7 @@ import '../models/print_order_without_ip.dart';
 class OrderDetailEnglish extends StatefulWidget {
   final Order order;
 
-  OrderDetailEnglish(this.order);
+  const OrderDetailEnglish(this.order, {super.key});
 
   @override
   _OrderDetailState createState() => _OrderDetailState();
@@ -36,16 +35,19 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
   bool isAutoAccept = false;
   bool isLoading = false;
   Timer? _orderTimer;
+
   @override
   void initState() {
     super.initState();
     initVar();
   }
+
   @override
   void dispose() {
     _orderTimer?.cancel();
     super.dispose();
   }
+
   Future<void> initVar() async {
     updatedOrder = widget.order;
     sharedPreferences = await SharedPreferences.getInstance();
@@ -58,7 +60,6 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     }
   }
 
-// Replace the getOrders() method:
   Future<void> getOrders(String bearerKey, bool isAccept) async {
     Map<String, dynamic> jsonData = {
       "order_status": 2,
@@ -66,112 +67,131 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     };
 
     try {
+      // Show loading dialog
       Get.dialog(
-        Center(
+        WillPopScope(
+          onWillPop: () async => false,
+          child: Center(
             child: Lottie.asset(
               'assets/animations/burger.json',
               width: 150,
               height: 150,
               repeat: true,
-            )),
+            ),
+          ),
+        ),
         barrierDismissible: false,
       );
-      _orderTimer = Timer(Duration(seconds: 7), () {
+
+      _orderTimer = Timer(const Duration(seconds: 7), () {
         if (Get.isDialogOpen ?? false) {
-          Get.back();
-          showSnackbar("order Timeout", "get Details request timed out. Please try again.");
+          Get.back(); // Close dialog
+          if (mounted) {
+            showSnackbar("order Timeout", "get Details request timed out. Please try again.");
+          }
         }
       });
 
       final prefs = await SharedPreferences.getInstance();
-      bool _autoOrderPrint = prefs.getBool('auto_order_print') ?? false;
-      bool _isAutoAccept = prefs.getBool('is_auto_accept') ?? false;
+      bool autoOrderPrint = prefs.getBool('auto_order_print') ?? false;
+      bool isAutoAccept = prefs.getBool('is_auto_accept') ?? false;
 
-      // ✅ NEW: Add timeout wrapper around API call
       final result = await Future.any([
         ApiRepo().orderAcceptDecline(bearerKey, jsonData, updatedOrder.id ?? 0),
-
-    Future.delayed(Duration(seconds: 10)).then((_) => null)
+        Future.delayed(const Duration(seconds: 10)).then((_) => null)
       ]);
-      _orderTimer?.cancel();
-      Get.back();
 
-      // ✅ NEW: Check if result is null due to timeout
-      if (result == null) {
-        Get.snackbar(
-          'timeout'.tr,
-          'request'.tr,
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-          duration: Duration(seconds: 3),
-        );
-        return; // Exit early on timeout
+      _orderTimer?.cancel();
+
+      // Close dialog if still open
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
       }
 
-      if (result != null) {
+      if (result == null) {
+        if (mounted) {
+          Get.snackbar(
+            'timeout'.tr,
+            'request'.tr,
+            backgroundColor: Colors.orange,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+            duration: const Duration(seconds: 3),
+          );
+        }
+        return;
+      }
+
+      if (mounted) {
         setState(() {
           isPrint = true;
           updatedOrder = result;
           app.appController.updateOrder(result);
           orderType = isAccept ? 1 : 2;
         });
+      }
 
-        if (isAccept && _autoOrderPrint && !_isAutoAccept) {
-          final refreshedOrder = await ApiRepo().getNewOrderData(bearerKey, updatedOrder.id!);
+      if (isAccept && autoOrderPrint && !isAutoAccept) {
+        final refreshedOrder = await ApiRepo().getNewOrderData(bearerKey, updatedOrder.id!);
 
-          if (refreshedOrder.invoice != null &&
-              (refreshedOrder.invoice?.invoiceNumber ?? '').isNotEmpty) {
+        if (refreshedOrder.invoice != null &&
+            (refreshedOrder.invoice?.invoiceNumber ?? '').isNotEmpty) {
 
-            // ✅ Try multiple approaches to get store name
-            String? finalStoreName = storeName;
+          String? finalStoreName = storeName;
 
-            if (finalStoreName == null || finalStoreName.isEmpty) {
-              print("⚠️ Store name is null, trying to fetch...");
-              finalStoreName = await getStoredta(bearerKey);
-            }
+          if (finalStoreName == null || finalStoreName.isEmpty) {
+            print("⚠️ Store name is null, trying to fetch...");
+            finalStoreName = await getStoredta(bearerKey);
+          }
 
-            if (finalStoreName == null || finalStoreName.isEmpty) {
-              print("⚠️ Still null, trying fallback...");
-              finalStoreName = await getStoreNameFallback();
-            }
+          if (finalStoreName == null || finalStoreName.isEmpty) {
+            print("⚠️ Still null, trying fallback...");
+            finalStoreName = await getStoreNameFallback();
+          }
 
-            print("🖨️ Final store name for printing: '$finalStoreName'");
+          print("🖨️ Final store name for printing: '$finalStoreName'");
 
+          if (Get.context != null) {
             PrinterHelperEnglish.printTestFromSavedIp(
                 context: Get.context!,
                 order: refreshedOrder,
                 store: finalStoreName ?? "Restaurant",
-                auto: true);
+                auto: true
+            );
           }
         }
       }
 
     } catch (e) {
       _orderTimer?.cancel();
-      Get.back();
 
-      // ✅ NEW: Different error message for timeout vs other errors
+      // Close dialog if still open
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+
       String errorMessage = e.toString().contains('timeout')
           ? 'Request timed out. Please check your connection and try again.'
           : 'Order Accept API Exception: $e';
 
-      if (e.toString().contains('timeout')) {
+      if (mounted && e.toString().contains('timeout')) {
         Get.snackbar(
           '${'timeout'.tr} ${'error'.tr}',
           errorMessage,
           backgroundColor: Colors.orange,
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
-          duration: Duration(seconds: 3),
+          duration: const Duration(seconds: 3),
         );
       }
 
       Log.loga(title, errorMessage);
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -188,29 +208,23 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
 
       print("🌐 DEBUG - Calling ApiRepo().getStoreData...");
       final result = await ApiRepo().getStoreData(bearerKey, storeID);
-      print("🔍 DEBUG - API result: ${result != null ? 'Success' : 'Null'}");
+      print("🔍 DEBUG - API result: ${'Success'}");
 
-      if (result != null) {
-        Store store = result;
-        print("🔍 DEBUG - Store object: ${store.toString()}");
-        print("🔍 DEBUG - Store name from API: ${store.name}");
+      Store store = result;
+      print("🔍 DEBUG - Store object: ${store.toString()}");
+      print("🔍 DEBUG - Store name from API: ${store.name}");
 
-        String fetchedStoreName = store.name?.toString() ?? "Unknown Store";
-        String fetchedStoreid = store.code?.toString() ?? "Unknown id";
+      String fetchedStoreName = store.name?.toString() ?? "Unknown Store";
+      String fetchedStoreid = store.code?.toString() ?? "Unknown id";
 
-        setState(() {
-          storeName = fetchedStoreName;
-          storeID = fetchedStoreid;
-        });
+      setState(() {
+        storeName = fetchedStoreName;
+        storeID = fetchedStoreid;
+      });
 
-        print("✅ DEBUG - Final storeName set to: '$storeName'");
-        return storeName;
-      } else {
-        print("❌ DEBUG - API returned null result");
-        showSnackbar("Error", "Failed to get store data");
-        return null;
-      }
-    } catch (e) {
+      print("✅ DEBUG - Final storeName set to: '$storeName'");
+      return storeName;
+        } catch (e) {
       print("❌ DEBUG - Exception in getStoredta: $e");
       print("❌ DEBUG - Exception type: ${e.runtimeType}");
       Log.loga(title, "getStoredta Api:: e >>>>> $e");
@@ -258,20 +272,14 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
       return dateTimeString;
     }
   }
+
   @override
   Widget build(BuildContext context) {
-    if (updatedOrder == null) {
-      return Center(child: CircularProgressIndicator());
-    }
-    //var amount = (updatedOrder.payment?.amount ?? 0.0).toStringAsFixed(1);
     var amount = (updatedOrder.invoice?.totalAmount ?? 0.0).toStringAsFixed(1);
     var discount = (updatedOrder.invoice?.discount_amount ?? 0.0).toStringAsFixed(1);
     var delFee = (updatedOrder.invoice?.delivery_fee ?? 0.0).toStringAsFixed(1);
     // Calculate subtotal from all items
     final subtotal = updatedOrder.items?.fold<double>(0, (sum, item) {
-      if (item == null) return sum;
-
-      // Toppings total for this item
       final toppingsTotal = item.toppings?.fold<double>(
         0,
             (tSum, topping) => tSum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
@@ -301,7 +309,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
         backgroundColor: Colors.white,
         title: Text(
           'order_details'.tr,
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
         ),
         centerTitle: true,
         leading: Row(
@@ -311,7 +319,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
               height: 30,
               width: 30,
               child: IconButton(
-                icon: Icon(Icons.arrow_back, color: Colors.black),
+                icon: const Icon(Icons.arrow_back, color: Colors.black),
                 onPressed: () => Navigator.pop(context),
               ),
             ),
@@ -348,7 +356,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
         ],
       ),
       body: Container(
-        padding: EdgeInsets.fromLTRB(10, 0, 10, 5),
+        padding: const EdgeInsets.fromLTRB(10, 0, 10, 5),
         child: Column(
           children: [
             Expanded(
@@ -360,81 +368,81 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                       height: 1,
                       color: Colors.grey,
                     ),
-                    SizedBox(height: 5),
+                    const SizedBox(height: 5),
                     Center(
                       child: Text(
                         '${'order_number'.tr} # ${updatedOrder.orderNumber ?? ''}',
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontWeight: FontWeight.w700, fontSize: 15),
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Center(
                       child: Text(
                         '${'invoice_number'.tr}: ${updatedOrder.invoice?.invoiceNumber ?? ''}',
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontWeight: FontWeight.w500, fontSize: 13),
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Center(
                       child: Text(
                         '${'date'.tr}: ${formatDateTime(updatedOrder.createdAt)}',
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontWeight: FontWeight.w500, fontSize: 13),
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     if (updatedOrder.deliveryTime != null && updatedOrder.deliveryTime!.isNotEmpty)
                       Center(
                         child: Text(
                           '${'delivery_time'.tr}: ${formatDateTime(updatedOrder.deliveryTime)}',
-                          style: TextStyle(
+                          style: const TextStyle(
                               fontWeight: FontWeight.w500, fontSize: 13),
                         ),
                       ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
                       '${'customer'.tr}: '
                           '${(updatedOrder.shipping_address?.customer_name != null && updatedOrder.shipping_address!.customer_name!.isNotEmpty)
                           ? updatedOrder.shipping_address!.customer_name!
                           : guestName}',
-                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     if (updatedOrder.orderType == 1)
                       Text(
                         '${'address'.tr}: ${(updatedOrder.shipping_address?.line1 != null && updatedOrder.shipping_address!.line1!.isNotEmpty)
                             ? "${updatedOrder.shipping_address!.line1!}, ${updatedOrder.shipping_address?.city ?? ""}"
                             : guestAddress}',
-                        style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                       ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
                       '${'phone'.tr}: ${(updatedOrder.shipping_address?.phone != null && updatedOrder.shipping_address!.phone!.isNotEmpty)
                           ? updatedOrder.shipping_address!.phone!
                           : guestPhone}',
-                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
                     Text(
                       '${'email'.tr}: ${(updatedOrder.user?.username != null && updatedOrder.user!.username!.isNotEmpty)
                           ? updatedOrder.user!.username!
                           : guestEmail}',
-                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     ListView.builder(
                       shrinkWrap: true,
-                      physics: NeverScrollableScrollPhysics(),
-                      padding: EdgeInsets.all(1),
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(1),
                       itemCount: updatedOrder.items?.length ?? 0,
                       itemBuilder: (context, index) {
                         final item = updatedOrder.items?[index];
-                        if (item == null) return SizedBox.shrink();
+                        if (item == null) return const SizedBox.shrink();
 
                         final toppingsTotal = item.toppings?.fold<double>(
                           0,
@@ -450,25 +458,25 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                         );
                       },
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
-                    Note != null && Note.trim().isNotEmpty
+                    Note.trim().isNotEmpty
                         ? Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           '${'note'.tr}:  ',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                             color: Colors.green,
                           ),
                         ),
-                        Container(
+                        SizedBox(
                           width: MediaQuery.of(context).size.width * 0.8,
                           child: Text(
                             Note,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontWeight: FontWeight.w300,
                               fontSize: 13,
                             ),
@@ -476,34 +484,34 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                         ),
                       ],
                     )
-                        : SizedBox.shrink(),
+                        : const SizedBox.shrink(),
 
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
                     Visibility(
                       visible: isPrint,
                       child: Column(
                         children: [
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 'subtotal'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontWeight: FontWeight.w500,
                                   fontSize: 13,
                                 ),
                               ),
                               Text(
                                 formatAmount(subtotal),
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontWeight: FontWeight.w500,
                                   fontSize: 13,
                                 ),
                               ),]
                           ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                           Visibility(
                             visible: discountData == 0.0 ? false : true,
                             child: Row(
@@ -511,20 +519,20 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                               children: [
                                 Text(
                                   'discount'.tr,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontWeight: FontWeight.w500,
                                       fontSize: 13),
                                 ),
                                 Text(formatAmount(discountData),
                                  // discountData.toString(),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontWeight: FontWeight.w500,
                                       fontSize: 13),
                                 ),
                               ],
                             ),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Visibility(
                             visible: delFee == "0.0" ? false : true,
                             child: Row(
@@ -532,22 +540,22 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                               children: [
                                 Text(
                                   'delivery_fee'.tr,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontWeight: FontWeight.w500,
                                       fontSize: 13),
                                 ),
                                 Text(formatAmount(deliveryFee),
                                   //delFee.toString(),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontWeight: FontWeight.w500,
                                       fontSize: 13),
                                 ),
                               ],
                             ),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Container(height: 0.5, color: Colors.grey),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           // Row(
                           //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           //   children: [
@@ -586,31 +594,31 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                             ],
                           ),
 
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Container(height: 0.5, color: Colors.grey),
                         ],
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
                       "${'invoice_number'.tr}: ${updatedOrder.invoice?.invoiceNumber ?? ''}",
                       style:
-                          TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                          const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
                     Text(
                       "${'payment_method'.tr}: ${updatedOrder.payment?.paymentMethod ?? ''}",
                       style:
-                          TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                          const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
                       "${'paid'.tr}: ${formatDateTime(updatedOrder.createdAt ?? '')}",
                       style:
-                          TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                          const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     if (updatedOrder.brutto_netto_summary?.isNotEmpty ?? false)
                       Padding(
                         padding: const EdgeInsets.only(top: 5),
@@ -624,7 +632,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                                     alignment: Alignment.centerLeft,
                                     child: Text(
                                       'vat_rate'.tr,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontWeight: FontWeight.w500,
                                           fontSize: 13),
                                     ),
@@ -635,7 +643,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                                   child: Center(
                                     child: Text(
                                       'gross'.tr,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontWeight: FontWeight.w500,
                                           fontSize: 13),
                                     ),
@@ -646,7 +654,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                                   child: Center(
                                     child: Text(
                                       'net'.tr,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontWeight: FontWeight.w500,
                                           fontSize: 13),
                                     ),
@@ -658,7 +666,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                                     alignment: Alignment.centerRight,
                                     child: Text(
                                       'vat'.tr,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontWeight: FontWeight.w500,
                                           fontSize: 13),
                                     ),
@@ -666,15 +674,15 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                                 ),
                               ],
                             ),
-                            SizedBox(height: 2),
+                            const SizedBox(height: 2),
                             ListView.builder(
                               shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-                              padding: EdgeInsets.all(12),
+                              physics: const NeverScrollableScrollPhysics(),
+                              padding: const EdgeInsets.all(12),
                               itemCount: updatedOrder.brutto_netto_summary?.length ?? 0,
                               itemBuilder: (context, index) {
                                 final tax = updatedOrder.brutto_netto_summary?[index];
-                                if (tax == null) return SizedBox.shrink();
+                                if (tax == null) return const SizedBox.shrink();
                                 return brutoItems(
                                   '${tax.taxRate?.toStringAsFixed(0) ?? "0"} %',
                                   tax.brutto?.toString() ?? "0",
@@ -696,7 +704,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
               child: _buildActionButtons(
                   context, updatedOrder.approvalStatus ?? 0),
             ),
-            SizedBox(height: 30,)
+            const SizedBox(height: 30,)
           ],
         ),
       ),
@@ -713,10 +721,10 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
           children: [
             Center(
               child: Text("status_pending".tr,
-                  style: TextStyle(
+                  style: const TextStyle(
                       fontWeight: FontWeight.w400, color: Colors.orangeAccent)),
             ),
-            SizedBox(
+            const SizedBox(
               height: 5,
             ),
             Row(
@@ -741,7 +749,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                   style: TextStyle(
                       fontWeight: FontWeight.bold, color: Colors.green[400])),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
           ],
         );
       } else if (approvalStatus == 3) {
@@ -756,7 +764,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                   style: TextStyle(
                       fontWeight: FontWeight.bold, color: Colors.red[400]!)),
             ),
-            SizedBox(height: 3),
+            const SizedBox(height: 3),
           ],
         );
       }
@@ -773,7 +781,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
-            SizedBox(height: 3),
+            const SizedBox(height: 3),
           ],
         );
       } else if (orderType == 2) {
@@ -787,12 +795,12 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
               child: Text("status_decline".tr,
                   style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
-            SizedBox(height: 3),
+            const SizedBox(height: 3),
           ],
         );
       }
     }
-    return SizedBox.shrink();
+    return const SizedBox.shrink();
   }
 
   Widget _orderItem(String title, String price, OrderItem item, {String? note}) {
@@ -809,14 +817,14 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                 child: Text(
                   '${item.quantity ?? 0}X $title'
                       '${((item.toppings?.isNotEmpty ?? false) && item.variant == null) ? ' [${formatAmount(item.unitPrice)}]' : ''}',
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 3,
                 ),
               ),
               Text(
                 '${'currency'.tr} ${formatAmount(double.parse(price))}',
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
               ),
             ],
           ),
@@ -826,7 +834,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
             Padding(
               padding: const EdgeInsets.only(left: 10, top: 2),
               child: Text("${item.quantity} × ${item.variant!.name ?? ''} [${formatAmount(item.variant!.price ?? 0)} ${'currency'.tr}]",
-                  style: TextStyle(fontWeight: FontWeight.w400, fontSize: 13)
+                  style: const TextStyle(fontWeight: FontWeight.w400, fontSize: 13)
               ),
             ),
 
@@ -860,7 +868,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
               alignment: Alignment.centerLeft,
               child: Text(
                 percentage,
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
               ),
             ),
           ),
@@ -869,7 +877,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
             child: Center(
               child: Text(formatAmount(double.tryParse(brutto) ?? 0),
                 //netto,
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
               ),
             ),
           ),
@@ -878,7 +886,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
             child: Center(
               child: Text( formatAmount(double.tryParse(netto) ?? 0),
                // brutto,
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
               ),
             ),
           ),
@@ -888,7 +896,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
               alignment: Alignment.centerRight,
               child: Text(formatAmount(double.tryParse(taxAmount ?? "0") ?? 0),
                // taxAmount ?? "0",
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
               ),
             ),
           ),
@@ -899,51 +907,52 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
 
   Widget _actionButton(BuildContext context, IconData icon, String label, Color color) {
     return GestureDetector(
-        onTap: () async {
-          if (bearerKey == null) return;
+      onTap: isLoading ? null : () async {  // Disable if already loading
+        if (bearerKey == null) return;
 
-          if (label == 'accept'.tr) {
+        if (label == 'accept'.tr) {
+          if (mounted) {
             setState(() {
               isAutoAccept = false;
-              isLoading = true; // Show loader
+              isLoading = true;
             });
-
-            sharedPreferences.setBool('is_auto_accept', false);
-
-            // Give UI a chance to rebuild
-            await Future.delayed(Duration(milliseconds: 200));
-
-            getOrders(bearerKey!, true);
-
-          } else if (label == 'decline'.tr) {
-            setState(() {
-              isLoading = true; // Show loader
-            });
-
-            await Future.delayed(Duration(milliseconds: 200));
-
-            getOrders(bearerKey!, false);
-            setState(() {
-            isLoading = false;
-          });
-          // API ke complete hone par isLoading = false karo
           }
-        },
-        child: Column(
+
+          sharedPreferences.setBool('is_auto_accept', false);
+          await Future.delayed(const Duration(milliseconds: 100));
+
+          await getOrders(bearerKey!, true);
+
+        } else if (label == 'decline'.tr) {
+          if (mounted) {
+            setState(() {
+              isLoading = true;
+            });
+          }
+
+          await Future.delayed(const Duration(milliseconds: 100));
+          await getOrders(bearerKey!, false);
+        }
+      },
+      child: Column(
         children: [
           Container(
-            padding: EdgeInsets.all(10),
+            padding: const EdgeInsets.all(10),
             height: 40,
             width: 120,
             decoration: BoxDecoration(
-              color: color,
+              color: isLoading ? color.withOpacity(0.6) : color,  // Visual feedback
               borderRadius: BorderRadius.circular(5),
             ),
-            child: Text(
-              textAlign: TextAlign.center,
-              label,
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.w400),
+            child: Center(
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
             ),
           )
         ],
@@ -1035,7 +1044,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
          SnackBar(
           content: Text('print'.tr),
           backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -1055,7 +1064,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
          SnackBar(
           content: Text('sending'.tr),
           backgroundColor: Colors.red,
-          duration: Duration(seconds: 3),
+          duration: const Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
         ),
       );

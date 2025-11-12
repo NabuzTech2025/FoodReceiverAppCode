@@ -8,7 +8,6 @@ import 'package:get/get.dart';
 import '../../api/repository/api_repository.dart';
 import '../../constants/constant.dart';
 import '../../models/add-store_postcode_response_model.dart';
-import '../../models/add_new_product_response_model.dart';
 import '../../models/edit_postcode_response_model.dart';
 import '../../models/get_store_postcode_response_model.dart';
 
@@ -94,6 +93,7 @@ class _PostcodeState extends State<Postcode> {
 
     return pages;
   }
+
   void _editPostcode(int index) {
     GetStorePostCodesResponseModel postCode = currentPageItems[index];
     showAddPostcodeBottomSheet(
@@ -134,7 +134,7 @@ class _PostcodeState extends State<Postcode> {
     return Scaffold(
       backgroundColor: Colors.white,
       drawer: CustomDrawer(onSelectTab: _openTab),
-      appBar: CustomAppBar(),
+      appBar: const CustomAppBar(),
       body: Column(
         children: [
           Expanded(
@@ -147,7 +147,7 @@ class _PostcodeState extends State<Postcode> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('postcode'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontFamily: 'Mulish',
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold)),
@@ -163,7 +163,7 @@ class _PostcodeState extends State<Postcode> {
                             ),
                             child: Center(
                               child: Text('add'.tr,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
                                     fontSize: 12,
@@ -175,7 +175,7 @@ class _PostcodeState extends State<Postcode> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 15),
+                  const SizedBox(height: 15),
 
                   // Showing entries info
                   Padding(
@@ -194,7 +194,7 @@ class _PostcodeState extends State<Postcode> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
 
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -205,10 +205,10 @@ class _PostcodeState extends State<Postcode> {
                       ),
                       child: Row(
                         children: [
-                          Container(
+                          SizedBox(
                             width: MediaQuery.of(context).size.width * 0.22,
                             child: Text('postcode'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 12,
                                   fontFamily: 'Mulish'),
@@ -216,28 +216,28 @@ class _PostcodeState extends State<Postcode> {
                           ),
                           Container(
                             child: Text('min_Amount'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 12,
                                     fontFamily: 'Mulish')),
                           ),
                           const SizedBox(width: 15),
-                          Container(
+                          SizedBox(
                             width: MediaQuery.of(context).size.width * 0.25,
                             child: Center(
                               child: Text('del_fee'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 12,
                                     fontFamily: 'Mulish'),
                               ),
                             ),
                           ) ,
-                          Container(
+                          SizedBox(
                             width: MediaQuery.of(context).size.width * 0.25,
                             child: Center(
                               child: Text('del_time'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 12,
                                     fontFamily: 'Mulish'),
@@ -281,10 +281,10 @@ class _PostcodeState extends State<Postcode> {
                                 child: Container(
                                   width: 45,
                                   height: 45,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xffE25454),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xffE25454),
                                   ),
-                                  child: Icon(
+                                  child: const Icon(
                                     Icons.delete_outline,
                                     color: Colors.white,
                                     size: 25,
@@ -306,12 +306,12 @@ class _PostcodeState extends State<Postcode> {
                             ),
                             child: Row(
                               children: [
-                                SizedBox(width: 5),
+                                const SizedBox(width: 5),
                                 Container(
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Container(
+                                      SizedBox(
                                         width: MediaQuery.of(context).size.width * 0.24,
                                         child: Text(currentPageItems[index].postcode ?? 'N/A',
                                           style: const TextStyle(
@@ -320,7 +320,7 @@ class _PostcodeState extends State<Postcode> {
                                               fontFamily: 'Mulish'),
                                         ),
                                       ),
-                                      Container(
+                                      SizedBox(
                                         width: MediaQuery.of(context).size.width * 0.26,
                                         child: Text(
                                          '€ ${currentPageItems[index].minimumOrderAmount.toString()}',
@@ -330,7 +330,7 @@ class _PostcodeState extends State<Postcode> {
                                               fontFamily: 'Mulish'),
                                         ),
                                       ),
-                                      Container(
+                                      SizedBox(
                                         width: MediaQuery.of(context).size.width * 0.25,
                                         child: Text(
                                          '€ ${currentPageItems[index].deliveryFee.toString()}',
@@ -347,7 +347,7 @@ class _PostcodeState extends State<Postcode> {
                                 Container(
                                   child: Center(
                                     child: Text(currentPageItems[index].deliveryTime.toString(),
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontSize: 12,
                                           fontFamily: 'Mulish',
                                           fontWeight: FontWeight.w700,
@@ -379,7 +379,7 @@ class _PostcodeState extends State<Postcode> {
                     BoxShadow(
                       color: Colors.grey.shade200,
                       blurRadius: 5,
-                      offset: Offset(0, -2),
+                      offset: const Offset(0, -2),
                     ),
                   ],
                 ),
@@ -413,7 +413,7 @@ class _PostcodeState extends State<Postcode> {
                       ),
                     ),
 
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
                     // Page Numbers
                     ...(_getPageNumbers().map((pageNum) {
@@ -426,9 +426,9 @@ class _PostcodeState extends State<Postcode> {
                             width: 35,
                             height: 35,
                             decoration: BoxDecoration(
-                              color: isActive ? Color(0xFF0EA5E9) : Colors.white,
+                              color: isActive ? const Color(0xFF0EA5E9) : Colors.white,
                               border: Border.all(
-                                color: isActive ? Color(0xFF0EA5E9) : Colors.grey.shade300,
+                                color: isActive ? const Color(0xFF0EA5E9) : Colors.grey.shade300,
                               ),
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -449,7 +449,7 @@ class _PostcodeState extends State<Postcode> {
                       );
                     }).toList()),
 
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
                     // Next Button
                     GestureDetector(
@@ -522,7 +522,7 @@ class _PostcodeState extends State<Postcode> {
               children: [
                 Container(
                   height: MediaQuery.of(context).size.height * 0.7,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(20),
@@ -532,7 +532,7 @@ class _PostcodeState extends State<Postcode> {
                   child: Column(
                     children: [
                       Container(
-                        padding: EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(color: Colors.grey.shade200),
@@ -543,7 +543,7 @@ class _PostcodeState extends State<Postcode> {
                           children: [
                             Text(
                               isEditMode ? 'edit_post'.tr : 'add_new'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 fontFamily: 'Mulish',
@@ -554,20 +554,20 @@ class _PostcodeState extends State<Postcode> {
                       ),
                       Expanded(
                         child: SingleChildScrollView(
-                          padding: EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(8),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SizedBox(height: 10),
+                              const SizedBox(height: 10),
                               Text(
                                 'postcode'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   fontFamily: 'Mulish',
                                 ),
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               TextField(
                                 controller: postcodeController,
                                 decoration: InputDecoration(
@@ -582,21 +582,21 @@ class _PostcodeState extends State<Postcode> {
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                                    borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                                   ),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                 ),
                               ),
-                              SizedBox(height: 10),
+                              const SizedBox(height: 10),
                               Text(
                                 'min_order'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   fontFamily: 'Mulish',
                                 ),
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               TextField(
                                 controller: minimumAmountController,
                                 keyboardType: TextInputType.number,
@@ -611,21 +611,21 @@ class _PostcodeState extends State<Postcode> {
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                                    borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                                   ),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                 ),
                               ),
-                              SizedBox(height: 10),
+                              const SizedBox(height: 10),
                               Text(
                                 'del_fee'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   fontFamily: 'Mulish',
                                 ),
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               TextField(
                                 controller: deliveryFeeController,
                                 keyboardType: TextInputType.number,
@@ -640,21 +640,21 @@ class _PostcodeState extends State<Postcode> {
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                                    borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                                   ),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                 ),
                               ),
-                              SizedBox(height: 10),
+                              const SizedBox(height: 10),
                               Text(
                                 'del_min'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   fontFamily: 'Mulish',
                                 ),
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               TextField(
                                 controller: deliveryTimeController,
                                 keyboardType: TextInputType.number,
@@ -669,12 +669,12 @@ class _PostcodeState extends State<Postcode> {
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                                    borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                                   ),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                 ),
                               ),
-                              SizedBox(height: 20),
+                              const SizedBox(height: 20),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -686,14 +686,14 @@ class _PostcodeState extends State<Postcode> {
                                       },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.black.withOpacity(0.2),
-                                        padding: EdgeInsets.symmetric(vertical: 14),
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                       ),
                                       child: Text(
                                         'close'.tr,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 16,
                                           fontWeight: FontWeight.w700,
@@ -702,7 +702,7 @@ class _PostcodeState extends State<Postcode> {
                                       ),
                                     ),
                                   ),
-                                  SizedBox(width: 15),
+                                  const SizedBox(width: 15),
                                   SizedBox(
                                     width: 200,
                                     child: ElevatedButton(
@@ -762,15 +762,15 @@ class _PostcodeState extends State<Postcode> {
                                         );
                                       },
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: Color(0xFFFCAE03),
-                                        padding: EdgeInsets.symmetric(vertical: 14),
+                                        backgroundColor: const Color(0xFFFCAE03),
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                       ),
                                       child: Text(
                                         isEditMode ? 'update_post'.tr : 'add_post'.tr,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 16,
                                           fontWeight: FontWeight.w700,
@@ -781,7 +781,7 @@ class _PostcodeState extends State<Postcode> {
                                   ),
                                 ],
                               ),
-                              SizedBox(height: 20),
+                              const SizedBox(height: 20),
                             ],
                           ),
                         ),
@@ -942,7 +942,7 @@ class _PostcodeState extends State<Postcode> {
           SnackBar(
             content: Text('postcode_create'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -959,7 +959,7 @@ class _PostcodeState extends State<Postcode> {
           SnackBar(
             content: Text('${'failed_postcode'.tr}: ${e.toString()}'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -1023,7 +1023,7 @@ class _PostcodeState extends State<Postcode> {
           SnackBar(
             content: Text('update_postcode'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -1040,7 +1040,7 @@ class _PostcodeState extends State<Postcode> {
           SnackBar(
             content: Text('${'failed__upd_postcode'.tr}: ${e.toString()}'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -1075,7 +1075,7 @@ class _PostcodeState extends State<Postcode> {
           SnackBar(
             content: Text('postcode_delete'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -1089,7 +1089,7 @@ class _PostcodeState extends State<Postcode> {
           SnackBar(
             content: Text('postcode_delete_failed'.tr),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -1120,7 +1120,7 @@ class _PostcodeState extends State<Postcode> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(height: 20,),
+                    const SizedBox(height: 20,),
                     Text(
                       '${'are'.tr}"$postcodeName"?',
                       style: const TextStyle(
@@ -1151,7 +1151,7 @@ class _PostcodeState extends State<Postcode> {
                             ),
                             child:  Text(
                               'cancel'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -1180,7 +1180,7 @@ class _PostcodeState extends State<Postcode> {
                             ),
                             child:  Text(
                               'delete'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),

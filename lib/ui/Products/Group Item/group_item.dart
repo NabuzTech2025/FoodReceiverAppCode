@@ -122,7 +122,7 @@ class _GroupItemState extends State<GroupItem> {
     return Scaffold(
       backgroundColor: Colors.white,
       drawer: CustomDrawer(onSelectTab: _openTab),
-      appBar: CustomAppBar(),
+      appBar: const CustomAppBar(),
       body: Column(
         children: [
           Expanded(
@@ -135,7 +135,7 @@ class _GroupItemState extends State<GroupItem> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('group'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontFamily: 'Mulish',
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold)),
@@ -151,7 +151,7 @@ class _GroupItemState extends State<GroupItem> {
                             ),
                             child: Center(
                               child: Text('add'.tr,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
                                     fontSize: 12,
@@ -163,7 +163,7 @@ class _GroupItemState extends State<GroupItem> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 15),
+                  const SizedBox(height: 15),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Align(
@@ -179,7 +179,7 @@ class _GroupItemState extends State<GroupItem> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
 
                   Container(
                     padding: const EdgeInsets.all(15),
@@ -188,30 +188,30 @@ class _GroupItemState extends State<GroupItem> {
                     ),
                     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(
+                        SizedBox(
                           width:MediaQuery.of(context).size.width*0.38,
                           child: Text('topping_group_item'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 13,
                                 fontFamily: 'Mulish'),
                           ),
                         ),
-                        Container(
+                        SizedBox(
                           width: MediaQuery.of(context).size.width*0.25,
                           child: Center(
                             child: Text('grp'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 13,
                                     fontFamily: 'Mulish')),
                           ),
                         ),
-                        Container(
+                        SizedBox(
                           width: MediaQuery.of(context).size.width*0.25,
                           child: Center(
                             child: Text('display'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 13,
                                     fontFamily: 'Mulish')),
@@ -261,10 +261,10 @@ class _GroupItemState extends State<GroupItem> {
                                 child: Container(
                                   width: 60,
                                   height: double.infinity,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xffE25454),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xffE25454),
                                   ),
-                                  child: Icon(
+                                  child: const Icon(
                                     Icons.delete_outline,
                                     color: Colors.white,
                                     size: 25,
@@ -287,7 +287,7 @@ class _GroupItemState extends State<GroupItem> {
                             child:  Container(
                               child: Row(mainAxisAlignment: MainAxisAlignment.start,
                                 children: [
-                                  Container(
+                                  SizedBox(
                                     width: MediaQuery.of(context).size.width*0.4,
                                     child:  Text(
                                       currentPageItems[index].topping!.name.toString(),
@@ -298,7 +298,7 @@ class _GroupItemState extends State<GroupItem> {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  Container(
+                                  SizedBox(
                                     width: MediaQuery.of(context).size.width * 0.4,
                                     child: Center(
                                       child: Text(
@@ -345,7 +345,7 @@ class _GroupItemState extends State<GroupItem> {
                     BoxShadow(
                       color: Colors.grey.shade200,
                       blurRadius: 5,
-                      offset: Offset(0, -2),
+                      offset: const Offset(0, -2),
                     ),
                   ],
                 ),
@@ -379,7 +379,7 @@ class _GroupItemState extends State<GroupItem> {
                       ),
                     ),
 
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
                     // Page Numbers
                     ...(_getPageNumbers().map((pageNum) {
@@ -392,10 +392,10 @@ class _GroupItemState extends State<GroupItem> {
                             width: 35,
                             height: 35,
                             decoration: BoxDecoration(
-                              color: isActive ? Color(0xFF0EA5E9) : Colors
+                              color: isActive ? const Color(0xFF0EA5E9) : Colors
                                   .white,
                               border: Border.all(
-                                color: isActive ? Color(0xFF0EA5E9) : Colors
+                                color: isActive ? const Color(0xFF0EA5E9) : Colors
                                     .grey.shade300,
                               ),
                               borderRadius: BorderRadius.circular(4),
@@ -417,7 +417,7 @@ class _GroupItemState extends State<GroupItem> {
                       );
                     }).toList()),
 
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
                     // Next Button
                     GestureDetector(
@@ -472,7 +472,7 @@ class _GroupItemState extends State<GroupItem> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
@@ -512,19 +512,19 @@ class _GroupItemState extends State<GroupItem> {
                     children: [
                       Text(
                         isEditMode ? 'edit_grp_item'.tr : 'add_grp_item'.tr,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           fontFamily: 'Mulish',
                         ),
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
 
                       // Select Group Dropdown
-                      Text('select_grp'.tr, style: TextStyle(fontFamily: 'Mulish')),
-                      SizedBox(height: 8),
+                      Text('select_grp'.tr, style: const TextStyle(fontFamily: 'Mulish')),
+                      const SizedBox(height: 8),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey.shade300),
                           borderRadius: BorderRadius.circular(4),
@@ -548,13 +548,13 @@ class _GroupItemState extends State<GroupItem> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
                       // Select Topping Dropdown
-                      Text('select_topp'.tr, style: TextStyle(fontFamily: 'Mulish')),
-                      SizedBox(height: 8),
+                      Text('select_topp'.tr, style: const TextStyle(fontFamily: 'Mulish')),
+                      const SizedBox(height: 8),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey.shade300),
                           borderRadius: BorderRadius.circular(4),
@@ -578,20 +578,20 @@ class _GroupItemState extends State<GroupItem> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
                       // Display Order TextField
-                      Text('display'.tr, style: TextStyle(fontFamily: 'Mulish')),
-                      SizedBox(height: 8),
+                      Text('display'.tr, style: const TextStyle(fontFamily: 'Mulish')),
+                      const SizedBox(height: 8),
                       TextField(
                         controller: displayOrderController,
                         keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           hintText: '',
                           border: OutlineInputBorder(),
                         ),
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
 
                       // Buttons
                       Row(
@@ -605,14 +605,14 @@ class _GroupItemState extends State<GroupItem> {
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.black.withOpacity(0.2),
-                                padding: EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
                               child: Text(
                                 'close'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
@@ -621,7 +621,7 @@ class _GroupItemState extends State<GroupItem> {
                               ),
                             ),
                           ),
-                          SizedBox(width: 10),
+                          const SizedBox(width: 10),
                           SizedBox(
                             width: 150,
                             child: ElevatedButton(
@@ -651,14 +651,14 @@ class _GroupItemState extends State<GroupItem> {
                                 }
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFFFCAE03),
-                                padding: EdgeInsets.symmetric(vertical: 14),
+                                backgroundColor: const Color(0xFFFCAE03),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
                               child: Text( isEditMode ? 'update_grp'.tr : 'add_grp'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
@@ -669,7 +669,7 @@ class _GroupItemState extends State<GroupItem> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                     ],
                     ),
                   ),
@@ -817,7 +817,7 @@ class _GroupItemState extends State<GroupItem> {
           SnackBar(
             content: Text('grp_create'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -843,7 +843,7 @@ class _GroupItemState extends State<GroupItem> {
           SnackBar(
             content: Text(errorMessage),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -1052,7 +1052,7 @@ class _GroupItemState extends State<GroupItem> {
           SnackBar(
             content: Text('grp_delete'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -1066,7 +1066,7 @@ class _GroupItemState extends State<GroupItem> {
           SnackBar(
             content: Text('failed_grp'.tr),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -1097,7 +1097,7 @@ class _GroupItemState extends State<GroupItem> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(height: 20,),
+                    const SizedBox(height: 20,),
                     Text(
                       '${'are'.tr}"$groupItemName"?',
                       style: const TextStyle(
@@ -1128,7 +1128,7 @@ class _GroupItemState extends State<GroupItem> {
                             ),
                             child:  Text(
                               'cancel'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -1157,7 +1157,7 @@ class _GroupItemState extends State<GroupItem> {
                             ),
                             child:  Text(
                               'delete'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),

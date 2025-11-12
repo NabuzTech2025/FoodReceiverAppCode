@@ -1,13 +1,10 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:food_app/bindings/app_binding.dart';
 import 'package:get/get.dart';
 
 import '../utils/my_application.dart';
 
 class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
-  CustomAppBar({super.key});
+  const CustomAppBar({super.key});
 
   @override
   State<CustomAppBar> createState() => _CustomAppBarState();
@@ -21,7 +18,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
   FocusNode searchFocusNode = FocusNode();
   bool _showClearButton = false;
   bool _isSearchActive = false;
-
+  String get currentSearchQuery => searchControllerTodo.text;
   @override
   void initState() {
     super.initState();
@@ -45,9 +42,26 @@ class _CustomAppBarState extends State<CustomAppBar> {
       _showClearButton = searchText.isNotEmpty;
     });
 
-    if (app.appController.selectedTabIndex == 0) {
+    String currentRoute = Get.currentRoute;
+    print("📍 Current route: $currentRoute");
+
+    if (currentRoute == '/Products') {
+      // Call products filter
+      if (app.appController.productsFilterCallback != null) {
+        app.appController.productsFilterCallback!(searchText);
+        print("✅ Called products filter");
+      }
+    } else if (currentRoute == '/Category') {
+      // Call category filter
+      if (app.appController.categoryFilterCallback != null) {
+        app.appController.categoryFilterCallback!(searchText);
+        print("✅ Called category filter");
+      }
+    } else if (app.appController.selectedTabIndex == 0) {
+      // Fallback to order filter for tab 0
       app.appController.filterSearchResultsTodo(searchText);
     } else if (app.appController.selectedTabIndex == 1) {
+      // Fallback to reservation filter for tab 1
       app.appController.filterSearchResultsReservation(searchText);
     }
   }
@@ -57,7 +71,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
       _isSearchActive = true;
     });
     // Small delay to ensure widget is built before requesting focus
-    Future.delayed(Duration(milliseconds: 50), () {
+    Future.delayed(const Duration(milliseconds: 50), () {
       if (mounted) {
         FocusScope.of(context).requestFocus(searchFocusNode);
       }
@@ -76,9 +90,30 @@ class _CustomAppBarState extends State<CustomAppBar> {
       FocusScope.of(context).requestFocus(searchFocusNode);
     }
   }
+
+  void _clearSearch() {
+    searchControllerTodo.clear();
+
+    // Check route and clear appropriate search
+    String currentRoute = Get.currentRoute;
+
+    if (currentRoute == '/Products') {
+      if (app.appController.productsFilterCallback != null) {
+        app.appController.productsFilterCallback!('');
+      }
+    } else if (currentRoute == '/Category') {
+      if (app.appController.categoryFilterCallback != null) {
+        app.appController.categoryFilterCallback!('');
+      }
+    } else if (app.appController.selectedTabIndex == 0) {
+      app.appController.clearSearch();
+    } else if (app.appController.selectedTabIndex == 1) {
+      app.appController.clearReservationSearch();
+    }
+  }
+
   Widget _buildSearchBox() {
     if (!_isSearchActive) {
-      // ✅ Inactive state - Show container that looks like TextField
       return GestureDetector(
         onTap: _activateSearch,
         child: Container(
@@ -90,8 +125,8 @@ class _CustomAppBarState extends State<CustomAppBar> {
           ),
           child: Row(
             children: [
-              Icon(Icons.search, color: Colors.green, size: 20),
-              SizedBox(width: 8),
+              const Icon(Icons.search, color: Colors.green, size: 20),
+              const SizedBox(width: 8),
               Expanded(
                 child: Align(
                   alignment: Alignment.centerLeft,
@@ -110,22 +145,14 @@ class _CustomAppBarState extends State<CustomAppBar> {
               ),
               if (searchControllerTodo.text.isNotEmpty)
                 GestureDetector(
-                  onTap: () {
-                    searchControllerTodo.clear();
-                    if (app.appController.selectedTabIndex == 0) {
-                      app.appController.clearSearch();
-                    } else if (app.appController.selectedTabIndex == 1) {
-                      app.appController.clearReservationSearch();
-                    }
-                  },
-                  child: Icon(Icons.clear, color: Colors.grey, size: 18),
+                  onTap: _clearSearch,
+                  child: const Icon(Icons.clear, color: Colors.grey, size: 18),
                 ),
             ],
           ),
         ),
       );
     } else {
-      // ✅ Active state - Show actual TextField
       return Container(
         height: 40,
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -135,30 +162,25 @@ class _CustomAppBarState extends State<CustomAppBar> {
         ),
         child: Row(
           children: [
-            Icon(Icons.search, color: Colors.green, size: 20),
-            SizedBox(width: 8),
+            const Icon(Icons.search, color: Colors.green, size: 20),
+            const SizedBox(width: 8),
             Expanded(
               child: TextField(
                 controller: searchControllerTodo,
                 focusNode: searchFocusNode,
                 autofocus: false,
-                style: TextStyle(fontSize: 14),
+                style: const TextStyle(fontSize: 14),
                 textInputAction: TextInputAction.search,
                 textAlignVertical: TextAlignVertical.center,
                 decoration: InputDecoration(
                   hintText: 'search_item'.tr,
-                  hintStyle: TextStyle(fontSize: 14),
+                  hintStyle: const TextStyle(fontSize: 14),
                   border: InputBorder.none,
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
                   isCollapsed: true,
                 ),
                 onSubmitted: (value) {
-                  if (app.appController.selectedTabIndex == 0) {
-                    app.appController.filterSearchResultsTodo(value);
-                  } else if (app.appController.selectedTabIndex == 1) {
-                    app.appController.filterSearchResultsReservation(value);
-                  }
                   _deactivateSearch();
                 },
                 onEditingComplete: () {
@@ -168,21 +190,13 @@ class _CustomAppBarState extends State<CustomAppBar> {
             ),
             if (_showClearButton)
               GestureDetector(
-                onTap: () {
-                  searchControllerTodo.clear();
-                  if (app.appController.selectedTabIndex == 0) {
-                    app.appController.clearSearch();
-                  } else if (app.appController.selectedTabIndex == 1) {
-                    app.appController.clearReservationSearch();
-                  }
-                },
-                child: Icon(Icons.clear, color: Colors.grey, size: 18),
+                onTap: _clearSearch,
+                child: const Icon(Icons.clear, color: Colors.grey, size: 18),
               ),
-            // ✅ Done button to close search
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             GestureDetector(
               onTap: _deactivateSearch,
-              child: Icon(Icons.keyboard_hide, color: Colors.grey, size: 18),
+              child: const Icon(Icons.keyboard_hide, color: Colors.grey, size: 18),
             ),
           ],
         ),
@@ -191,7 +205,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
   }
 
 
-@override
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Container(
@@ -200,24 +214,26 @@ class _CustomAppBarState extends State<CustomAppBar> {
         child: Row(
           children: [
             GestureDetector(
-                onTap: (){
+                onTap: () {
                   Scaffold.of(context).openDrawer();
                 },
-                child:  Icon(Icons.menu,color: Colors.black,)
-              //SvgPicture.asset('assets/images/drawer.svg'),
+                child: const Icon(Icons.menu, color: Colors.black,)
             ),
             const SizedBox(width: 8),
             Obx(() {
-              if (app.appController.selectedTabIndex == 0 || app.appController.selectedTabIndex == 1){
-                return Expanded(
-                  child: _buildSearchBox()
-                ) ;
+              // Show search box for Orders, Reservations, Products, and Category
+              String currentRoute = Get.currentRoute;
+              bool showSearchBox = app.appController.selectedTabIndex == 0 ||
+                  app.appController.selectedTabIndex == 1 ||
+                  currentRoute == '/Products' ||
+                  currentRoute == '/Category';
+
+              if (showSearchBox) {
+                return Expanded(child: _buildSearchBox());
               } else {
-                // Report screen aur Settings screen par search box hide kar denge
-                return Expanded(child: SizedBox.shrink());
+                return const Expanded(child: SizedBox.shrink());
               }
             }),
-
             const SizedBox(width: 12),
           ],
         ),

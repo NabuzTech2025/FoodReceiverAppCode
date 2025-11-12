@@ -30,6 +30,7 @@ class _StoreTimingState extends State<StoreTiming> {
 
   // Days array for mapping day numbers to names
   List<String> dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  List<String> fullDayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
   void _openTab(int index) {
     if (_pageController.hasClients &&
@@ -50,6 +51,8 @@ class _StoreTimingState extends State<StoreTiming> {
       });
     }
   }
+
+
 
   @override
   void initState() {
@@ -72,7 +75,7 @@ class _StoreTimingState extends State<StoreTiming> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                 Text('store_hour'.tr, style: TextStyle(
+                  Text('store_hour'.tr, style: TextStyle(
                       fontFamily: 'Mulish', fontSize: 18, fontWeight: FontWeight.bold
                   )),
                   GestureDetector(
@@ -111,46 +114,50 @@ class _StoreTimingState extends State<StoreTiming> {
   Widget buildTimingCards() {
     if (storeTimingList.isEmpty) {
       if (isLoading) {
-        return  Center(child:Container());
+        return Center(child: Container());
       } else {
         return const Center(child: Text('No store timing data available'));
       }
     }
 
-    // Group timings by name
-    Map<String, List<GetStoreTimingResponseModel>> groupedTimings = {};
-    for (var timing in storeTimingList) {
-      String name = timing.name ?? 'Timing';
-      if (!groupedTimings.containsKey(name)) {
-        groupedTimings[name] = [];
-      }
-      groupedTimings[name]!.add(timing);
-    }
+    // Get grouped timings
+    List<Map<String, dynamic>> groupedTimings = _groupStoreTimings();
 
-    // Build cards for each group
     return Column(
-      children: groupedTimings.entries.map((entry) {
-        String timingName = entry.key;
-        List<GetStoreTimingResponseModel> timings = entry.value;
+      children: groupedTimings.map((timingGroup) {
+        String timingName = timingGroup['name'];
+        List<int> selectedDays = timingGroup['days'];
+        String openingTime = timingGroup['openingTime'];
+        String closingTime = timingGroup['closingTime'];
+        List<int?> timingIds = timingGroup['ids'];
 
-        // Get all days for this timing group
-        List<int> selectedDays = timings.map((t) => t.dayOfWeek ?? -1).where((day) => day >= 0 && day <= 6).toList();
-
-        // Get opening and closing time (assuming same for all days in group)
-        String openingTime = timings.isNotEmpty ? (timings.first.openingTime ?? '00:00') : '00:00';
-        String closingTime = timings.isNotEmpty ? (timings.first.closingTime ?? '00:00') : '00:00';
-        int? timingId = timings.isNotEmpty ? timings.first.id : null;
-         print('timing id is $timingId');
-        return buildTimingCard(timingName, selectedDays, openingTime, closingTime,timingId);
+        return buildTimingCard(
+          timingName,
+          selectedDays,
+          openingTime,
+          closingTime,
+          timingIds,
+        );
       }).toList(),
     );
   }
 
-  // buildTimingCard method में edit button ke tap event को update करें
-  Widget buildTimingCard(String timingName, List<int> selectedDays, String openingTime, String closingTime,int? timingId) {
+  Widget buildTimingCard(
+      String timingName,
+      List<int> selectedDays,
+      String openingTime,
+      String closingTime,
+      List<int?> timingIds
+      )
+  {
+    // Create display text for selected days
+    String daysDisplay = selectedDays.map((day) =>
+    (day >= 0 && day <= 6) ? fullDayNames[day] : 'Unknown'
+    ).join(', ');
+
     return Column(
       children: [
-        // Header with timing name
+        // Header with timing name and days
         Container(
           padding: const EdgeInsets.all(15),
           decoration: const BoxDecoration(
@@ -158,9 +165,9 @@ class _StoreTimingState extends State<StoreTiming> {
           ),
           child: Row(
             children: [
-              Expanded(  // Changed from Container with fixed width
+              Expanded(
                 child: Text(
-                  timingName,
+                  '$timingName',
                   style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 13,
@@ -168,7 +175,7 @@ class _StoreTimingState extends State<StoreTiming> {
                   ),
                 ),
               ),
-             Row(
+              Row(
                 children: [
                   Text('open'.tr, style: TextStyle(
                       fontWeight: FontWeight.w800,
@@ -228,7 +235,7 @@ class _StoreTimingState extends State<StoreTiming> {
                 Row(
                   children: [
                     Text(
-                      openingTime.substring(0, 5),
+                      openingTime.length >= 5 ? openingTime.substring(0, 5) : openingTime,
                       style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
@@ -237,7 +244,7 @@ class _StoreTimingState extends State<StoreTiming> {
                     ),
                     const SizedBox(width: 15),
                     Text(
-                      closingTime.substring(0, 5),
+                      closingTime.length >= 5 ? closingTime.substring(0, 5) : closingTime,
                       style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
@@ -270,13 +277,18 @@ class _StoreTimingState extends State<StoreTiming> {
                     ),
                     const SizedBox(width: 8),
 
-                    // Delete button
+                    // Delete button - now deletes all timings in this group
                     GestureDetector(
                       onTap: () {
-                        if (timingId != null) {
-                          _showDeleteConfirmation(context, timingName, timingId);
+                        if (timingIds.isNotEmpty && timingIds.first != null) {
+                          _showDeleteConfirmation(context, '$timingName - $daysDisplay', timingIds);
                         } else {
-                          Get.snackbar('error'.tr, 'invalid_timing'.tr);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('invalid_timing'.tr),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
                         }
                       },
                       child: Container(
@@ -301,156 +313,213 @@ class _StoreTimingState extends State<StoreTiming> {
     );
   }
 
-// Delete confirmation dialog
-  void _showDeleteConfirmation(BuildContext context, String timingName, int timingId) {
-    Get.dialog(
-      Dialog(
-        backgroundColor: Colors.transparent,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-           // margin: const EdgeInsets.symmetric(horizontal: 20),
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(height: 20,),
-                Text(
-                  '${"are".tr} "$timingName"',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.black,
-                    fontFamily: 'Mulish'
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 30),
-                Row(mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      height: 35,
-                      width: 70,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF8E9AAF),
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                      child: TextButton(
-                        onPressed: () => Get.back(),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                        ),
-                        child:  Text(
-                          'cancel'.tr,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
+  List<Map<String, dynamic>> _groupStoreTimings() {
+    Map<String, Map<String, dynamic>> groupedTimings = {};
 
-                    const SizedBox(width: 15),
-                    Container(
-                      height: 35,
-                      width: 70,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE25454),
-                        borderRadius: BorderRadius.circular(3),
+    for (var timing in storeTimingList) {
+      String key = '${timing.name}_${timing.openingTime}_${timing.closingTime}';
+
+      if (groupedTimings.containsKey(key)) {
+        // Add day to existing group
+        groupedTimings[key]!['days'].add(timing.dayOfWeek ?? -1);
+        groupedTimings[key]!['ids'].add(timing.id);
+      } else {
+        // Create new group
+        groupedTimings[key] = {
+          'name': timing.name ?? 'Timing',
+          'openingTime': timing.openingTime ?? '00:00',
+          'closingTime': timing.closingTime ?? '00:00',
+          'days': [timing.dayOfWeek ?? -1],
+          'ids': [timing.id],
+        };
+      }
+    }
+
+    // Sort days in each group
+    groupedTimings.forEach((key, value) {
+      (value['days'] as List<int>).sort();
+    });
+
+    return groupedTimings.values.toList();
+  }
+
+  void _showDeleteConfirmation(BuildContext context, String timingName, List<int?> timingIds) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
                       ),
-                      child: TextButton(
-                        onPressed: () {
-                          Get.back();
-                          _deleteStoreTiming(timingId);
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(3),
-                          ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(height: 20),
+                      Text(
+                        '${"are".tr} "$timingName"',
+                        style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.black,
+                            fontFamily: 'Mulish'
                         ),
-                        child:  Text(
-                          'delete'.tr,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 30),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            height: 35,
+                            width: 70,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF8E9AAF),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: TextButton(
+                              onPressed: () => Navigator.pop(dialogContext),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                              child: Text(
+                                'cancel'.tr,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 15),
+                          Container(
+                            height: 35,
+                            width: 70,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE25454),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: TextButton(
+                              onPressed: () {
+                                Navigator.pop(dialogContext);
+                                _deleteStoreTiming(timingIds);
+                              },
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                              child: Text(
+                                'delete'.tr,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: -20,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(dialogContext),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFED4C5C),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 20,
                       ),
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                )
+              ]
           ),
-            Positioned(
-              left: 0,
-              right: 0,
-              top: -20,
-              child: GestureDetector(
-              onTap: () => Get.back(),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFED4C5C),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.close,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-            ),)
-        ]
-        ),
-      ),
+        );
+      },
     );
   }
-  Future<void> _deleteStoreTiming(int timingId) async {
-    Get.dialog(
-      Center(
+
+  Future<void> _deleteStoreTiming(List<int?> timingIds) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Center(
           child: Lottie.asset(
             'assets/animations/burger.json',
             width: 150,
             height: 150,
             repeat: true,
-          )
-      ),
-      barrierDismissible: false,
+          ),
+        );
+      },
     );
 
     try {
-      await CallService().deleteStoreTiming(timingId);
+      // Delete all timing IDs in the group
+      for (var id in timingIds) {
+        if (id != null) {
+          await CallService().deleteStoreTiming(id);
+        }
+      }
 
-      Get.back();
-      Get.snackbar('success'.tr, 'del_timing'.tr);
-
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('del_timing'.tr),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
       await getStoreTiming(showLoader: false);
 
     } catch (e) {
-      Get.back();
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
       print('Error deleting timing: $e');
-      Get.snackbar('error'.tr, 'delete_timing'.tr);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('delete_timing'.tr),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
     }
   }
 
-// New method to show edit bottom sheet
   void showEditStoreHoursBottomSheet(
       BuildContext context,
       String timingName,
@@ -474,12 +543,32 @@ class _StoreTimingState extends State<StoreTiming> {
           editOpeningTime: openingTime,
           editClosingTime: closingTime,
           onDataAdded: () {
-            getStoreTiming(showLoader: false); // Refresh data without loader
+            getStoreTiming(showLoader: false);
           },
         ),
       ),
     );
   }
+
+  void showAddStoreHoursBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: AddStoreHoursBottomSheet(
+          isEditMode: false,
+          onDataAdded: () {
+            getStoreTiming(showLoader: false);
+          },
+        ),
+      ),
+    );
+  }
+
   Future<void> getStoreTiming({bool showLoader = true}) async {
     if (sharedPreferences == null) {
       print('SharedPreferences not initialized yet');
@@ -513,8 +602,7 @@ class _StoreTimingState extends State<StoreTiming> {
       );
     }
 
-      try {
-
+    try {
       List<GetStoreTimingResponseModel> storeTiming = await CallService().getStoreTiming(storeId!);
 
       if (showLoader) {
@@ -522,14 +610,15 @@ class _StoreTimingState extends State<StoreTiming> {
       }
 
       setState(() {
-        storeTimingList = storeTiming; // Store the API response
+        storeTimingList = storeTiming;
+        print('Store timing length is ${storeTiming.length}');
         isLoading = false;
       });
 
     } catch (e) {
-        if (showLoader) {
-          Get.back();
-        }
+      if (showLoader) {
+        Get.back();
+      }
       print('Error getting Store Timing: $e');
       setState(() {
         isLoading = false;

@@ -24,13 +24,13 @@ class EditStoreToppingsResponseModel {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['description'] = this.description;
-    data['price'] = this.price;
-    data['store_id'] = this.storeId;
-    data['id'] = this.id;
-    data['isActive'] = this.isActive;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['description'] = description;
+    data['price'] = price;
+    data['store_id'] = storeId;
+    data['id'] = id;
+    data['isActive'] = isActive;
     return data;
   }
 }

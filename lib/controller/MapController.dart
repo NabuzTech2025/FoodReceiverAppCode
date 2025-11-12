@@ -1,7 +1,7 @@
 
 import 'package:get/get.dart';
 
-final title = "MapController";
+const title = "MapController";
 
 class MapController extends GetxController {
 

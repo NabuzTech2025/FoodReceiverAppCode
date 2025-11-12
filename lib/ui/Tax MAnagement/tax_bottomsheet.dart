@@ -13,7 +13,7 @@ class AddTaxBottomSheet extends StatefulWidget {
   final VoidCallback? onDataAdded;
   final String? editTaxName;
   final String? editTaxPercentage;
-  final int? editTaxId; // Add this line
+  final int? editTaxId;
   final bool isEditMode;
 
   const AddTaxBottomSheet({
@@ -21,14 +21,13 @@ class AddTaxBottomSheet extends StatefulWidget {
     this.onDataAdded,
     this.editTaxName,
     this.editTaxPercentage,
-    this.editTaxId, // Add this line
+    this.editTaxId,
     this.isEditMode = false,
   });
 
   @override
   State<AddTaxBottomSheet> createState() => _AddTaxBottomSheetState();
 }
-
 
 class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
   final TextEditingController _taxNameController = TextEditingController();
@@ -47,7 +46,6 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
     }
   }
 
-  // Initialize SharedPreferences
   Future<void> _initializeSharedPreferences() async {
     try {
       sharedPreferences = await SharedPreferences.getInstance();
@@ -57,7 +55,6 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
     }
   }
 
-  // Pre-fill data for edit mode
   void _prefillEditData() {
     setState(() {
       if (widget.editTaxName != null) {
@@ -69,31 +66,41 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
     });
   }
 
+  void _showSnackbar(String message, {bool isError = false}) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   void _onSave() {
-    // Validate inputs
     if (_taxNameController.text.trim().isEmpty) {
-      Get.snackbar('error'.tr, 'enter_tax'.tr);
+      _showSnackbar('enter_tax'.tr, isError: true);
       return;
     }
 
     if (_taxPercentageController.text.trim().isEmpty) {
-      Get.snackbar('error'.tr, 'enter_percentage'.tr);
+      _showSnackbar('enter_percentage'.tr, isError: true);
       return;
     }
 
-    // Validate percentage
     double? percentage = double.tryParse(_taxPercentageController.text.trim());
     if (percentage == null) {
-      Get.snackbar('error'.tr, 'valid_percentage'.tr);
+      _showSnackbar('valid_percentage'.tr, isError: true);
       return;
     }
 
     if (percentage < 0 || percentage > 100) {
-      Get.snackbar('error'.tr, 'tax_percentage'.tr);
+      _showSnackbar('tax_percentage'.tr, isError: true);
       return;
     }
 
-    // Call appropriate method based on edit mode
     if (widget.isEditMode) {
       _editSavedTax();
     } else {
@@ -103,13 +110,13 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
 
   Future<void> _saveTax() async {
     if (sharedPreferences == null) {
-      Get.snackbar('error'.tr, 'shared'.tr);
+      _showSnackbar('shared'.tr, isError: true);
       return;
     }
 
     storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
     if (storeId == null) {
-      Get.snackbar('error'.tr, 'storeId'.tr);
+      _showSnackbar('storeId'.tr, isError: true);
       return;
     }
 
@@ -117,19 +124,26 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
       isLoading = true;
     });
 
-    try {
-      Get.dialog(
-        Center(
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: Center(
             child: Lottie.asset(
               'assets/animations/burger.json',
               width: 150,
               height: 150,
               repeat: true,
-            )
-        ),
-        barrierDismissible: false,
-      );
+            ),
+          ),
+        );
+      },
+    );
 
+    try {
       var map = {
         "name": _taxNameController.text.trim(),
         "percentage": double.parse(_taxPercentageController.text.trim()),
@@ -138,50 +152,68 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
 
       print("Add Tax Map: $map");
 
-      // Wait for actual API response
       AddTaxResponseModel model = await CallService().addStoreTaxes(map);
 
       print("Tax added successfully");
 
-      setState(() {
-        isLoading = false;
-      });
-
-      Get.back(); // Close loading dialog
-      Navigator.pop(context); // Close bottom sheet
-
-      if (widget.onDataAdded != null) {
-         widget.onDataAdded!();
-
-         await Future.delayed(Duration(milliseconds: 500));// Make this await if possible
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
       }
 
-      // Then show success message
-      Get.snackbar('success'.tr, 'tax_add'.tr);
-
-    } catch (e) {
       setState(() {
         isLoading = false;
       });
-      Get.back();
+
+      // Close bottom sheet
+      if (mounted) {
+        Navigator.pop(context);
+      }
+
+      // Call callback to refresh list
+      if (widget.onDataAdded != null) {
+        widget.onDataAdded!();
+      }
+
+      // Small delay then show success message
+      await Future.delayed(Duration(milliseconds: 300));
+
+      if (mounted) {
+        _showSnackbar('tax_add'.tr);
+      }
+
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      setState(() {
+        isLoading = false;
+      });
+
       print('Adding error: $e');
-      Get.snackbar('error'.tr, '${'failed_tax_add'.tr}: ${e.toString()}');
+
+      if (mounted) {
+        _showSnackbar('${'failed_tax_add'.tr}: ${e.toString()}', isError: true);
+      }
     }
   }
+
   Future<void> _editSavedTax() async {
     if (sharedPreferences == null) {
-      Get.snackbar('error'.tr, 'shared'.tr);
+      _showSnackbar('shared'.tr, isError: true);
       return;
     }
 
     storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
     if (storeId == null) {
-      Get.snackbar('error'.tr, 'storeId'.tr);
+      _showSnackbar('storeId'.tr, isError: true);
       return;
     }
 
     if (widget.editTaxId == null) {
-      Get.snackbar('error', 'tax_id'.tr);
+      _showSnackbar('tax_id'.tr, isError: true);
       return;
     }
 
@@ -189,19 +221,26 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
       isLoading = true;
     });
 
-    try {
-      Get.dialog(
-        Center(
+    // Show loading dialog using showDialog instead of Get.dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: Center(
             child: Lottie.asset(
               'assets/animations/burger.json',
               width: 150,
               height: 150,
               repeat: true,
-            )
-        ),
-        barrierDismissible: false,
-      );
+            ),
+          ),
+        );
+      },
+    );
 
+    try {
       var map = {
         "name": _taxNameController.text.trim(),
         "percentage": double.parse(_taxPercentageController.text.trim()),
@@ -210,34 +249,52 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
 
       print("Edit Tax Map: $map");
 
-      // Wait for actual API response
-      editTaxResponseModel model = await CallService().editStoreTaxes(map, widget.editTaxId.toString());
+      editTaxResponseModel model = await CallService().editStoreTaxes(
+          map, widget.editTaxId.toString());
 
       print("Tax updated successfully");
 
-      setState(() {
-        isLoading = false;
-      });
-
-      Get.back(); // Close loading dialog
-      Navigator.pop(context); // Close bottom sheet
-
-      // Call callback first to refresh the list
-      if (widget.onDataAdded != null) {
-         widget.onDataAdded!();
-         await Future.delayed(Duration(milliseconds: 500));
+      // Close loading dialog using Navigator
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
       }
 
-      // Then show success message
-      Get.snackbar('success'.tr, 'tax_upd'.tr);
-
-    } catch (e) {
       setState(() {
         isLoading = false;
       });
-      Get.back();
+
+      // Close bottom sheet
+      if (mounted) {
+        Navigator.pop(context);
+      }
+
+      // Call callback to refresh list
+      if (widget.onDataAdded != null) {
+        widget.onDataAdded!();
+      }
+
+      // Small delay then show success message
+      await Future.delayed(Duration(milliseconds: 300));
+
+      if (mounted) {
+        _showSnackbar('tax_upd'.tr);
+      }
+
+    } catch (e) {
+      // Close loading dialog using Navigator
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      setState(() {
+        isLoading = false;
+      });
+
       print('Edit error: $e');
-      Get.snackbar('error'.tr, '${'tax_failed'.tr}: ${e.toString()}');
+
+      if (mounted) {
+        _showSnackbar('${'tax_failed'.tr}: ${e.toString()}', isError: true);
+      }
     }
   }
 
@@ -251,212 +308,208 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
   @override
   Widget build(BuildContext context) {
     return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Header
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          widget.isEditMode ? 'edit_tax'.tr : 'add_tax'.tr,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Mulish',
-                          ),
-                        )
-                      ],
-                    ),
-                    const SizedBox(height: 30),
-
-                    // Tax Name Field
-                    Text(
-                      'tax_name'.tr,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Mulish',
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _taxNameController,
-                      decoration: InputDecoration(
-                        hintText: 'enter'.tr,
-                        hintStyle: const TextStyle(
-                          color: Colors.grey,
-                          fontFamily: 'Mulish',
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFFF8F8F8),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Tax Percentage Field
-                    Text(
-                      'percentage'.tr,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Mulish',
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _taxPercentageController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')),
-                      ],
-                      decoration: InputDecoration(
-                        hintText: 'enter_percent'.tr,
-                        hintStyle: const TextStyle(
-                          color: Colors.grey,
-                          fontFamily: 'Mulish',
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFFF8F8F8),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        suffixIcon: const Padding(
-                          padding: EdgeInsets.all(12.0),
-                          child: Text(
-                            '%',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-
-                    // Action Buttons
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 120,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xff757B8F),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            child:  Text(
-                              'cancel'.tr,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'Mulish',
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 20),
-                        SizedBox(
-                          width: 120,
-                          child: ElevatedButton(
-                            onPressed: isLoading ? null : _onSave,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: isLoading
-                                ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                                : Text(
-                              'saved'.tr,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'Mulish',
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
             ),
           ),
-          Positioned(
-            top: -90,
-            right: 0,
-            left: 0,
-            child: Center(
-              child: GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  padding: const EdgeInsets.all(15),
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 6,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        widget.isEditMode ? 'edit_tax'.tr : 'add_tax'.tr,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Mulish',
+                        ),
                       )
                     ],
                   ),
-                  child: const Icon(Icons.close, size: 30, color: Colors.black),
-                ),
+                  const SizedBox(height: 30),
+                  Text(
+                    'tax_name'.tr,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Mulish',
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _taxNameController,
+                    decoration: InputDecoration(
+                      hintText: 'enter'.tr,
+                      hintStyle: const TextStyle(
+                        color: Colors.grey,
+                        fontFamily: 'Mulish',
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F8F8),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'percentage'.tr,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Mulish',
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _taxPercentageController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')),
+                    ],
+                    decoration: InputDecoration(
+                      hintText: 'enter_percent'.tr,
+                      hintStyle: const TextStyle(
+                        color: Colors.grey,
+                        fontFamily: 'Mulish',
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F8F8),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      suffixIcon: const Padding(
+                        padding: EdgeInsets.all(12.0),
+                        child: Text(
+                          '%',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 120,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xff757B8F),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: isLoading
+                              ? null
+                              : () {
+                            Navigator.pop(context);
+                          },
+                          child: Text(
+                            'cancel'.tr,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Mulish',
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      SizedBox(
+                        width: 120,
+                        child: ElevatedButton(
+                          onPressed: isLoading ? null : _onSave,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: isLoading
+                              ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                              : Text(
+                            'saved'.tr,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Mulish',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                ],
               ),
             ),
           ),
-        ]
+        ),
+        Positioned(
+          top: -90,
+          right: 0,
+          left: 0,
+          child: Center(
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                padding: const EdgeInsets.all(15),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 6,
+                    )
+                  ],
+                ),
+                child: const Icon(Icons.close, size: 30, color: Colors.black),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -466,7 +519,7 @@ void showAddTaxBottomSheet(
       VoidCallback? onDataAdded,
       String? editTaxName,
       String? editTaxPercentage,
-      int? editTaxId, // Add this line
+      int? editTaxId,
       bool isEditMode = false,
     }) {
   showModalBottomSheet(
@@ -481,7 +534,7 @@ void showAddTaxBottomSheet(
         onDataAdded: onDataAdded,
         editTaxName: editTaxName,
         editTaxPercentage: editTaxPercentage,
-        editTaxId: editTaxId, // Add this line
+        editTaxId: editTaxId,
         isEditMode: isEditMode,
       ),
     ),

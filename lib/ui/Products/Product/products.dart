@@ -16,6 +16,7 @@ import '../../../models/get_added_tax_response_model.dart';
 import '../../../models/get_product_category_list_response_model.dart';
 import '../../../models/get_store_products_response_model.dart';
 import '../../../models/iamge_upload_response_model.dart';
+import '../../../utils/my_application.dart';
 
 
 class Products extends StatefulWidget {
@@ -39,6 +40,9 @@ class _ProductsState extends State<Products> {
   int totalPages = 0;
   List<GetStoreProducts> currentPageItems = [];
 
+  List<GetStoreProducts> filteredProductList = [];
+  String currentSearchQuery = '';
+
   File? selectedImage;
   final ImagePicker _picker = ImagePicker();
   List<Map<String, dynamic>> variants = [];
@@ -52,19 +56,17 @@ class _ProductsState extends State<Products> {
   }
 
   void _updatePagination() {
-    totalPages = (productList.length / itemsPerPage).ceil();
+    totalPages = (filteredProductList.length / itemsPerPage).ceil(); // ✅ CHANGED
     if (totalPages == 0) totalPages = 1;
 
-    // Ensure current page is valid
     if (currentPage > totalPages) currentPage = totalPages;
     if (currentPage < 1) currentPage = 1;
 
-    // Get items for current page
     int startIndex = (currentPage - 1) * itemsPerPage;
     int endIndex = startIndex + itemsPerPage;
-    if (endIndex > productList.length) endIndex = productList.length;
+    if (endIndex > filteredProductList.length) endIndex = filteredProductList.length; // ✅ CHANGED
 
-    currentPageItems = productList.sublist(startIndex, endIndex);
+    currentPageItems = filteredProductList.sublist(startIndex, endIndex); // ✅ CHANGED
   }
 
   void _goToPage(int page) {
@@ -144,6 +146,7 @@ class _ProductsState extends State<Products> {
     return url;
   }
 
+
   @override
   void initState() {
     super.initState();
@@ -152,6 +155,39 @@ class _ProductsState extends State<Products> {
     getProduct();
     getStoreTaxes();
     getProductCategory();
+
+    app.appController.registerProductsFilter(_filterProducts);
+  }
+
+  void _filterProducts(String query) {
+    setState(() {
+      currentSearchQuery = query.toLowerCase();
+      if (currentSearchQuery.isEmpty) {
+        filteredProductList = productList;
+      } else {
+        filteredProductList = productList.where((product) {
+          final name = product.name?.toLowerCase() ?? '';
+          final code = product.itemCode?.toLowerCase() ?? '';
+          final category = product.category?.name?.toLowerCase() ?? '';
+
+          return name.contains(currentSearchQuery) ||
+              code.contains(currentSearchQuery) ||
+              category.contains(currentSearchQuery);
+        }).toList();
+      }
+      currentPage = 1;
+      _updatePagination();
+    });
+
+    print("🔍 Products filtered: ${filteredProductList.length} results");
+  }
+
+  @override
+  void dispose() {
+    // ✅ Clear callback
+    app.appController.productsFilterCallback = null;
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _initializeSharedPreferences() async {
@@ -171,7 +207,7 @@ class _ProductsState extends State<Products> {
     return Scaffold(
       backgroundColor: Colors.white,
       drawer: CustomDrawer(onSelectTab: _openTab),
-      appBar: CustomAppBar(),
+      appBar: const CustomAppBar(),
       body: Column(
         children: [
           Expanded(
@@ -184,7 +220,7 @@ class _ProductsState extends State<Products> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('product'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontFamily: 'Mulish',
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold)),
@@ -200,7 +236,7 @@ class _ProductsState extends State<Products> {
                             ),
                             child: Center(
                               child: Text('add'.tr,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
                                     fontSize: 12,
@@ -212,7 +248,7 @@ class _ProductsState extends State<Products> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 15),
+                  const SizedBox(height: 15),
 
                   // Showing entries info
                   Padding(
@@ -221,7 +257,7 @@ class _ProductsState extends State<Products> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         '${'showing'.tr} ${(currentPage - 1) * itemsPerPage + 1} to ${(currentPage - 1) * itemsPerPage + currentPageItems.length}'
-                            ' of ${productList.length} ${'entries'.tr}',
+                            ' of ${filteredProductList.length} ${'entries'.tr}', // ✅ CHANGED from productList.length
                         style: TextStyle(
                           fontSize: 12,
                           fontFamily: 'Mulish',
@@ -230,7 +266,7 @@ class _ProductsState extends State<Products> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
 
                   Container(
                     padding: const EdgeInsets.all(15),
@@ -242,10 +278,10 @@ class _ProductsState extends State<Products> {
                         Container(
                           width: 50,
                         ),
-                        Container(
+                        SizedBox(
                           width: MediaQuery.of(context).size.width * 0.35,
                           child: Text('product_name'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 13,
                                 fontFamily: 'Mulish'),
@@ -253,17 +289,17 @@ class _ProductsState extends State<Products> {
                         ),
                         Container(
                           child: Text('category'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 13,
                                   fontFamily: 'Mulish')),
                         ),
                         const SizedBox(width: 15),
-                        Container(
+                        SizedBox(
                           width: MediaQuery.of(context).size.width * 0.2,
                           child: Center(
                             child: Text('price'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 13,
                                   fontFamily: 'Mulish'),
@@ -273,7 +309,46 @@ class _ProductsState extends State<Products> {
                       ],
                     ),
                   ),
-
+                  if (filteredProductList.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(40),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.search_off,
+                            size: 60,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            currentSearchQuery.isEmpty
+                                ? 'no_product'.tr
+                                : '${'no_match'.tr} "$currentSearchQuery"',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontFamily: 'Mulish',
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          if (currentSearchQuery.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              'try'.tr,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontFamily: 'Mulish',
+                                color: Colors.grey[500],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ],
+                      ),
+                    )
+                  else
                   SlidableAutoCloseBehavior(
                     child: ListView.builder(
                       shrinkWrap: true,
@@ -284,10 +359,37 @@ class _ProductsState extends State<Products> {
                         return Slidable(
                           key: ValueKey(index),
                           endActionPane: ActionPane(
-                            motion: const ScrollMotion(),
-                            extentRatio: 0.335,
-                            children: [
-                              GestureDetector(
+                              motion: const ScrollMotion(),
+                              extentRatio: 0.502,
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    _showProductStatusChangeDialog(
+                                        context,
+                                        currentPageItems[index].name ?? 'Product',
+                                        currentPageItems[index].id ?? 0,
+                                        currentPageItems[index].isActive ?? false);
+                                  },
+                                  child: Container(
+                                    width: 60,
+                                    height: double.infinity,
+                                    decoration: BoxDecoration(
+                                      // ✅ Active → Green, Inactive → Grey
+                                      color: (currentPageItems[index].isActive ?? false)
+                                          ? Colors.green           // Active product
+                                          : Colors.grey.shade600,  // Inactive product
+                                    ),
+                                    child: Icon(
+                                      // ✅ Active → Active icon, Inactive → Inactive icon
+                                      (currentPageItems[index].isActive ?? false)
+                                          ? Icons.airplanemode_active      // Active icon
+                                          : Icons.airplanemode_inactive,   // Inactive icon
+                                      color: Colors.white,
+                                      size: 25,
+                                    ),
+                                  ),
+                                ),
+                                GestureDetector(
                                 onTap: () => _editProduct(index),
                                 child: Container(
                                   width: 60,
@@ -307,10 +409,10 @@ class _ProductsState extends State<Products> {
                                 child: Container(
                                   width: 60,
                                   height: double.infinity,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xffE25454),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xffE25454),
                                   ),
-                                  child: Icon(
+                                  child: const Icon(
                                     Icons.delete_outline,
                                     color: Colors.white,
                                     size: 25,
@@ -331,7 +433,7 @@ class _ProductsState extends State<Products> {
                             ),
                             child: Row(
                               children: [
-                                SizedBox(width: 5),
+                                const SizedBox(width: 5),
                                 Container(
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -347,10 +449,10 @@ class _ProductsState extends State<Products> {
                                           child: CachedNetworkImage(
                                             imageUrl: _getTrimmedImageUrl(currentPageItems[index].imageUrl),
                                             fit: BoxFit.cover,
-                                            placeholder: (context, url) => Center(
+                                            placeholder: (context, url) => const Center(
                                               child: CircularProgressIndicator(strokeWidth: 2),
                                             ),
-                                            errorWidget: (context, url, error) => Icon(
+                                            errorWidget: (context, url, error) => const Icon(
                                               Icons.image_not_supported,
                                               color: Colors.grey,
                                               size: 20,
@@ -358,8 +460,8 @@ class _ProductsState extends State<Products> {
                                           ),
                                         ),
                                       ),
-                                      SizedBox(width: 3,),
-                                      Container(
+                                      const SizedBox(width: 3,),
+                                      SizedBox(
                                         width: MediaQuery.of(context).size.width * 0.3,
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,7 +483,7 @@ class _ProductsState extends State<Products> {
                                           ],
                                         ),
                                       ),
-                                      Container(
+                                      SizedBox(
                                         width: MediaQuery.of(context).size.width * 0.3,
                                         child: Text(currentPageItems[index].category?.name ?? 'N/A',
                                           style: const TextStyle(
@@ -397,7 +499,7 @@ class _ProductsState extends State<Products> {
                                 Container(
                                   child: Center(
                                     child: Text('€${currentPageItems[index].price?.toStringAsFixed(2) ?? '0.00'}',
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontSize: 12,
                                           fontFamily: 'Mulish',
                                           fontWeight: FontWeight.w700,
@@ -417,7 +519,7 @@ class _ProductsState extends State<Products> {
             ),
           ),
 
-          if (productList.isNotEmpty && totalPages > 1)
+          if (filteredProductList.isNotEmpty && totalPages > 1)
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Container(
@@ -428,7 +530,7 @@ class _ProductsState extends State<Products> {
                     BoxShadow(
                       color: Colors.grey.shade200,
                       blurRadius: 5,
-                      offset: Offset(0, -2),
+                      offset: const Offset(0, -2),
                     ),
                   ],
                 ),
@@ -457,7 +559,7 @@ class _ProductsState extends State<Products> {
                       ),
                     ),
 
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
                     // Page Numbers
                     ...(_getPageNumbers().map((pageNum) {
@@ -470,9 +572,9 @@ class _ProductsState extends State<Products> {
                             width: 35,
                             height: 35,
                             decoration: BoxDecoration(
-                              color: isActive ? Color(0xFF0EA5E9) : Colors.white,
+                              color: isActive ? const Color(0xFF0EA5E9) : Colors.white,
                               border: Border.all(
-                                color: isActive ? Color(0xFF0EA5E9) : Colors.grey.shade300,
+                                color: isActive ? const Color(0xFF0EA5E9) : Colors.grey.shade300,
                               ),
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -492,7 +594,7 @@ class _ProductsState extends State<Products> {
                       );
                     }).toList()),
 
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
                     // Next Button
                     GestureDetector(
@@ -570,6 +672,13 @@ class _ProductsState extends State<Products> {
       if (mounted) {
         setState(() {
           productList = product;
+          filteredProductList = product;
+
+          for (var p in product) {
+            print('Product: ${p.name}, isActive: ${p.isActive}');
+          }
+
+
           currentPage = 1;
           _updatePagination();
           isLoading = false;
@@ -597,6 +706,7 @@ class _ProductsState extends State<Products> {
     TextEditingController nameController = TextEditingController();
     TextEditingController codeController = TextEditingController();
     TextEditingController priceController = TextEditingController();
+    TextEditingController discountPriceController = TextEditingController();
     TextEditingController descriptionController = TextEditingController();
     String? selectedCategory;
     String? selectedTax;
@@ -638,7 +748,7 @@ class _ProductsState extends State<Products> {
               children: [
                 Container(
                 height: MediaQuery.of(context).size.height * 0.85,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(20),
@@ -649,7 +759,7 @@ class _ProductsState extends State<Products> {
                   children: [
 
                     Container(
-                      padding: EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         border: Border(
                           bottom: BorderSide(color: Colors.grey.shade200),
@@ -660,7 +770,7 @@ class _ProductsState extends State<Products> {
                         children: [
                           Text(
                             'add_new_product'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               fontFamily: 'Mulish',
@@ -679,7 +789,7 @@ class _ProductsState extends State<Products> {
                                           child: Wrap(
                                             children: [
                                               ListTile(
-                                                leading: Icon(Icons.photo_library),
+                                                leading: const Icon(Icons.photo_library),
                                                 title: Text('choose_gallery'.tr),
                                                 onTap: () async {
                                                   Navigator.pop(context);
@@ -688,7 +798,7 @@ class _ProductsState extends State<Products> {
                                                 },
                                               ),
                                               ListTile(
-                                                leading: Icon(Icons.photo_camera),
+                                                leading: const Icon(Icons.photo_camera),
                                                 title: Text('take_photo'.tr),
                                                 onTap: () async {
                                                   Navigator.pop(context);
@@ -737,12 +847,12 @@ class _ProductsState extends State<Products> {
                                         setModalState(() {});
                                       },
                                       child: Container(
-                                        padding: EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
                                           color: Colors.red,
                                           shape: BoxShape.circle,
                                         ),
-                                        child: Icon(
+                                        child: const Icon(
                                           Icons.close,
                                           size: 12,
                                           color: Colors.white,
@@ -768,7 +878,7 @@ class _ProductsState extends State<Products> {
                                     height: 150,
                                     repeat: true,
                                   ),
-                                  SizedBox(height: 16),
+                                  const SizedBox(height: 16),
                                   Text(
                                     'loading'.tr,
                                     style: TextStyle(
@@ -781,20 +891,20 @@ class _ProductsState extends State<Products> {
                               ),
                             )
                           : SingleChildScrollView(
-                              padding: EdgeInsets.all(8),
+                              padding: const EdgeInsets.all(8),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  SizedBox(height: 10),
+                                  const SizedBox(height: 10),
                                   Text(
                                     'product_name'.tr,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                       fontFamily: 'Mulish',
                                     ),
                                   ),
-                                  SizedBox(height: 8),
+                                  const SizedBox(height: 8),
                                   TextField(
                                     controller: nameController,
                                     decoration: InputDecoration(
@@ -811,23 +921,23 @@ class _ProductsState extends State<Products> {
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(8),
-                                        borderSide: BorderSide(
+                                        borderSide: const BorderSide(
                                             color: Color(0xFFFCAE03)),
                                       ),
-                                      contentPadding: EdgeInsets.symmetric(
+                                      contentPadding: const EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 12),
                                     ),
                                   ),
-                                  SizedBox(height: 10),
+                                  const SizedBox(height: 10),
                                   Text(
                                     'product_code'.tr,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                       fontFamily: 'Mulish',
                                     ),
                                   ),
-                                  SizedBox(height: 8),
+                                  const SizedBox(height: 8),
                                   TextField(
                                     controller: codeController,
                                     decoration: InputDecoration(
@@ -842,25 +952,25 @@ class _ProductsState extends State<Products> {
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(8),
-                                        borderSide: BorderSide(
+                                        borderSide: const BorderSide(
                                             color: Color(0xFFFCAE03)),
                                       ),
-                                      contentPadding: EdgeInsets.symmetric(
+                                      contentPadding: const EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 12),
                                     ),
                                   ),
-                                  SizedBox(height: 10),
+                                  const SizedBox(height: 10),
                                   Text(
                                     'taxe'.tr,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                       fontFamily: 'Mulish',
                                     ),
                                   ),
-                                  SizedBox(height: 8),
+                                  const SizedBox(height: 8),
                                   DropdownButtonFormField<String>(
-                                    value: selectedTaxId,
+                                    initialValue: selectedTaxId,
                                     hint: Text('select'.tr),
                                     decoration: InputDecoration(
                                       border: OutlineInputBorder(
@@ -871,7 +981,7 @@ class _ProductsState extends State<Products> {
                                         borderSide: BorderSide(
                                             color: Colors.grey.shade300),
                                       ),
-                                      contentPadding: EdgeInsets.symmetric(
+                                      contentPadding: const EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 12),
                                     ),
                                     items: storeTaxesList.map((tax) {
@@ -887,18 +997,18 @@ class _ProductsState extends State<Products> {
                                       });
                                     },
                                   ),
-                                  SizedBox(height: 10),
+                                  const SizedBox(height: 10),
                                   Text(
                                     'category'.tr,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                       fontFamily: 'Mulish',
                                     ),
                                   ),
-                                  SizedBox(height: 8),
+                                  const SizedBox(height: 8),
                                   DropdownButtonFormField<String>(
-                                    value: selectedCategoryId,
+                                    initialValue: selectedCategoryId,
                                     hint: Text('select_category'.tr),
                                     decoration: InputDecoration(
                                       border: OutlineInputBorder(
@@ -909,7 +1019,7 @@ class _ProductsState extends State<Products> {
                                         borderSide: BorderSide(
                                             color: Colors.grey.shade300),
                                       ),
-                                      contentPadding: EdgeInsets.symmetric(
+                                      contentPadding: const EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 12),
                                     ),
                                     items: productCategoryList.map((category) {
@@ -924,18 +1034,18 @@ class _ProductsState extends State<Products> {
                                       });
                                     },
                                   ),
-                                  SizedBox(height: 10),
+                                  const SizedBox(height: 10),
                                   Text(
                                     'product_type'.tr,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                       fontFamily: 'Mulish',
                                     ),
                                   ),
-                                  SizedBox(height: 8),
+                                  const SizedBox(height: 8),
                                   DropdownButtonFormField<String>(
-                                    value: selectedProductType,
+                                    initialValue: selectedProductType,
                                     decoration: InputDecoration(
                                       border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(8),
@@ -945,7 +1055,7 @@ class _ProductsState extends State<Products> {
                                         borderSide: BorderSide(
                                             color: Colors.grey.shade300),
                                       ),
-                                      contentPadding: EdgeInsets.symmetric(
+                                      contentPadding: const EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 12),
                                     ),
                                     items: [
@@ -972,21 +1082,21 @@ class _ProductsState extends State<Products> {
                                       });
                                     },
                                   ),
-                                  SizedBox(height: 10),
+                                  const SizedBox(height: 10),
                                   if (selectedProductType == 'simple'.tr) ...[
                                     Text(
                                       '${'price'.tr} *',
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
                                         fontFamily: 'Mulish',
                                       ),
                                     ),
-                                    SizedBox(height: 8),
+                                    const SizedBox(height: 8),
                                     TextField(
                                       controller: priceController,
                                       keyboardType:
-                                          TextInputType.numberWithOptions(
+                                          const TextInputType.numberWithOptions(
                                               decimal: true),
                                       decoration: InputDecoration(
                                         hintText: 'enter_price'.tr,
@@ -1004,11 +1114,39 @@ class _ProductsState extends State<Products> {
                                         focusedBorder: OutlineInputBorder(
                                           borderRadius:
                                               BorderRadius.circular(8),
-                                          borderSide: BorderSide(
+                                          borderSide: const BorderSide(
                                               color: Color(0xFFFCAE03)),
                                         ),
-                                        contentPadding: EdgeInsets.symmetric(
+                                        contentPadding: const EdgeInsets.symmetric(
                                             horizontal: 12, vertical: 12),
+                                      ),
+                                    ),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      '${'dis_price'.tr}',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        fontFamily: 'Mulish',
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    TextField(
+                                      controller: discountPriceController,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      decoration: InputDecoration(
+                                        hintText: 'opt'.tr,
+                                        prefixText: '€ ',
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8),),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                          borderSide: BorderSide(color: Colors.grey.shade300),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                          borderSide: const BorderSide(color: Color(0xFFFCAE03)),
+                                        ),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                       ),
                                     ),
                                   ],
@@ -1019,7 +1157,7 @@ class _ProductsState extends State<Products> {
                                       children: [
                                         Text(
                                           'variant'.tr,
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w600,
                                             fontFamily: 'Mulish',
@@ -1039,13 +1177,13 @@ class _ProductsState extends State<Products> {
                                                 });
                                               });
                                             },
-                                            icon: Icon(Icons.add, size: 18),
+                                            icon: const Icon(Icons.add, size: 18),
                                             label: Text('add_variant'.tr),
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor:
-                                                  Color(0xff0C831F),
+                                                  const Color(0xff0C831F),
                                               foregroundColor: Colors.white,
-                                              padding: EdgeInsets.symmetric(
+                                              padding: const EdgeInsets.symmetric(
                                                   horizontal: 12, vertical: 8),
                                               shape: RoundedRectangleBorder(
                                                 borderRadius:
@@ -1055,13 +1193,13 @@ class _ProductsState extends State<Products> {
                                           ),
                                       ],
                                     ),
-                                    SizedBox(height: 10),
+                                    const SizedBox(height: 10),
 
                                     // Display all variants
                                     ...List.generate(variants.length, (index) {
                                       return Container(
-                                        margin: EdgeInsets.only(bottom: 16),
-                                        padding: EdgeInsets.all(12),
+                                        margin: const EdgeInsets.only(bottom: 16),
+                                        padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
                                           border: Border.all(
                                               color: Colors.grey.shade300),
@@ -1093,19 +1231,19 @@ class _ProductsState extends State<Products> {
                                                     OutlineInputBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(8),
-                                                  borderSide: BorderSide(
+                                                  borderSide: const BorderSide(
                                                       color: Color(0xFFFCAE03)),
                                                 ),
                                                 contentPadding:
-                                                    EdgeInsets.symmetric(
+                                                    const EdgeInsets.symmetric(
                                                         horizontal: 12,
                                                         vertical: 12),
                                               ),
                                             ),
-                                            SizedBox(height: 10),
+                                            const SizedBox(height: 10),
                                             TextField(
                                               controller: variants[index]['price'],
-                                              keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                               decoration: InputDecoration(
                                                 hintText: 'price'.tr,
                                                 prefixText: '€ ',
@@ -1115,11 +1253,11 @@ class _ProductsState extends State<Products> {
                                                   borderSide: BorderSide(color: Colors.grey.shade300),),
                                                 focusedBorder: OutlineInputBorder(
                                                   borderRadius: BorderRadius.circular(8),
-                                                  borderSide: BorderSide(color: Color(0xFFFCAE03)),),
-                                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                                  borderSide: const BorderSide(color: Color(0xFFFCAE03)),),
+                                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                               ),
                                             ),
-                                            SizedBox(height: 10),
+                                            const SizedBox(height: 10),
                                             TextField(
                                               controller: variants[index]['description'],
                                               maxLines: 3,
@@ -1132,12 +1270,12 @@ class _ProductsState extends State<Products> {
                                                 ),
                                                 focusedBorder: OutlineInputBorder(
                                                   borderRadius: BorderRadius.circular(8),
-                                                  borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                                                  borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                                                 ),
-                                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                               ),
                                             ),
-                                            SizedBox(height: 10),
+                                            const SizedBox(height: 10),
                                             SizedBox(
                                               width: double.infinity,
                                               child: ElevatedButton(
@@ -1150,15 +1288,15 @@ class _ProductsState extends State<Products> {
                                                   });
                                                 },
                                                 style: ElevatedButton.styleFrom(
-                                                  backgroundColor: Color(0xffE25454),
-                                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                                  backgroundColor: const Color(0xffE25454),
+                                                  padding: const EdgeInsets.symmetric(vertical: 12),
                                                   shape: RoundedRectangleBorder(
                                                     borderRadius: BorderRadius.circular(8),
                                                   ),
                                                 ),
                                                 child: Text(
                                                   'remove'.tr,
-                                                  style: TextStyle(
+                                                  style: const TextStyle(
                                                     color: Colors.white,
                                                     fontSize: 14,
                                                     fontWeight: FontWeight.w600,
@@ -1185,12 +1323,12 @@ class _ProductsState extends State<Products> {
                                               });
                                             });
                                           },
-                                          icon: Icon(Icons.add, size: 18),
+                                          icon: const Icon(Icons.add, size: 18),
                                           label: Text('add_variant'.tr),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: Color(0xff0C831F),
+                                            backgroundColor: const Color(0xff0C831F),
                                             foregroundColor: Colors.white,
-                                            padding: EdgeInsets.symmetric(
+                                            padding: const EdgeInsets.symmetric(
                                                 horizontal: 16, vertical: 10),
                                             shape: RoundedRectangleBorder(
                                               borderRadius:
@@ -1201,18 +1339,18 @@ class _ProductsState extends State<Products> {
                                       ),
                                   ],
 
-                                  SizedBox(height: 16),
+                                  const SizedBox(height: 16),
 
                                   // Description
                                   Text(
                                     '${'desc'.tr} *',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                       fontFamily: 'Mulish',
                                     ),
                                   ),
-                                  SizedBox(height: 8),
+                                  const SizedBox(height: 8),
                                   TextField(
                                     controller: descriptionController,
                                     maxLines: 4,
@@ -1228,14 +1366,14 @@ class _ProductsState extends State<Products> {
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(8),
-                                        borderSide: BorderSide(
+                                        borderSide: const BorderSide(
                                             color: Color(0xFFFCAE03)),
                                       ),
-                                      contentPadding: EdgeInsets.symmetric(
+                                      contentPadding: const EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 12),
                                     ),
                                   ),
-                                  SizedBox(height: 20),
+                                  const SizedBox(height: 20),
 
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1249,7 +1387,7 @@ class _ProductsState extends State<Products> {
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor:
                                                 Colors.black.withOpacity(0.2),
-                                            padding: EdgeInsets.symmetric(
+                                            padding: const EdgeInsets.symmetric(
                                                 vertical: 14),
                                             shape: RoundedRectangleBorder(
                                               borderRadius:
@@ -1258,7 +1396,7 @@ class _ProductsState extends State<Products> {
                                           ),
                                           child: Text(
                                             'cancel'.tr,
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               color: Colors.white,
                                               fontSize: 16,
                                               fontWeight: FontWeight.w700,
@@ -1267,7 +1405,7 @@ class _ProductsState extends State<Products> {
                                           ),
                                         ),
                                       ),
-                                      SizedBox(
+                                      const SizedBox(
                                         width: 15,
                                       ),
                                       SizedBox(
@@ -1276,39 +1414,29 @@ class _ProductsState extends State<Products> {
                                           onPressed: () async {
                                             // Validation
                                             if (nameController.text.isEmpty) {
-                                              Get.snackbar('Error',
-                                                  'Please enter product name',
-                                                  snackPosition:
-                                                      SnackPosition.BOTTOM);
+                                              Get.snackbar('Error', 'Please enter product name',
+                                                  snackPosition: SnackPosition.BOTTOM);
                                               return;
                                             }
                                             if (codeController.text.isEmpty) {
-                                              Get.snackbar('Error',
-                                                  'Please enter product code',
-                                                  snackPosition:
-                                                      SnackPosition.BOTTOM);
+                                              Get.snackbar('Error', 'Please enter product code',
+                                                  snackPosition: SnackPosition.BOTTOM);
                                               return;
                                             }
                                             if (selectedTaxId == null) {
-                                              Get.snackbar(
-                                                  'Error', 'Please select tax',
-                                                  snackPosition:
-                                                      SnackPosition.BOTTOM);
+                                              Get.snackbar('Error', 'Please select tax',
+                                                  snackPosition: SnackPosition.BOTTOM);
                                               return;
                                             }
                                             if (selectedCategoryId == null) {
-                                              Get.snackbar('Error',
-                                                  'Please select category',
-                                                  snackPosition:
-                                                      SnackPosition.BOTTOM);
+                                              Get.snackbar('Error', 'Please select category',
+                                                  snackPosition: SnackPosition.BOTTOM);
                                               return;
                                             }
                                             if (descriptionController
                                                 .text.isEmpty) {
-                                              Get.snackbar('Error',
-                                                  'Please enter description',
-                                                  snackPosition:
-                                                      SnackPosition.BOTTOM);
+                                              Get.snackbar('Error', 'Please enter description',
+                                                  snackPosition: SnackPosition.BOTTOM);
                                               return;
                                             }
 
@@ -1321,10 +1449,8 @@ class _ProductsState extends State<Products> {
                                               }
                                             } else if (selectedProductType == 'variable'.tr) {
                                               if (variants.isEmpty) {
-                                                Get.snackbar('Error',
-                                                    'Please add at least one variant',
-                                                    snackPosition:
-                                                        SnackPosition.BOTTOM);
+                                                Get.snackbar('Error', 'Please add at least one variant',
+                                                    snackPosition: SnackPosition.BOTTOM);
                                                 return;
                                               }
                                               for (var variant in variants) {
@@ -1341,8 +1467,8 @@ class _ProductsState extends State<Products> {
                                             if (selectedProductType == 'Variable') {
                                               productVariants = variants.map((v) => {
                                                         "name": v['name'].text,
-                                                "price": double.parse(v['price'].text).toInt(),
-                                                        "item_code": codeController.text + "-" + v['name'].text.replaceAll(' ', '').toUpperCase(),
+                                                        "price": double.parse(v['price'].text).toInt(),
+                                                        "item_code": "${codeController.text}-" + v['name'].text.replaceAll(' ', '').toUpperCase(),
                                                         "image_url": "",
                                                         "description": v['description'].text,
                                                       })
@@ -1364,6 +1490,7 @@ class _ProductsState extends State<Products> {
                                               productType: selectedProductType!,
                                               description: descriptionController.text,
                                               price: selectedProductType == 'simple'.tr ? priceController.text : null,
+                                              discount: selectedProductType == 'simple'.tr ? discountPriceController.text : null,
                                               productVariants: productVariants,
                                               imageUrl: uploadedImageUrl, // Use uploaded URL or null
                                             );
@@ -1373,8 +1500,8 @@ class _ProductsState extends State<Products> {
                                             }
                                           },
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: Color(0xFFFCAE03),
-                                            padding: EdgeInsets.symmetric(vertical: 14),
+                                            backgroundColor: const Color(0xFFFCAE03),
+                                            padding: const EdgeInsets.symmetric(vertical: 14),
                                             shape: RoundedRectangleBorder(
                                               borderRadius:
                                                   BorderRadius.circular(8),
@@ -1382,7 +1509,7 @@ class _ProductsState extends State<Products> {
                                           ),
                                           child: Text(
                                             'add_produc'.tr,
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               color: Colors.white,
                                               fontSize: 16,
                                               fontWeight: FontWeight.w700,
@@ -1393,7 +1520,7 @@ class _ProductsState extends State<Products> {
                                       ),
                                     ],
                                   ),
-                                  SizedBox(height: 20),
+                                  const SizedBox(height: 20),
                                 ],
                               ),
                             ),
@@ -1438,7 +1565,11 @@ class _ProductsState extends State<Products> {
     TextEditingController codeController = TextEditingController(text: product.itemCode);
     TextEditingController priceController = TextEditingController(
         text: product.price != null ? product.price.toString() : '');
-    TextEditingController descriptionController = TextEditingController(text: product.description);
+    TextEditingController discountPriceController = TextEditingController(
+        text: product.discountPrice != null && product.discountPrice! > 0
+            ? product.discountPrice.toString()
+            : '');
+        TextEditingController descriptionController = TextEditingController(text: product.description);
 
     String? selectedProductType = product.type != null
         ? (product.type!.toLowerCase() == 'simple' ? 'simple'.tr : 'variable'.tr)
@@ -1488,7 +1619,7 @@ class _ProductsState extends State<Products> {
             children: [
               Container(
                 height: MediaQuery.of(context).size.height * 0.85,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(20),
@@ -1498,7 +1629,7 @@ class _ProductsState extends State<Products> {
                 child: Column(
                   children: [
                     Container(
-                      padding: EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         border: Border(
                           bottom: BorderSide(color: Colors.grey.shade200),
@@ -1509,7 +1640,7 @@ class _ProductsState extends State<Products> {
                         children: [
                           Text(
                             'edit_produc'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               fontFamily: 'Mulish',
@@ -1527,7 +1658,7 @@ class _ProductsState extends State<Products> {
                                           child: Wrap(
                                             children: [
                                               ListTile(
-                                                leading: Icon(Icons.photo_library),
+                                                leading: const Icon(Icons.photo_library),
                                                 title: Text('choose_gallery'.tr),
                                                 onTap: () async {
                                                   Navigator.pop(context);
@@ -1536,7 +1667,7 @@ class _ProductsState extends State<Products> {
                                                 },
                                               ),
                                               ListTile(
-                                                leading: Icon(Icons.photo_camera),
+                                                leading: const Icon(Icons.photo_camera),
                                                 title: Text('take_photo'.tr),
                                                 onTap: () async {
                                                   Navigator.pop(context);
@@ -1599,12 +1730,12 @@ class _ProductsState extends State<Products> {
                                         setModalState(() {});
                                       },
                                       child: Container(
-                                        padding: EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
                                           color: Colors.red,
                                           shape: BoxShape.circle,
                                         ),
-                                        child: Icon(
+                                        child: const Icon(
                                           Icons.close,
                                           size: 12,
                                           color: Colors.white,
@@ -1630,7 +1761,7 @@ class _ProductsState extends State<Products> {
                               height: 150,
                               repeat: true,
                             ),
-                            SizedBox(height: 16),
+                            const SizedBox(height: 16),
                             Text(
                               'loading'.tr,
                               style: TextStyle(
@@ -1643,20 +1774,20 @@ class _ProductsState extends State<Products> {
                         ),
                       )
                           : SingleChildScrollView(
-                        padding: EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(8),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SizedBox(height: 10),
+                            const SizedBox(height: 10),
                             Text(
                               '${'product_name'.tr} *',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 fontFamily: 'Mulish',
                               ),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             TextField(
                               controller: nameController,
                               decoration: InputDecoration(
@@ -1671,21 +1802,21 @@ class _ProductsState extends State<Products> {
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                                  borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                                 ),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                               ),
                             ),
-                            SizedBox(height: 10),
+                            const SizedBox(height: 10),
                             Text(
                               'product_code'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 fontFamily: 'Mulish',
                               ),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             TextField(
                               controller: codeController,
                               decoration: InputDecoration(
@@ -1699,23 +1830,23 @@ class _ProductsState extends State<Products> {
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                                  borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                                 ),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                               ),
                             ),
-                            SizedBox(height: 10),
+                            const SizedBox(height: 10),
                             Text(
                               '${'taxe'.tr} *',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 fontFamily: 'Mulish',
                               ),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             DropdownButtonFormField<String>(
-                              value: selectedTaxId,
+                              initialValue: selectedTaxId,
                               hint: Text('select'.tr),
                               decoration: InputDecoration(
                                 border: OutlineInputBorder(
@@ -1725,7 +1856,7 @@ class _ProductsState extends State<Products> {
                                   borderRadius: BorderRadius.circular(8),
                                   borderSide: BorderSide(color: Colors.grey.shade300),
                                 ),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                               ),
                               items: storeTaxesList.map((tax) {
                                 return DropdownMenuItem<String>(
@@ -1739,18 +1870,18 @@ class _ProductsState extends State<Products> {
                                 });
                               },
                             ),
-                            SizedBox(height: 10),
+                            const SizedBox(height: 10),
                             Text(
                               '${'category'.tr} *',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 fontFamily: 'Mulish',
                               ),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             DropdownButtonFormField<String>(
-                              value: selectedCategoryId,
+                              initialValue: selectedCategoryId,
                               hint: Text('select_category'.tr),
                               decoration: InputDecoration(
                                 border: OutlineInputBorder(
@@ -1760,7 +1891,7 @@ class _ProductsState extends State<Products> {
                                   borderRadius: BorderRadius.circular(8),
                                   borderSide: BorderSide(color: Colors.grey.shade300),
                                 ),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                               ),
                               items: productCategoryList.map((category) {
                                 return DropdownMenuItem<String>(
@@ -1774,18 +1905,18 @@ class _ProductsState extends State<Products> {
                                 });
                               },
                             ),
-                            SizedBox(height: 10),
+                            const SizedBox(height: 10),
                             Text(
                               'product_type'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 fontFamily: 'Mulish',
                               ),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             DropdownButtonFormField<String>(
-                              value: selectedProductType,
+                              initialValue: selectedProductType,
                               decoration: InputDecoration(
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
@@ -1794,7 +1925,7 @@ class _ProductsState extends State<Products> {
                                   borderRadius: BorderRadius.circular(8),
                                   borderSide: BorderSide(color: Colors.grey.shade300),
                                 ),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                               ),
                               items: ['simple'.tr, 'variable'.tr].map((String value) {
                                 return DropdownMenuItem<String>(
@@ -1816,20 +1947,20 @@ class _ProductsState extends State<Products> {
                                 });
                               },
                             ),
-                            SizedBox(height: 10),
+                            const SizedBox(height: 10),
                             if (selectedProductType == 'simple'.tr) ...[
                               Text(
                                 '${'price'.tr} *',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   fontFamily: 'Mulish',
                                 ),
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               TextField(
                                 controller: priceController,
-                                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                 decoration: InputDecoration(
                                   hintText: 'enter_price'.tr,
                                   prefixText: '€ ',
@@ -1842,9 +1973,37 @@ class _ProductsState extends State<Products> {
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                                    borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                                   ),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'dis_price'.tr,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  fontFamily: 'Mulish',
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: discountPriceController,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                decoration: InputDecoration(
+                                  hintText: 'opt'.tr,
+                                  prefixText: '€ ',
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(color: Colors.grey.shade300),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(color: Color(0xFFFCAE03)),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                 ),
                               ),
                             ],
@@ -1854,7 +2013,7 @@ class _ProductsState extends State<Products> {
                                 children: [
                                   Text(
                                     'variant'.tr,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                       fontFamily: 'Mulish',
@@ -1871,12 +2030,12 @@ class _ProductsState extends State<Products> {
                                           });
                                         });
                                       },
-                                      icon: Icon(Icons.add, size: 18),
+                                      icon: const Icon(Icons.add, size: 18),
                                       label: Text('add_variant'.tr),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: Color(0xff0C831F),
+                                        backgroundColor: const Color(0xff0C831F),
                                         foregroundColor: Colors.white,
-                                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(6),
                                         ),
@@ -1884,11 +2043,11 @@ class _ProductsState extends State<Products> {
                                     ),
                                 ],
                               ),
-                              SizedBox(height: 10),
+                              const SizedBox(height: 10),
                               ...List.generate(variants.length, (index) {
                                 return Container(
-                                  margin: EdgeInsets.only(bottom: 16),
-                                  padding: EdgeInsets.all(12),
+                                  margin: const EdgeInsets.only(bottom: 16),
+                                  padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
                                     border: Border.all(color: Colors.grey.shade300),
                                     borderRadius: BorderRadius.circular(8),
@@ -1909,15 +2068,15 @@ class _ProductsState extends State<Products> {
                                           ),
                                           focusedBorder: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(8),
-                                            borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                                            borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                                           ),
-                                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                         ),
                                       ),
-                                      SizedBox(height: 10),
+                                      const SizedBox(height: 10),
                                       TextField(
                                         controller: variants[index]['price'],
-                                        keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                         decoration: InputDecoration(
                                           hintText: 'price'.tr,
                                           prefixText: '€ ',
@@ -1930,12 +2089,12 @@ class _ProductsState extends State<Products> {
                                           ),
                                           focusedBorder: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(8),
-                                            borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                                            borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                                           ),
-                                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                         ),
                                       ),
-                                      SizedBox(height: 10),
+                                      const SizedBox(height: 10),
                                       TextField(
                                         controller: variants[index]['description'],
                                         maxLines: 3,
@@ -1950,12 +2109,12 @@ class _ProductsState extends State<Products> {
                                           ),
                                           focusedBorder: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(8),
-                                            borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                                            borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                                           ),
-                                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                         ),
                                       ),
-                                      SizedBox(height: 10),
+                                      const SizedBox(height: 10),
                                       SizedBox(
                                         width: double.infinity,
                                         child: ElevatedButton(
@@ -1968,15 +2127,15 @@ class _ProductsState extends State<Products> {
                                             });
                                           },
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: Color(0xffE25454),
-                                            padding: EdgeInsets.symmetric(vertical: 12),
+                                            backgroundColor: const Color(0xffE25454),
+                                            padding: const EdgeInsets.symmetric(vertical: 12),
                                             shape: RoundedRectangleBorder(
                                               borderRadius: BorderRadius.circular(8),
                                             ),
                                           ),
                                           child: Text(
                                             'remove'.tr,
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               color: Colors.white,
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
@@ -2001,12 +2160,12 @@ class _ProductsState extends State<Products> {
                                         });
                                       });
                                     },
-                                    icon: Icon(Icons.add, size: 18),
+                                    icon: const Icon(Icons.add, size: 18),
                                     label: Text('add_variant'.tr),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Color(0xff0C831F),
+                                      backgroundColor: const Color(0xff0C831F),
                                       foregroundColor: Colors.white,
-                                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(6),
                                       ),
@@ -2014,16 +2173,16 @@ class _ProductsState extends State<Products> {
                                   ),
                                 ),
                             ],
-                            SizedBox(height: 16),
+                            const SizedBox(height: 16),
                             Text(
                               '${'desc'.tr} *',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 fontFamily: 'Mulish',
                               ),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             TextField(
                               controller: descriptionController,
                               maxLines: 4,
@@ -2038,12 +2197,12 @@ class _ProductsState extends State<Products> {
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                                  borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                                 ),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                               ),
                             ),
-                            SizedBox(height: 20),
+                            const SizedBox(height: 20),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -2055,14 +2214,14 @@ class _ProductsState extends State<Products> {
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.black.withOpacity(0.2),
-                                      padding: EdgeInsets.symmetric(vertical: 14),
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                     ),
                                     child: Text(
                                       'cancel'.tr,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700,
@@ -2071,7 +2230,7 @@ class _ProductsState extends State<Products> {
                                     ),
                                   ),
                                 ),
-                                SizedBox(width: 15),
+                                const SizedBox(width: 15),
                                 SizedBox(
                                   width: 160,
                                   child: ElevatedButton(
@@ -2129,7 +2288,7 @@ class _ProductsState extends State<Products> {
                                           Map<String, dynamic> variantMap = {
                                             "name": v['name'].text,
                                             "price": double.parse(v['price'].text).toInt(),
-                                            "item_code": codeController.text + "-" + v['name'].text.replaceAll(' ', '').toUpperCase(),
+                                            "item_code": "${codeController.text}-" + v['name'].text.replaceAll(' ', '').toUpperCase(),
                                             "image_url": "",
                                             "description": v['description'].text,
                                           };
@@ -2157,6 +2316,7 @@ class _ProductsState extends State<Products> {
                                         productType: selectedProductType!,
                                         description: descriptionController.text,
                                         price: selectedProductType == 'simple'.tr ? priceController.text : null,
+                                        discountPrice: selectedProductType == 'simple'.tr ? discountPriceController.text : null,
                                         productVariants: productVariants,
                                         imageUrl: finalImageUrl,
                                       );
@@ -2166,15 +2326,15 @@ class _ProductsState extends State<Products> {
                                       }
                                     },
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Color(0xFFFCAE03),
-                                      padding: EdgeInsets.symmetric(vertical: 14),
+                                      backgroundColor: const Color(0xFFFCAE03),
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                     ),
                                     child: Text(
                                       'upd_product'.tr,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700,
@@ -2185,7 +2345,7 @@ class _ProductsState extends State<Products> {
                                 ),
                               ],
                             ),
-                            SizedBox(height: 20),
+                            const SizedBox(height: 20),
                           ],
                         ),
                       ),
@@ -2304,20 +2464,19 @@ class _ProductsState extends State<Products> {
     required String productType,
     required String description,
     String? price,
+    String? discount,
     List<Map<String, dynamic>>? productVariants,
     String? imageUrl,
   }) async
   {
     if (sharedPreferences == null) {
-      Get.snackbar('Error', 'SharedPreferences not initialized',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('Error', 'SharedPreferences not initialized', snackPosition: SnackPosition.BOTTOM);
       return false;
     }
 
     storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
     if (storeId == null) {
-      Get.snackbar('Error', 'Store ID not found',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('Error', 'Store ID not found', snackPosition: SnackPosition.BOTTOM);
       return false;
     }
 
@@ -2349,7 +2508,10 @@ class _ProductsState extends State<Products> {
       };
 
       if (productType == 'simple'.tr) {
-        map["price"] = double.parse(price!).toInt();  // Convert to double first, then to int
+        map["price"] = double.parse(price!).toInt();
+        map["discount_price"] = discount != null && discount.isNotEmpty
+            ? double.parse(discount).toInt()
+            : 0;
         map["item_code"] = itemCode;
       }
       if (productType == 'variable'.tr && productVariants != null) {
@@ -2372,7 +2534,7 @@ class _ProductsState extends State<Products> {
           SnackBar(
             content: Text('product_created'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -2392,7 +2554,7 @@ class _ProductsState extends State<Products> {
           SnackBar(
             content: Text('${'failed_create'.tr}: ${e.toString()}'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -2410,6 +2572,7 @@ class _ProductsState extends State<Products> {
     required String productType,
     required String description,
     String? price,
+    String? discountPrice,
     List<Map<String, dynamic>>? productVariants,
     String? imageUrl,
   }) async
@@ -2438,7 +2601,10 @@ class _ProductsState extends State<Products> {
       };
 
       if (productType == 'simple'.tr) {
-        map["price"] = double.parse(price!).toInt();  // Convert to double first, then to int
+        map["price"] = double.parse(price!).toInt();
+        map["discount_price"] = discountPrice != null && discountPrice.isNotEmpty
+            ? double.parse(discountPrice).toInt()
+            : 0;
         map["item_code"] = itemCode;
       }
 
@@ -2509,7 +2675,7 @@ class _ProductsState extends State<Products> {
           SnackBar(
             content: Text('produc_delete'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -2523,7 +2689,7 @@ class _ProductsState extends State<Products> {
           SnackBar(
             content: Text('failed_delete_product'.tr),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -2554,7 +2720,7 @@ class _ProductsState extends State<Products> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(height: 20,),
+                    const SizedBox(height: 20,),
                     Text(
                       '${'are'.tr}"$productName"?',
                       style: const TextStyle(
@@ -2585,7 +2751,7 @@ class _ProductsState extends State<Products> {
                             ),
                             child:  Text(
                               'cancel'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -2614,7 +2780,7 @@ class _ProductsState extends State<Products> {
                             ),
                             child:  Text(
                               'delete'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -2651,7 +2817,6 @@ class _ProductsState extends State<Products> {
     );
   }
 
-// Add this method in _ProductsState class
   Future<String?> uploadProductImage(File imageFile) async {
     try {
       Get.dialog(
@@ -2695,5 +2860,193 @@ class _ProductsState extends State<Products> {
       return null;
     }
   }
+
+  void _showProductStatusChangeDialog(BuildContext context, String productName, int productId, bool currentStatus) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.transparent,
+        child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 20),
+                    Text(
+                      currentStatus
+                          ? '${'deactivate_cat'.tr} "$productName"?'
+                          : '${'reactivate_cat'.tr} "$productName"?',
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black,
+                          fontFamily: 'Mulish'
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 30),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          height: 35,
+                          width: 70,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF8E9AAF),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: TextButton(
+                            onPressed: () => Get.back(),
+                            child: Text('cancel'.tr, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        Container(
+                          height: 35,
+                          width: 70,
+                          decoration: BoxDecoration(
+                            color: currentStatus ? const Color(0xFFE25454) : const Color(0xff49B27A),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: TextButton(
+                            onPressed: () {
+                              Get.back();
+                              _toggleProductStatus(productId, !currentStatus);
+                            },
+                            child: Text('yes'.tr, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                left: 0, right: 0, top: -20,
+                child: GestureDetector(
+                  onTap: () => Get.back(),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFED4C5C),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.close, color: Colors.white, size: 20),
+                  ),
+                ),
+              )
+            ]
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleProductStatus(int productId, bool newStatus) async {
+    if (sharedPreferences == null) {
+      Get.snackbar('Error', 'SharedPreferences not initialized');
+      return;
+    }
+
+    storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
+    if (storeId == null) {
+      Get.snackbar('Error', 'Store ID not found');
+      return;
+    }
+
+    // Find the product
+    GetStoreProducts? product = productList.firstWhere(
+          (p) => p.id == productId,
+      orElse: () => GetStoreProducts(),
+    );
+
+    if (product.id == null) {
+      Get.snackbar('Error', 'Product not found');
+      return;
+    }
+
+    Get.dialog(
+      Center(child: Lottie.asset('assets/animations/burger.json', width: 150, height: 150, repeat: true)),
+      barrierDismissible: false,
+    );
+
+    try {
+      String apiProductType = product.type == 'simple' ? 'simple' : 'variable';
+
+      var map = {
+        "name": product.name ?? '',
+        "item_code": product.itemCode ?? '',
+        "category_id": product.categoryId ?? 0,
+        "image_url": product.imageUrl ?? '',
+        "type": apiProductType,
+        "store_id": int.parse(storeId!),
+        "tax_id": product.taxId ?? 0,
+        "description": product.description ?? '',
+        "isActive": newStatus,  // ✅ Updated status
+        "display_order": 0,
+      };
+
+      if (product.type == 'simple') {
+        map["price"] = product.price ?? 0;
+        map["discount_price"] = product.discountPrice ?? 0;
+      }
+
+      // Variable product ke liye variants add karo
+      if (product.type == 'variable' && product.variants != null) {
+        map["variants"] = product.variants!.map((v) => {
+          "id": v.id,
+          "name": v.name ?? '',
+          "price": v.price ?? 0,
+          "item_code": v.itemCode ?? '',
+          "image_url": v.imageUrl ?? '',
+          "description": v.description ?? '',
+        }).toList();
+      }
+
+      print("Toggle Product Status Map: $map");
+
+      EditStoreProductResponseModel model = await CallService().editProducts(map, productId.toString());
+
+      await getProduct(showLoader: false);
+      Get.back();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(newStatus ? 'product_activated'.tr : 'product_deactivated'.tr),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+
+    } catch (e) {
+      Get.back();
+      print('Error toggling product status: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('failed_status_change'.tr),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
 
 }

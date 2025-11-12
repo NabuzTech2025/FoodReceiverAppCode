@@ -6,7 +6,6 @@ import 'package:food_app/customView/custom_text_form_prefiex.dart';
 import 'package:food_app/models/driver/driver_register_model.dart';
 import 'package:food_app/utils/validators.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 import 'package:lottie/lottie.dart';
 
 class CreateDriver extends StatefulWidget {
@@ -20,7 +19,7 @@ class _CreateDriverState extends State<CreateDriver> {
   final TextEditingController emailController=TextEditingController();
   final TextEditingController phoneNumberController=TextEditingController();
   final TextEditingController passwordController=TextEditingController();
-  bool _obscureText = true;
+  final bool _obscureText = true;
   bool isPasswordVisible = false;
 
   bool isLoading=false;
@@ -28,7 +27,7 @@ class _CreateDriverState extends State<CreateDriver> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(),
+      appBar: const CustomAppBar(),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(15.0),
@@ -38,22 +37,22 @@ class _CreateDriverState extends State<CreateDriver> {
                 alignment: Alignment.topRight,
                 child: Container(
                   height: 48,width: 48,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     color: Color(0xffE25454)
                   ),
-                  child: Icon(Icons.close,color: Colors.white,),
+                  child: const Icon(Icons.close,color: Colors.white,),
                 ),
               ),
               Image.asset('assets/images/driverProfile.png',height: 80,width: 80,),
-              SizedBox(height: 10,),
+              const SizedBox(height: 10,),
               const Text('Create New Driver',style: TextStyle(
                   fontSize: 28,fontFamily: 'Mulish',fontWeight: FontWeight.bold),),
               CustomTextFormPrefix(
                   myLabelText: 'User Email', 
                   keyboardType: TextInputType.emailAddress, 
                   controller: emailController, 
-                  icon: Icon(Icons.email,color: Colors.black,),
+                  icon: const Icon(Icons.email,color: Colors.black,),
                   validate: (value) => validateFieldCustomText(
                       value, "Please enter username"),
                   valueChanged: (value){}, 
@@ -63,7 +62,7 @@ class _CreateDriverState extends State<CreateDriver> {
                   myLabelText: 'Phone Number',
                   keyboardType: TextInputType.number,
                   controller: phoneNumberController,
-                  icon: Icon(Icons.phone,color: Colors.black,),
+                  icon: const Icon(Icons.phone,color: Colors.black,),
                   validate: (value) => validateFieldCustomText(
                       value, "Please enter Phone Number"),
                   valueChanged: (value){},
@@ -73,7 +72,7 @@ class _CreateDriverState extends State<CreateDriver> {
                   myLabelText: 'Password',
                   keyboardType: TextInputType.visiblePassword,
                   controller: passwordController,
-                  icon: Icon(Icons.password,color: Colors.black,),
+                  icon: const Icon(Icons.password,color: Colors.black,),
                   validate: (value) => validateFieldCustomText(
                       value, "Please enter Password"),
                   valueChanged: (value){},
@@ -150,7 +149,7 @@ class _CreateDriverState extends State<CreateDriver> {
 
         // Show success SnackBar
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Driver Registration Successful!'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 3),
@@ -161,7 +160,7 @@ class _CreateDriverState extends State<CreateDriver> {
       } else {
         // Handle failure case
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Registration failed. Please try again.'),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 3),
@@ -176,7 +175,7 @@ class _CreateDriverState extends State<CreateDriver> {
 
       // Handle error case
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('An error occurred during registration.'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 3),

@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:food_app/models/Store.dart';
 import 'package:food_app/models/add_tax_response_mode.dart';
+import 'package:food_app/models/category_availability_management_response_model.dart';
 import 'package:food_app/models/driver/driver_register_model.dart';
 import 'package:food_app/models/reservation/edit_reservation_details_response_model.dart';
 import 'package:food_app/models/reservation/get_user_reservation_details.dart';
@@ -25,6 +25,7 @@ import '../../models/UserMe.dart';
 import '../../models/add-store_postcode_response_model.dart';
 import '../../models/add_aleergy_link_response_model.dart';
 import '../../models/add_allergy_response_model.dart';
+import '../../models/add_new_category_availability_response_model.dart';
 import '../../models/add_new_group_item_response_model.dart';
 import '../../models/add_new_product_category_response_model.dart';
 import '../../models/add_new_product_group_response_model.dart';
@@ -32,13 +33,16 @@ import '../../models/add_new_product_response_model.dart';
 import '../../models/add_new_store_timing_response_model.dart';
 import '../../models/add_new_store_topping_response_model.dart';
 import '../../models/add_new_topping_group_response_model.dart';
+import '../../models/add_printer_ip_response_model.dart';
 import '../../models/discount_change_response_model.dart';
 import '../../models/driver/get_deliver_driver_response_model.dart';
 import '../../models/edit_allergy_item_response_model.dart';
 import '../../models/edit_allergy_link_response_model.dart';
+import '../../models/edit_category_availability_response_model.dart';
 import '../../models/edit_existing_product_category_response_model.dart';
 import '../../models/edit_group_item_response_model.dart';
 import '../../models/edit_postcode_response_model.dart';
+import '../../models/edit_printer_ip_response_model.dart';
 import '../../models/edit_product_group_response_model.dart';
 import '../../models/edit_store_product_response_model.dart';
 import '../../models/edit_store_toppings_response_model.dart';
@@ -49,6 +53,7 @@ import '../../models/get_allergy_response_model.dart';
 import '../../models/get_discount_percentage_response_model.dart';
 import '../../models/get_group_item_response_model.dart';
 import '../../models/get_item_allergy_link_response_model.dart';
+import '../../models/get_printer_ip_response_model.dart';
 import '../../models/get_product_category_list_response_model.dart';
 import '../../models/get_product_group_response_model.dart';
 import '../../models/get_store_postcode_response_model.dart';
@@ -69,10 +74,9 @@ import '../api_end_points.dart';
 import '../api_params.dart';
 import '../api_utils.dart';
 import '../responses/userLogin_h.dart';
-import 'base_repository.dart';
 import 'package:http_parser/http_parser.dart';
 
-final title = "ApiRepo";
+const title = "ApiRepo";
 
 class ApiRepo {
 
@@ -95,11 +99,9 @@ class ApiRepo {
 
     try {
       final response = await apiUtils.post(url: url, data: formData);
-      print("REsponseData " + response.toString());
-      if (response != null) {
-        return UserLoginH.fromJson(response.data);
-      }
-
+      print("REsponseData $response");
+      return UserLoginH.fromJson(response.data);
+    
       //return null;
       return UserLoginH.withError(code: CODE_RESPONSE_NULL, mess: "");
     } catch (e) {
@@ -126,17 +128,15 @@ class ApiRepo {
 
     try {
       final response = await apiUtils.post(url: url, data: formData);
-      print("REsponseData " + response.toString());
-      if (response != null) {
+      print("REsponseData $response");
+      return UserLoginH.fromJson(response.data);
+      /*  if (response.data['code'] == 0) {
         return UserLoginH.fromJson(response.data);
-        /*  if (response.data['code'] == 0) {
-          return UserLoginH.fromJson(response.data);
-        } else {
-          return UserLoginH.withError(
-              code: CODE_RESPONSE_NULL, mess: response.data['message']);
-        }*/
-      }
-
+      } else {
+        return UserLoginH.withError(
+            code: CODE_RESPONSE_NULL, mess: response.data['message']);
+      }*/
+    
       //return null;
       return UserLoginH.withError(code: CODE_RESPONSE_NULL, mess: "");
     } catch (e) {
@@ -158,8 +158,7 @@ class ApiRepo {
         ),
       );
 
-      if (response != null &&
-          response.statusCode == 200 &&
+      if (response.statusCode == 200 &&
           response.data is List) {
         return (response.data as List)
             .map((json) => Order.fromJson(json))
@@ -167,7 +166,7 @@ class ApiRepo {
       } else {
         return [
           Order.withError(
-            code: response?.statusCode ?? 500,
+            code: response.statusCode ?? 500,
             mess: "Unexpected response format",
           )
         ];
@@ -197,8 +196,7 @@ class ApiRepo {
         ),
       );
 
-      if (response != null &&
-          response.statusCode == 200 &&
+      if (response.statusCode == 200 &&
           response.data is List) {
         return (response.data as List)
             .map((json) => Order.fromJson(json))
@@ -206,7 +204,7 @@ class ApiRepo {
       } else {
         return [
           Order.withError(
-            code: response?.statusCode ?? 500,
+            code: response.statusCode ?? 500,
             mess: "Unexpected response format",
           )
         ];
@@ -235,17 +233,9 @@ class ApiRepo {
         ),
       );
 
-      if (response != null) {
-        final jsonData = response.data;
-        return StoreDetail.fromJson(jsonData);
-        ;
-      } else {
-        return StoreDetail.withError(
-          code: response?.statusCode ?? 500,
-          mess: "Unexpected response format",
-        );
-      }
-    } catch (e) {
+      final jsonData = response.data;
+      return StoreDetail.fromJson(jsonData);
+        } catch (e) {
       return StoreDetail.withError(
         code: 500,
         mess: e.toString(),
@@ -266,8 +256,7 @@ class ApiRepo {
         ),
       );
 
-      if (response != null &&
-          response.statusCode == 200 &&
+      if (response.statusCode == 200 &&
           response.data is List) {
         return (response.data as List)
             .map((json) => DailySalesReport.fromJson(json))
@@ -275,7 +264,7 @@ class ApiRepo {
       } else {
         return [
           DailySalesReport.withError(
-            code: response?.statusCode ?? 500,
+            code: response.statusCode ?? 500,
             mess: "Unexpected response format",
           )
         ];
@@ -294,7 +283,7 @@ class ApiRepo {
     //print("JsonDatsss "+jsonData.toString());
 
     String url =
-        Api.baseUrl + ApiEndPoints.getOrderStatus + "/" + id.toString();
+        "${Api.baseUrl}${ApiEndPoints.getOrderStatus}/$id";
     try {
       /*final response = await apiUtils.post(
         url: url,
@@ -321,13 +310,13 @@ class ApiRepo {
           validateStatus: (status) => status! < 500, // allow 307 to be captured
         ),
       );
-      print("UrlData " + url);
-      print("First call " + response.toString());
+      print("UrlData $url");
+      print("First call $response");
       if (response.statusCode == 307) {
         print("Called 307");
         final redirectedUrl = response.headers.value('location');
         if (redirectedUrl != null) {
-          print("Called 307 1 " + redirectedUrl);
+          print("Called 307 1 $redirectedUrl");
           final redirectedResponse = await Dio().put(
             redirectedUrl,
             data: jsonData,
@@ -346,18 +335,18 @@ class ApiRepo {
         print('Response: ${response.data}');
       }
 
-      if (response != null && response.statusCode == 200) {
+      if (response.statusCode == 200) {
         // Ensure the response data is a map
         final jsonData = response.data;
         return Order.fromJson(jsonData); // ✅ Parse single order object
       } else {
         return Order.withError(
-          code: response?.statusCode ?? 500,
+          code: response.statusCode ?? 500,
           mess: "Unexpected response format",
         );
       }
     } catch (e) {
-      print("GetTheREsponse Error " + e.toString());
+      print("GetTheREsponse Error $e");
       return Order.withError(
         code: 500,
         mess: e.toString(),
@@ -379,7 +368,7 @@ class ApiRepo {
         ),
       );
 
-      if (response != null && response.statusCode == 200) {
+      if (response.statusCode == 200) {
         // Ensure the response data is a map
         final jsonData = response.data;
         print("🚀 API Order Response: ${response.data}");
@@ -387,7 +376,7 @@ class ApiRepo {
         return Order.fromJson(jsonData); // ✅ Parse single order object
       } else {
         return Order.withError(
-          code: response?.statusCode ?? 500,
+          code: response.statusCode ?? 500,
           mess: "Unexpected response format",
         );
       }
@@ -412,13 +401,13 @@ class ApiRepo {
         ),
       );
 
-      if (response != null && response.statusCode == 200) {
+      if (response.statusCode == 200) {
         // Ensure the response data is a map
         final jsonData = response.data;
         return UserMe.fromJson(jsonData); // ✅ Parse single order object
       } else {
         return UserMe.withError(
-          code: response?.statusCode ?? 500,
+          code: response.statusCode ?? 500,
           mess: "Unexpected response format",
         );
       }
@@ -443,13 +432,13 @@ class ApiRepo {
         ),
       );
 
-      if (response != null && response.statusCode == 200) {
+      if (response.statusCode == 200) {
         // Ensure the response data is a map
         final jsonData = response.data;
         return Logout.fromJson(jsonData); // ✅ Parse single order object
       } else {
         return Logout.withError(
-          code: response?.statusCode ?? 500,
+          code: response.statusCode ?? 500,
           mess: "Unexpected response format",
         );
       }
@@ -474,13 +463,13 @@ class ApiRepo {
         ),
       );
 
-      if (response != null && response.statusCode == 200) {
+      if (response.statusCode == 200) {
         // Ensure the response data is a map
         final jsonData = response.data;
         return StoreSetting.fromJson(jsonData); // ✅ Parse single order object
       } else {
         return StoreSetting.withError(
-          code: response?.statusCode ?? 500,
+          code: response.statusCode ?? 500,
           mess: "Unexpected response format",
         );
       }
@@ -513,13 +502,13 @@ class ApiRepo {
           validateStatus: (status) => status! < 500, // allow 307 to be captured
         ),
       );
-      print("UrlData " + url);
-      print("First call " + response.toString());
+      print("UrlData $url");
+      print("First call $response");
       if (response.statusCode == 307) {
         print("Called 307");
         final redirectedUrl = response.headers.value('location');
         if (redirectedUrl != null) {
-          print("Called 307 1 " + redirectedUrl);
+          print("Called 307 1 $redirectedUrl");
           final redirectedResponse = await Dio().put(
             redirectedUrl,
             data: jsonData,
@@ -538,18 +527,18 @@ class ApiRepo {
         print('Response: ${response.data}');
       }
 
-      if (response != null && response.statusCode == 200) {
+      if (response.statusCode == 200) {
         // Ensure the response data is a map
         final jsonData = response.data;
         return StoreSetting.fromJson(jsonData); // ✅ Parse single order object
       } else {
         return StoreSetting.withError(
-          code: response?.statusCode ?? 500,
+          code: response.statusCode ?? 500,
           mess: "Unexpected response format",
         );
       }
     } catch (e) {
-      print("GetTheREsponse Error " + e.toString());
+      print("GetTheREsponse Error $e");
       return StoreSetting.withError(
         code: 500,
         mess: e.toString(),
@@ -578,13 +567,13 @@ class ApiRepo {
           validateStatus: (status) => status! < 500, // allow 307 to be captured
         ),
       );
-      print("UrlData " + url);
-      print("First call " + response.toString());
+      print("UrlData $url");
+      print("First call $response");
       if (response.statusCode == 307) {
         print("Called 307");
         final redirectedUrl = response.headers.value('location');
         if (redirectedUrl != null) {
-          print("Called 307 1 " + redirectedUrl);
+          print("Called 307 1 $redirectedUrl");
           final redirectedResponse = await Dio().put(
             redirectedUrl,
             data: jsonData,
@@ -603,18 +592,18 @@ class ApiRepo {
         print('Response: ${response.data}');
       }
 
-      if (response != null && response.statusCode == 200) {
+      if (response.statusCode == 200) {
         // Ensure the response data is a map
         final jsonData = response.data;
         return PrinterSetting.fromJson(jsonData); // ✅ Parse single order object
       } else {
         return PrinterSetting.withError(
-          code: response?.statusCode ?? 500,
+          code: response.statusCode ?? 500,
           mess: "Unexpected response format",
         );
       }
     } catch (e) {
-      print("GetTheREsponse Error " + e.toString());
+      print("GetTheREsponse Error $e");
       return PrinterSetting.withError(
         code: 500,
         mess: e.toString(),
@@ -635,13 +624,13 @@ class ApiRepo {
         ),
       );
 
-      if (response != null && response.statusCode == 200) {
+      if (response.statusCode == 200) {
         // Ensure the response data is a map
         final jsonData = response.data;
         return Store.fromJson(jsonData); // ✅ Parse single order object
       } else {
         return Store.withError(
-          code: response?.statusCode ?? 500,
+          code: response.statusCode ?? 500,
           mess: "Unexpected response format",
         );
       }
@@ -1190,7 +1179,7 @@ class CallService extends GetConnect {
       }
     } catch (e) {
       if (e.toString().contains('400_ERROR')) {
-        throw e; // Re-throw 400 errors
+        rethrow; // Re-throw 400 errors
       }
       print('Delete API Exception: $e');
       return false; // Return false for network/other errors
@@ -1204,7 +1193,7 @@ class CallService extends GetConnect {
     print("User Access Token Value is : $accessToken");
 
     httpClient.baseUrl = Api.baseUrl;
-    var res = await get('categories/?store_id=$storeId', headers: {
+    var res = await get('categories/?store_id=$storeId&include_inactive=true', headers: {
       'accept': 'application/json',
       'Authorization': "Bearer $accessToken",
     });
@@ -1416,7 +1405,7 @@ class CallService extends GetConnect {
         ),
       );
 
-      if (response != null && response.statusCode == 200) {
+      if (response.statusCode == 200) {
         // Ensure the response data is a map
         final jsonData = response.data;
         print("🚀 API Order Response: ${response.data}");
@@ -1424,7 +1413,7 @@ class CallService extends GetConnect {
         return GetUserReservationDetailsResponseModel.fromJson(jsonData); // ✅ Parse single order object
       } else {
         return GetUserReservationDetailsResponseModel.withError(
-          code: response?.statusCode ?? 500,
+          code: response.statusCode ?? 500,
           mess: "Unexpected response format",
         );
       }
@@ -1690,6 +1679,7 @@ class CallService extends GetConnect {
 
     if (res.statusCode == 200) {
       print("Getting Product of Store response is :${res.statusCode.toString()}");
+      print("Product body of Store response is :${res.body}");
       List<dynamic> jsonList = res.body;
       return jsonList.map((json) => GetStoreProducts.fromJson(json)).toList();
     } else {
@@ -2717,6 +2707,7 @@ class CallService extends GetConnect {
     }
   }
 
+  // For Compressing image Quality
   Future<File> compressImage(File file) async {
     final dir = await getTemporaryDirectory();
     final targetPath = path.join(dir.path,
@@ -2732,6 +2723,8 @@ class CallService extends GetConnect {
 
     return result != null ? File(result.path) : file;
   }
+
+  //For Uploading imaGE
   Future<image_upload_response_model> uploadImage(File imageFile) async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -2777,6 +2770,280 @@ class CallService extends GetConnect {
     } catch (e) {
       print("Image upload error: $e");
       rethrow;
+    }
+  }
+
+  // For Getting Category Availability
+  Future<List<GetCategoryAvailabilityResponseModel>> getCategoryAvailability(String storeId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $accessToken");
+
+    httpClient.baseUrl = Api.baseUrl;
+    var res = await get('categories/?store_id=$storeId', headers: {
+      'accept': 'application/json',
+      'Authorization': "Bearer $accessToken",
+    });
+
+    if (res.statusCode == 200) {
+      print("Getting Category Availability response is :${res.statusCode.toString()}");
+      List<dynamic> jsonList = res.body;
+      return jsonList.map((json) => GetCategoryAvailabilityResponseModel.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load Category Availability: ${res.statusCode}');
+    }
+  }
+
+  // For Add Category Availability
+  Future<AddNewCategoryAvailabilityResponseModel> addCategoryAvailability(dynamic body) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await post(
+        'categories-availability/', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("Add  Category Availability Response response is ${res.statusCode}");
+      print("Add  CategoryAvailability  Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("Add CategoryAvailability Response is : ${res.statusCode.toString()}");
+        return AddNewCategoryAvailabilityResponseModel.fromJson(res.body);
+      } else {
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("Adding error: $e");
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Editing Category Availability
+  Future<EditCategoryAvailabilityResponseModel> editCategoryAvailability(dynamic body,String availabilityId) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await put(
+        'categories-availability/$availabilityId', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("EDIT CategoryAvailability response is ${res.statusCode}");
+      print("EDIT CategoryAvailability( Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("EDIT CategoryAvailability  Response is : ${res.statusCode.toString()}");
+        return EditCategoryAvailabilityResponseModel.fromJson(res.body);
+      } else {
+        // Other errors
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("EDIT error: $e");
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Deleting Category Availability
+  Future<bool> deleteCategoryAvailability(String availabilityId) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      httpClient.baseUrl = Api.baseUrl;
+
+      var res = await delete(
+        "categories-availability/$availabilityId",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer $accessToken",
+        },
+      );
+
+      print("Delete categories-availability Response Status: ${res.statusCode}");
+
+      // 204 means success but no content returned
+      if (res.statusCode == 200 || res.statusCode == 204) {
+        print("categories-availability deleted successfully");
+        return true;
+      } else {
+        print('Delete API Error: ${res.statusCode} - ${res.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Delete API Exception: $e');
+      // Even if GetX throws error on 204, check if it's actually successful
+      if (e.toString().contains('Cannot decode')) {
+        print("Delete successful but response was empty (204)");
+        return true;
+      }
+      return false;
+    }
+  }
+
+  //For Getting Ip Address
+  Future<List<GetPrinterIpResponseModel>> getIpAddress() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $accessToken");
+
+    httpClient.baseUrl = Api.baseUrl;
+    var res = await get('printers/', headers: {
+      'accept': 'application/json',
+      'Authorization': "Bearer $accessToken",
+    });
+
+    if (res.statusCode == 200) {
+      print("Getting Printer Ip response is :${res.statusCode.toString()}");
+      List<dynamic> jsonList = res.body;
+      return jsonList.map((json) => GetPrinterIpResponseModel.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load  Printer Ip: ${res.statusCode}');
+    }
+  }
+
+  //For Add New Ip Address
+  Future<AddPrinterIpResponseModel> addNewIp(dynamic body) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await post(
+        'printers/', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("Add  New IP Response response is ${res.statusCode}");
+      print("Add   New IP  Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("Add  New IP Response is : ${res.statusCode.toString()}");
+        return AddPrinterIpResponseModel.fromJson(res.body);
+      } else {
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("Adding error: $e");
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //for Editing Ip Address
+  Future<EditIpAddressResponseModel> editIpAddress(dynamic body,String printerId) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await put(
+        'printers/$printerId', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("EDIT Ip Address response is ${res.statusCode}");
+      print("EDIT  Ip Address  Response Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("EDIT  Ip Address  Response is : ${res.statusCode.toString()}");
+        return EditIpAddressResponseModel.fromJson(res.body);
+      } else {
+        // Other errors
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("EDIT error: $e");
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Deleting Ip Address
+  Future<bool> deleteExistingIp(String printerId) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      httpClient.baseUrl = Api.baseUrl;
+
+      var res = await delete(
+        "printers/$printerId",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer $accessToken",
+        },
+      );
+
+      print("Delete Printer Ip Response Status: ${res.statusCode}");
+
+      // 204 means success but no content returned
+      if (res.statusCode == 200 || res.statusCode == 204) {
+        print("categories-availability deleted successfully");
+        return true;
+      } else {
+        print('Delete API Error: ${res.statusCode} - ${res.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Delete API Exception: $e');
+      // Even if GetX throws error on 204, check if it's actually successful
+      if (e.toString().contains('Cannot decode')) {
+        print("Delete successful but response was empty (204)");
+        return true;
+      }
+      return false;
     }
   }
 

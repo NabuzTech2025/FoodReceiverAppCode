@@ -116,9 +116,6 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
     final historyOrder = widget.historyOrder;
 
     final subtotal = historyOrder.items?.fold<double>(0, (sum, item) {
-      if (item == null) return sum;
-
-      // Toppings total for this item
       final toppingsTotal = item.toppings?.fold<double>(
         0,
             (tSum, topping) => tSum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
@@ -146,7 +143,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
         backgroundColor: Colors.white,
         title: Text(
           'order_details'.tr,
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
         ),
         centerTitle: true,
         leading: Row(
@@ -156,7 +153,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
               height: 30,
               width: 30,
               child: IconButton(
-                icon: Icon(Icons.arrow_back, color: Colors.black),
+                icon: const Icon(Icons.arrow_back, color: Colors.black),
                 onPressed: () => Navigator.pop(context),
               ),
             ),
@@ -192,7 +189,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
         ],
       ),
       body: Container(
-        padding: EdgeInsets.fromLTRB(10, 0, 10, 5),
+        padding: const EdgeInsets.fromLTRB(10, 0, 10, 5),
         child: Column(
           children: [
             Expanded(
@@ -204,49 +201,49 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                       height: 1,
                       color: Colors.grey,
                     ),
-                    SizedBox(height: 5),
+                    const SizedBox(height: 5),
                     Center(
                       child: Text(
                         '${'order_number'.tr} # ${historyOrder.orderNumber ?? ''}',
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontWeight: FontWeight.w700, fontSize: 15),
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Center(
                       child: Text(
                         '${'invoice_number'.tr}: ${historyOrder.invoice?.invoiceNumber ?? ''}',
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontWeight: FontWeight.w500, fontSize: 13),
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Center(
                       child: Text(
                         '${'date'.tr}: ${formatDateTime(historyOrder.createdAt ?? '')}',
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontWeight: FontWeight.w500, fontSize: 13),
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     if (historyOrder.deliveryTime != null && historyOrder.deliveryTime!.isNotEmpty)
                       Center(
                         child: Text(
                           '${'delivery_time'.tr}: ${formatDateTime(historyOrder.deliveryTime ?? '')}',
-                          style: TextStyle(
+                          style: const TextStyle(
                               fontWeight: FontWeight.w500, fontSize: 13),
                         ),
                       ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
                       '${'customer'.tr}: ${(historyOrder.shippingAddress?.customerName != null && historyOrder.shippingAddress!.customerName!.isNotEmpty)
                           ? historyOrder.shippingAddress!.customerName!
                           : guestName}',
-                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     if (historyOrder.orderType == 1)
                       Builder(
                         builder: (context) {
@@ -259,34 +256,34 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
 
                           return Text(
                             displayAddress,
-                            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                           );
                         },
                       ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
                       '${'phone'.tr}: ${(historyOrder.shippingAddress?.phone != null && historyOrder.shippingAddress!.phone!.isNotEmpty)
                           ? historyOrder.shippingAddress!.phone!
                           : guestPhone}',
-                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
                     Text(
                       '${'email'.tr}: ${(historyOrder.user?.username != null && historyOrder.user!.username!.isNotEmpty)
                           ? historyOrder.user?.username
                           : guestEmail}',
-                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     ListView.builder(
                       shrinkWrap: true,
-                      physics: NeverScrollableScrollPhysics(),
-                      padding: EdgeInsets.all(1),
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(1),
                       itemCount: historyOrder.items?.length ?? 0,
                       itemBuilder: (context, index) {
                         final item = historyOrder.items?[index];
-                        if (item == null) return SizedBox.shrink();
+                        if (item == null) return const SizedBox.shrink();
 
                         final toppingsTotal = item.toppings?.fold<double>(
                           0,
@@ -302,13 +299,13 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                         );
                       },
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
-                    Note != null && Note.trim().isNotEmpty
+                    Note.trim().isNotEmpty
                         ? Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           'Note:  ',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
@@ -316,11 +313,11 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                             color: Colors.green,
                           ),
                         ),
-                        Container(
+                        SizedBox(
                           width: MediaQuery.of(context).size.width * 0.8,
                           child: Text(
                             Note,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontWeight: FontWeight.w300,
                               fontSize: 13,
                             ),
@@ -328,34 +325,34 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                         ),
                       ],
                     )
-                        : SizedBox.shrink(),
+                        : const SizedBox.shrink(),
 
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
                     Visibility(
                       visible: isPrint,
                       child: Column(
                         children: [
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
                                   'subtotal'.tr,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.w500,
                                     fontSize: 13,
                                   ),
                                 ),
                                 Text(
                                   formatAmount(subtotal),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.w500,
                                     fontSize: 13,
                                   ),
                                 ),]
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Visibility(
                             visible: discountData == 0.0 ? false : true,
                             child: Row(
@@ -363,20 +360,20 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                               children: [
                                 Text(
                                   'discount'.tr,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontWeight: FontWeight.w500,
                                       fontSize: 13),
                                 ),
                                 Text(formatAmount(discountData),
                                   // discountData.toString(),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontWeight: FontWeight.w500,
                                       fontSize: 13),
                                 ),
                               ],
                             ),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Visibility(
                             visible: delFee == "0.0" ? false : true,
                             child: Row(
@@ -384,22 +381,22 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                               children: [
                                 Text(
                                   'delivery_fee'.tr,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontWeight: FontWeight.w500,
                                       fontSize: 13),
                                 ),
                                 Text(formatAmount(deliveryFee),
                                   //delFee.toString(),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontWeight: FontWeight.w500,
                                       fontSize: 13),
                                 ),
                               ],
                             ),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Container(height: 0.5, color: Colors.grey),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -417,31 +414,31 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                             ],
                           ),
 
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Container(height: 0.5, color: Colors.grey),
                         ],
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
                       "${'invoice_number'.tr}: ${historyOrder.invoice?.invoiceNumber ?? ''}",
                       style:
-                      TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
                     Text(
                       "${'payment_method'.tr}: ${historyOrder.payment?.paymentMethod ?? ''}",
                       style:
-                      TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
                       "${'paid'.tr}: ${formatDateTime(historyOrder.createdAt ?? '')}",
                       style:
-                      TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     if (historyOrder.bruttoNettoSummary?.isNotEmpty ?? false)
                       Padding(
                         padding: const EdgeInsets.only(top: 5),
@@ -455,7 +452,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                                     alignment: Alignment.centerLeft,
                                     child: Text(
                                       'vat_rate'.tr,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontWeight: FontWeight.w500,
                                           fontSize: 13),
                                     ),
@@ -466,7 +463,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                                   child: Center(
                                     child: Text(
                                       'gross'.tr,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontWeight: FontWeight.w500,
                                           fontSize: 13),
                                     ),
@@ -477,7 +474,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                                   child: Center(
                                     child: Text(
                                       'net'.tr,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontWeight: FontWeight.w500,
                                           fontSize: 13),
                                     ),
@@ -489,7 +486,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                                     alignment: Alignment.centerRight,
                                     child: Text(
                                       'vat'.tr,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontWeight: FontWeight.w500,
                                           fontSize: 13),
                                     ),
@@ -497,15 +494,15 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                                 ),
                               ],
                             ),
-                            SizedBox(height: 2),
+                            const SizedBox(height: 2),
                             ListView.builder(
                               shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-                              padding: EdgeInsets.all(12),
+                              physics: const NeverScrollableScrollPhysics(),
+                              padding: const EdgeInsets.all(12),
                               itemCount: historyOrder.bruttoNettoSummary?.length ?? 0,
                               itemBuilder: (context, index) {
                                 final tax = historyOrder.bruttoNettoSummary?[index];
-                                if (tax == null) return SizedBox.shrink();
+                                if (tax == null) return const SizedBox.shrink();
                                 return brutoItems(
                                   '${tax.taxRate?.toStringAsFixed(0) ?? "0"} %',
                                   tax.brutto?.toString() ?? "0",
@@ -527,7 +524,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
               child: _buildActionButtons(
                   context, historyOrder.approvalStatus ?? 0),
             ),
-            SizedBox(height: 30,)
+            const SizedBox(height: 30,)
           ],
         ),
       ),
@@ -552,10 +549,10 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
           children: [
             Center(
               child: Text("status_pending".tr,
-                  style: TextStyle(
+                  style: const TextStyle(
                       fontWeight: FontWeight.w400, color: Colors.orangeAccent)),
             ),
-            SizedBox(
+            const SizedBox(
               height: 5,
             ),
           ],
@@ -573,7 +570,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                   style: TextStyle(
                       fontWeight: FontWeight.bold, color: Colors.green[400])),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
           ],
         );
       } else if (approvalStatus == 3) {
@@ -588,7 +585,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                   style: TextStyle(
                       fontWeight: FontWeight.bold, color: Colors.red[400]!)),
             ),
-            SizedBox(height: 3),
+            const SizedBox(height: 3),
           ],
         );
       }
@@ -605,7 +602,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
-            SizedBox(height: 3),
+            const SizedBox(height: 3),
           ],
         );
       } else if (orderType == 2) {
@@ -619,12 +616,12 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
               child: Text("status_decline".tr,
                   style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
-            SizedBox(height: 3),
+            const SizedBox(height: 3),
           ],
         );
       }
     }
-    return SizedBox.shrink();
+    return const SizedBox.shrink();
   }
 
   Widget _orderItem(String title, String price, Items item, {String? note}) {
@@ -640,14 +637,14 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                 child: Text(
                   '${item.quantity ?? 0}X $title'
                       '${((item.toppings?.isNotEmpty ?? false) && item.variant == null) ? ' [${formatAmount(item.unitPrice)}]' : ''}',
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 3,
                 ),
               ),
               Text(
                 '${'currency'.tr} ${formatAmount(double.parse(price))}',
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
               ),
             ],
           ),
@@ -657,7 +654,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
             Padding(
               padding: const EdgeInsets.only(left: 10, top: 2),
               child: Text("${item.quantity} × ${item.variant!.name ?? ''} [${formatAmount(item.variant!.price ?? 0)} ${'currency'.tr}]",
-                  style: TextStyle(fontWeight: FontWeight.w400, fontSize: 13)
+                  style: const TextStyle(fontWeight: FontWeight.w400, fontSize: 13)
               ),
             ),
 
@@ -691,7 +688,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
               alignment: Alignment.centerLeft,
               child: Text(
                 percentage,
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
               ),
             ),
           ),
@@ -699,7 +696,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
             flex: 1,
             child: Center(
               child: Text(formatAmount(double.tryParse(brutto) ?? 0),
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
               ),
             ),
           ),
@@ -707,7 +704,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
             flex: 1,
             child: Center(
               child: Text(formatAmount(double.tryParse(netto) ?? 0),
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
               ),
             ),
           ),
@@ -716,7 +713,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
             child: Align(
               alignment: Alignment.centerRight,
               child: Text(formatAmount(double.tryParse(taxAmount ?? "0") ?? 0),
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
               ),
             ),
           ),
@@ -759,7 +756,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
         ),
         barrierDismissible: false,
       );
-      _orderTimer = Timer(Duration(seconds: 7), () {
+      _orderTimer = Timer(const Duration(seconds: 7), () {
         if (Get.isDialogOpen ?? false) {
           Get.back();
           showSnackbar("order Timeout", "get Details request timed out. Please try again.");
@@ -775,7 +772,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
          SnackBar(
           content: Text('print'.tr),
           backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -796,7 +793,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
          SnackBar(
           content: Text('sending'.tr),
           backgroundColor: Colors.red,
-          duration: Duration(seconds: 3),
+          duration: const Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
         ),
       );

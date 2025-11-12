@@ -1,14 +1,11 @@
-import 'package:food_app/models/order_history_response_model.dart';
 import 'package:food_app/models/order_model.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
-import '../models/ShippingAddress.dart';
 import 'package:food_app/models/order_history_response_model.dart' as History;
-import 'package:food_app/models/order_model.dart' as OrderModel;
 
 import '../models/reservation/get_user_reservation_details.dart';
-final title = "AppController";
+const title = "AppController";
 
 class AppController extends GetxController {
   final _isLoading = false.obs;
@@ -18,13 +15,13 @@ class AppController extends GetxController {
   }
 
   bool get isLoading => _isLoading.value;
-  var _selectedTabIndex = 0.obs;
+  final _selectedTabIndex = 0.obs;
 
   int get selectedTabIndex => _selectedTabIndex.value;
 
   RxInt get selectedTabIndexRx => _selectedTabIndex;
 
-  var _reportRefreshTrigger = 0.obs;
+  final _reportRefreshTrigger = 0.obs;
 
   RxInt get reportRefreshTrigger => _reportRefreshTrigger;
 
@@ -38,7 +35,7 @@ class AppController extends GetxController {
     }
   }
 
-  var _ordersList = <Order>[].obs;
+  final _ordersList = <Order>[].obs;
 
   List<Order> get orderList => _ordersList.value;
 
@@ -65,7 +62,9 @@ class AppController extends GetxController {
     searchResultOrder.refresh();
 
     // Update pending count
-    int pendingCount = _ordersList.where((o) => o.approvalStatus == 1).length;
+    int pendingCount = _ordersList
+        .where((o) => o.approvalStatus == 1)
+        .length;
     onSetPendingOrder(pendingCount);
 
     print("✅ Force set completed - Total orders: ${_ordersList.length}");
@@ -76,7 +75,8 @@ class AppController extends GetxController {
 
 // Also modify the existing setOrders method to be more explicit about merge vs replace:
 
-  Future<void> setOrders(List<Order>? listOrders, {bool forceReplace = false}) async {
+  Future<void> setOrders(List<Order>? listOrders,
+      {bool forceReplace = false}) async {
     if (listOrders == null) {
       print("⚠️ setOrders called with null list");
       return;
@@ -94,7 +94,8 @@ class AppController extends GetxController {
       return;
     }
 
-    print("📦 Setting orders - Received: ${listOrders.length} orders, forceReplace: $forceReplace");
+    print("📦 Setting orders - Received: ${listOrders
+        .length} orders, forceReplace: $forceReplace");
 
     if (forceReplace) {
       // Complete replacement
@@ -129,16 +130,22 @@ class AppController extends GetxController {
     searchResultOrder.refresh();
 
     // Update pending count
-    int pendingCount = _ordersList.where((o) => o.approvalStatus == 1).length;
+    int pendingCount = _ordersList
+        .where((o) => o.approvalStatus == 1)
+        .length;
     onSetPendingOrder(pendingCount);
 
-    print("✅ setOrders completed - Total: ${_ordersList.length}, Search: ${searchResultOrder.length}");
+    print("✅ setOrders completed - Total: ${_ordersList
+        .length}, Search: ${searchResultOrder.length}");
   }
+
   void filterSearchResultsTodo(String query) {
     print("🔍 Filtering with query: '$query'");
     print("📊 Total orders available: ${_ordersList.length}");
 
-    if (query.isEmpty || query.trim().isEmpty) {
+    if (query.isEmpty || query
+        .trim()
+        .isEmpty) {
       // Show all orders when search is empty
       searchResultOrder.assignAll(_ordersList);
       searchResultOrder.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
@@ -152,7 +159,8 @@ class AppController extends GetxController {
         if (orderId.contains(lowerQuery)) return true;
 
         // Search in Customer Name (both regular and guest)
-        final customerName = order.shipping_address?.customer_name?.toLowerCase() ??
+        final customerName = order.shipping_address?.customer_name
+            ?.toLowerCase() ??
             order.guestShippingJson?.customerName?.toLowerCase() ?? '';
         if (customerName.contains(lowerQuery)) return true;
 
@@ -171,14 +179,17 @@ class AppController extends GetxController {
             order.guestShippingJson?.line1?.toLowerCase() ?? '';
         final city = order.shipping_address?.city?.toLowerCase() ??
             order.guestShippingJson?.city?.toLowerCase() ?? '';
-        if (line1.contains(lowerQuery) || city.contains(lowerQuery)) return true;
+        if (line1.contains(lowerQuery) || city.contains(lowerQuery))
+          return true;
 
         // Search in order items
         if (order.items?.any((item) =>
         (item.productName?.toLowerCase().contains(lowerQuery) ?? false) ||
             (item.variantName?.toLowerCase().contains(lowerQuery) ?? false) ||
             (item.note?.toLowerCase().contains(lowerQuery) ?? false)
-        ) ?? false) return true;
+        ) ?? false) {
+          return true;
+        }
 
         return false;
       }).toList();
@@ -187,11 +198,13 @@ class AppController extends GetxController {
       filteredOrders.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
 
       searchResultOrder.assignAll(filteredOrders);
-      print("✅ Search completed. Found ${searchResultOrder.length} matching orders");
+      print("✅ Search completed. Found ${searchResultOrder
+          .length} matching orders");
     }
 
     searchResultOrder.refresh();
   }
+
   // ✅ Method to clear search and show all orders
   void clearSearch() {
     searchResultOrder.assignAll(
@@ -217,13 +230,15 @@ class AppController extends GetxController {
 
       bool existsInMainList = _ordersList.any((order) => order.id == result.id);
       if (existsInMainList) {
-        print("⚠️ Order ${result.id} already exists in main list, skipping add");
+        print(
+            "⚠️ Order ${result.id} already exists in main list, skipping add");
         return;
-
       }
-      bool existsInSearchList = searchResultOrder.any((order) => order.id == result.id);
+      bool existsInSearchList = searchResultOrder.any((order) =>
+      order.id == result.id);
       if (existsInSearchList) {
-        print("⚠️ Order ${result.id} already exists in search list, skipping add");
+        print("⚠️ Order ${result
+            .id} already exists in search list, skipping add");
         return;
       }
 
@@ -235,12 +250,14 @@ class AppController extends GetxController {
       searchResultOrder.insert(0, result);
       searchResultOrder.value = [...searchResultOrder];
 
-      onSetPendingOrder(_ordersList.where((o) => o.approvalStatus == 1).length);
-      print("✅ Order ${result.id} added successfully. Total: ${_ordersList.length}");
+      onSetPendingOrder(_ordersList
+          .where((o) => o.approvalStatus == 1)
+          .length);
+      print("✅ Order ${result.id} added successfully. Total: ${_ordersList
+          .length}");
 
       print("✅ Order ${result.id} added successfully");
       print("📊 Total orders now: ${_ordersList.length}");
-
     } catch (e) {
       print("❌ Error adding new order: $e");
     }
@@ -259,25 +276,30 @@ class AppController extends GetxController {
         print("⚠️ Order ${result.id} not found in main list for update");
       }
 
-      int searchIndex = searchResultOrder.indexWhere((order) => order.id == result.id);
+      int searchIndex = searchResultOrder.indexWhere((order) =>
+      order.id == result.id);
       if (searchIndex != -1) {
         searchResultOrder[searchIndex] = result;
         searchResultOrder.value = [...searchResultOrder];
-        print("✅ Order ${result.id} updated in search list at index $searchIndex");
+        print("✅ Order ${result
+            .id} updated in search list at index $searchIndex");
       } else {
         print("⚠️ Order ${result.id} not found in search list for update");
       }
 
-      onSetPendingOrder(searchResultOrder.where((o) => o.approvalStatus == 1).length);
-
+      onSetPendingOrder(searchResultOrder
+          .where((o) => o.approvalStatus == 1)
+          .length);
     } catch (e) {
       print("❌ Error updating order: $e");
     }
   }
 
-  var _pendingOrders = 0.obs;
-  var _pendingReservations = 0.obs;
+  final _pendingOrders = 0.obs;
+  final _pendingReservations = 0.obs;
+
   int get getPendingOrder => _pendingOrders.value;
+
   int get getPendingReservations => _pendingReservations.value;
 
   void onSetPendingOrder(int index) {
@@ -322,7 +344,6 @@ class AppController extends GetxController {
       searchResultOrder.value = uniqueSearchOrders.values.toList();
 
       print("✅ Duplicates removed. Orders count: ${_ordersList.length}");
-
     } catch (e) {
       print("❌ Error removing duplicates: $e");
     }
@@ -343,9 +364,10 @@ class AppController extends GetxController {
     print("📋 === END DEBUG ===");
   }
 
-  var _historyOrdersList = <History.orderHistoryResponseModel>[].obs;
+  final _historyOrdersList = <History.orderHistoryResponseModel>[].obs;
 
-  List<History.orderHistoryResponseModel> get historyOrdersList => _historyOrdersList.value;
+  List<History.orderHistoryResponseModel> get historyOrdersList =>
+      _historyOrdersList.value;
 
   void setHistoryOrders(List<History.orderHistoryResponseModel> historyOrders) {
     print("📋 Setting ${historyOrders.length} history orders");
@@ -379,7 +401,8 @@ class AppController extends GetxController {
     final order = getHistoryOrderByIndex(index);
     if (order?.shippingAddress != null) {
       final addr = order!.shippingAddress!;
-      return "${addr.line1 ?? ''}, ${addr.city ?? ''}, ${addr.zip ?? ''}".trim();
+      return "${addr.line1 ?? ''}, ${addr.city ?? ''}, ${addr.zip ?? ''}"
+          .trim();
     }
     return null;
   }
@@ -415,11 +438,14 @@ class AppController extends GetxController {
 
 // In AppController.dart, add reservation methods:
 
-  var _reservationsList = <GetUserReservationDetailsResponseModel>[].obs;
+  final _reservationsList = <GetUserReservationDetailsResponseModel>[].obs;
   var searchResultReservation = <GetUserReservationDetailsResponseModel>[].obs;
-  List<GetUserReservationDetailsResponseModel> get reservationsList => _reservationsList.value;
 
-  void setReservations(List<GetUserReservationDetailsResponseModel> reservations) {
+  List<GetUserReservationDetailsResponseModel> get reservationsList =>
+      _reservationsList.value;
+
+  void setReservations(
+      List<GetUserReservationDetailsResponseModel> reservations) {
     _reservationsList.clear();
     _reservationsList.assignAll(reservations);
 
@@ -434,7 +460,8 @@ class AppController extends GetxController {
     reservation.status?.toLowerCase() == 'pending').length;
     _pendingReservations.value = pendingCount;
 
-    print("Set ${reservations.length} total reservations, ${pendingCount} pending");
+    print(
+        "Set ${reservations.length} total reservations, $pendingCount pending");
   }
 
   void addNewReservation(GetUserReservationDetailsResponseModel reservation) {
@@ -451,7 +478,8 @@ class AppController extends GetxController {
       r.status?.toLowerCase() == 'pending').length;
       _pendingReservations.value = pendingCount;
 
-      print("✅ New reservation ${reservation.id} added and search results updated");
+      print("✅ New reservation ${reservation
+          .id} added and search results updated");
     }
   }
 
@@ -465,11 +493,14 @@ class AppController extends GetxController {
       _pendingReservations.value = pendingCount;
     }
   }
+
   void clearReservationSearch() {
     searchResultReservation.assignAll(_reservationsList);
     searchResultReservation.refresh();
-    print("🧹 Reservation search cleared, showing all ${searchResultReservation.length} reservations");
+    print("🧹 Reservation search cleared, showing all ${searchResultReservation
+        .length} reservations");
   }
+
   void clearReservationsOnLogout() {
     _reservationsList.clear();
     searchResultReservation.clear();
@@ -480,7 +511,9 @@ class AppController extends GetxController {
     print("🔍 Filtering reservations with query: '$query'");
     print("📊 Total reservations available: ${_reservationsList.length}");
 
-    if (query.isEmpty || query.trim().isEmpty) {
+    if (query.isEmpty || query
+        .trim()
+        .isEmpty) {
       // Show all reservations when search is empty
       searchResultReservation.assignAll(_reservationsList);
       print("✅ Showing all ${searchResultReservation.length} reservations");
@@ -501,7 +534,8 @@ class AppController extends GetxController {
         if (phone.contains(lowerQuery)) return true;
 
         // Search in Guest Count
-        final guestCount = reservation.guestCount?.toString().toLowerCase() ?? '';
+        final guestCount = reservation.guestCount?.toString().toLowerCase() ??
+            '';
         if (guestCount.contains(lowerQuery)) return true;
 
         // Search in Status
@@ -512,14 +546,16 @@ class AppController extends GetxController {
       }).toList();
 
       searchResultReservation.assignAll(filteredReservations);
-      print("✅ Search completed. Found ${searchResultReservation.length} matching reservations");
+      print("✅ Search completed. Found ${searchResultReservation
+          .length} matching reservations");
     }
 
     searchResultReservation.refresh();
   }
 
 
-  List<GetUserReservationDetailsResponseModel> getFilteredReservations(String? selectedDate) {
+  List<GetUserReservationDetailsResponseModel> getFilteredReservations(
+      String? selectedDate) {
     DateTime today = DateTime.now();
     String todayString = DateFormat('yyyy-MM-dd').format(today);
 
@@ -540,7 +576,8 @@ class AppController extends GetxController {
         if (dateToCheck != null) {
           try {
             DateTime reservationDate = DateTime.parse(dateToCheck);
-            String reservationDateString = DateFormat('yyyy-MM-dd').format(reservationDate);
+            String reservationDateString = DateFormat('yyyy-MM-dd').format(
+                reservationDate);
             return reservationDateString == targetDate;
           } catch (e) {
             print("Error parsing reservation date: $e");
@@ -554,9 +591,30 @@ class AppController extends GetxController {
       return true;
     }).toList();
   }
+
 // Also add this method to get filtered count
   int getFilteredReservationsCount(String? selectedDate) {
     return getFilteredReservations(selectedDate).length;
   }
+
   var triggerAddReservation = false.obs;
+
+  Function(String)? productsFilterCallback;
+  Function(String)? categoryFilterCallback;
+
+  void registerProductsFilter(Function(String) callback) {
+    productsFilterCallback = callback;
+    print("✅ Products filter callback registered");
+  }
+
+  void registerCategoryFilter(Function(String) callback) {
+    categoryFilterCallback = callback;
+    print("✅ Category filter callback registered");
+  }
+
+  void clearFilterCallbacks() {
+    productsFilterCallback = null;
+    categoryFilterCallback = null;
+    print("🧹 Filter callbacks cleared");
+  }
 }

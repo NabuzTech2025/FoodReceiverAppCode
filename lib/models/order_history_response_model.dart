@@ -87,12 +87,12 @@ class orderHistoryResponseModel {
       });
     }
     guestShippingJson = json['guest_shipping_json'] != null
-        ? new GuestShippingJson.fromJson(json['guest_shipping_json'])
+        ? GuestShippingJson.fromJson(json['guest_shipping_json'])
         : null;
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = Map<String, dynamic>();
+    final Map<String, dynamic> data = <String, dynamic>{};
     data['user_id'] = userId;
     data['discount_id'] = discountId;
     data['note'] = note;
@@ -104,7 +104,7 @@ class orderHistoryResponseModel {
     data['isActive'] = isActive;
     data['id'] = id;
     data['created_at'] = createdAt;
-    data['order_number'] = this.orderNumber;
+    data['order_number'] = orderNumber;
     if (user != null) {
       data['user'] = user!.toJson();
     }
@@ -130,8 +130,8 @@ class orderHistoryResponseModel {
     if (bruttoNettoSummary != null) {
       data['brutto_netto_summary'] = bruttoNettoSummary!.map((v) => v.toJson()).toList();
     }
-    if (this.guestShippingJson != null) {
-      data['guest_shipping_json'] = this.guestShippingJson!.toJson();
+    if (guestShippingJson != null) {
+      data['guest_shipping_json'] = guestShippingJson!.toJson();
     }
     return data;
   }
@@ -153,7 +153,7 @@ class User {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = Map<String, dynamic>();
+    final Map<String, dynamic> data = <String, dynamic>{};
     data['username'] = username;
     data['id'] = id;
     data['store_id'] = storeId;
@@ -209,7 +209,7 @@ class Items {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = Map<String, dynamic>();
+    final Map<String, dynamic> data = <String, dynamic>{};
     data['product_id'] = productId;
     data['variant_id'] = variantId;
     data['quantity'] = quantity;
@@ -243,7 +243,7 @@ class Toppings {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = Map<String, dynamic>();
+    final Map<String, dynamic> data = <String, dynamic>{};
     data['topping_id'] = toppingId;
     data['quantity'] = quantity;
     data['price'] = price;
@@ -279,7 +279,7 @@ class Discount {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = Map<String, dynamic>();
+    final Map<String, dynamic> data = <String, dynamic>{};
     data['code'] = code;
     data['type'] = type;
     data['value'] = value;
@@ -323,7 +323,7 @@ class Invoice {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = Map<String, dynamic>();
+    final Map<String, dynamic> data = <String, dynamic>{};
     data['invoice_number'] = invoiceNumber;
     data['total_amount'] = totalAmount;
     data['issued_at'] = issuedAt;
@@ -363,7 +363,7 @@ class Payment {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = Map<String, dynamic>();
+    final Map<String, dynamic> data = <String, dynamic>{};
     data['payment_method'] = paymentMethod;
     data['status'] = status;
     data['paid_at'] = paidAt;
@@ -410,7 +410,7 @@ class ShippingAddress {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = Map<String, dynamic>();
+    final Map<String, dynamic> data = <String, dynamic>{};
     data['type'] = type;
     data['line1'] = line1;
     data['city'] = city;
@@ -436,7 +436,7 @@ class TaxSummary {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = Map<String, dynamic>();
+    final Map<String, dynamic> data = <String, dynamic>{};
     data['tax_rate'] = taxRate;
     data['tax_amount'] = taxAmount;
     return data;
@@ -459,7 +459,7 @@ class BruttoNettoSummary {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = Map<String, dynamic>();
+    final Map<String, dynamic> data = <String, dynamic>{};
     data['tax_rate'] = taxRate;
     data['brutto'] = brutto;
     data['netto'] = netto;
@@ -499,15 +499,15 @@ class GuestShippingJson {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['zip'] = this.zip;
-    data['city'] = this.city;
-    data['type'] = this.type;
-    data['email'] = this.email;
-    data['line1'] = this.line1;
-    data['phone'] = this.phone;
-    data['country'] = this.country;
-    data['customer_name'] = this.customerName;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['zip'] = zip;
+    data['city'] = city;
+    data['type'] = type;
+    data['email'] = email;
+    data['line1'] = line1;
+    data['phone'] = phone;
+    data['country'] = country;
+    data['customer_name'] = customerName;
     return data;
   }
 }

@@ -19,7 +19,6 @@ import 'package:food_app/init_app.dart';
 import 'package:food_app/utils/battery_optimization.dart';
 import 'package:food_app/utils/global.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'api/Socket/reservation_socket_service.dart';
 import 'api/api.dart';
 import 'api/repository/api_repository.dart';
 import 'constants/constant.dart';
@@ -44,7 +43,7 @@ final Map<String, DateTime> _notificationTimestamps = <String, DateTime>{};
 
 void _cleanOldBackgroundProcessedOrders() {
   final now = DateTime.now();
-  final thirtyMinutesAgo = now.subtract(Duration(minutes: 30));
+  final thirtyMinutesAgo = now.subtract(const Duration(minutes: 30));
 
   _backgroundProcessingTime.removeWhere((orderId, time) => time.isBefore(thirtyMinutesAgo));
   _backgroundProcessedOrders.removeWhere((orderId) => !_backgroundProcessingTime.containsKey(orderId));
@@ -153,9 +152,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     print('🔥 Background raw data: ${message.data}');
 
     // Replace the existing duplicate check with:
-    String notificationKey = "${title}_${body}";
+    String notificationKey = "${title}_$body";
     final now = DateTime.now();
-    final thirtySecondsAgo = now.subtract(Duration(seconds: 30));
+    final thirtySecondsAgo = now.subtract(const Duration(seconds: 30));
     _processedNotifications.add(notificationKey);
     _notificationTimestamps[notificationKey] = now;
     // Check for duplicate notification
@@ -219,7 +218,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
           // ✅ ENHANCED: Check for duplicate processing with time window
           final now = DateTime.now();
-          final fiveMinutesAgo = now.subtract(Duration(minutes: 5));
+          final fiveMinutesAgo = now.subtract(const Duration(minutes: 5));
 
           // Clean old processing records
           _backgroundProcessingTime.removeWhere((id, time) =>
@@ -256,7 +255,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
               prefs = await SharedPreferences.getInstance();
               await prefs.reload();
-              await Future.delayed(Duration(milliseconds: 500));
+              await Future.delayed(const Duration(milliseconds: 500));
 
               bearerKey = prefs.getString(valueShared_BEARER_KEY);
               storeID = prefs.getString(valueShared_STORE_KEY);
@@ -270,7 +269,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
                 break;
               }
 
-              await Future.delayed(Duration(milliseconds: 500));
+              await Future.delayed(const Duration(milliseconds: 500));
             } catch (e) {
               print("❌ Attempt ${attempt + 1} failed: $e");
             }
@@ -293,7 +292,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
               print("🔄 Settings read attempt ${i + 1}/5");
 
               await prefs!.reload();
-              await Future.delayed(Duration(milliseconds: 300));
+              await Future.delayed(const Duration(milliseconds: 300));
 
               autoAccept = prefs.getBool('auto_order_accept') ?? false;
               autoPrint = prefs.getBool('auto_order_print') ?? false;
@@ -309,11 +308,11 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
               if (i < 4) {
                 prefs = await SharedPreferences.getInstance();
-                await Future.delayed(Duration(milliseconds: 500));
+                await Future.delayed(const Duration(milliseconds: 500));
               }
             } catch (e) {
               print("❌ Settings read attempt ${i + 1} failed: $e");
-              await Future.delayed(Duration(milliseconds: 300));
+              await Future.delayed(const Duration(milliseconds: 300));
             }
           }
 
@@ -523,11 +522,6 @@ Future<void> handleBackgroundOrderComplete(int orderNumber, SharedPreferences pr
     try {
       final orderData = await ApiRepo().getNewOrderData(bearerKey, orderNumber);
 
-      if (orderData == null) {
-        print("❌ Background - Failed to get order data (null response)");
-        return;
-      }
-
       print("✅ Background - Order data retrieved: ID ${orderData.id}");
       print("🔍 Order status: ${orderData.orderStatus}");
 
@@ -559,33 +553,25 @@ Future<void> handleBackgroundOrderComplete(int orderNumber, SharedPreferences pr
           final acceptResult = await ApiRepo().orderAcceptDecline(
               bearerKey, jsonData, orderData.id ?? 0);
 
-          if (acceptResult != null) {
-            print("✅ Background - Order auto-accepted successfully");
+          print("✅ Background - Order auto-accepted successfully");
 
-            // ✅ Only print after accept if auto print is also enabled
-            if (autoPrint) {
-              print("🖨️ Background - Auto printing after accept");
-              await Future.delayed(Duration(seconds: 3));
+          // ✅ Only print after accept if auto print is also enabled
+          if (autoPrint) {
+            print("🖨️ Background - Auto printing after accept");
+            await Future.delayed(const Duration(seconds: 3));
 
-              print("📥 Background - Fetching updated order for printing");
-              print("📥 Background - API will call: ${savedBaseUrl}orders/$orderNumber"); // ✅ CONFIRM GET URL
+            print("📥 Background - Fetching updated order for printing");
+            print("📥 Background - API will call: ${savedBaseUrl}orders/$orderNumber"); // ✅ CONFIRM GET URL
 
-              final updatedOrder = await ApiRepo().getNewOrderData(bearerKey, orderNumber);
+            final updatedOrder = await ApiRepo().getNewOrderData(bearerKey, orderNumber);
 
-              if (updatedOrder != null) {
-                print("📋 Background - Updated order retrieved for printing");
-                await backgroundPrintOrder(updatedOrder, prefs);
-                print("✅ Background - Auto print after accept completed");
-              } else {
-                print("❌ Background - Could not get updated order for printing");
-              }
-            } else {
-              print("ℹ️ Background - Auto print disabled, only accepted order");
-            }
-          } else {
-            print("❌ Background - Failed to auto-accept order");
+            print("📋 Background - Updated order retrieved for printing");
+            await backgroundPrintOrder(updatedOrder, prefs);
+            print("✅ Background - Auto print after accept completed");
+                    } else {
+            print("ℹ️ Background - Auto print disabled, only accepted order");
           }
-        } else {
+                } else {
           print("ℹ️ Background - Auto accept disabled, ignoring pending order");
           print("ℹ️ Background - Pending orders should NOT be printed without acceptance");
           return;
@@ -632,7 +618,7 @@ Future<void> backgroundPrintOrder(Order order, SharedPreferences prefs) async {
     // ✅ Enhanced printer IP detection with multiple attempts
     String selectedIp = '';
     await prefs.reload();
-    await Future.delayed(Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 100));
 
 // ✅ Always check printer_ip_0 first and validate it exists
     String? primaryIp = prefs.getString('printer_ip_0');
@@ -908,7 +894,7 @@ Future<void> main() async {
   // Your own boot-strap routine -----------------------------------------
   await initApp();
 // Initialize Socket Service
-  Get.put(SocketReservationService(), permanent: true);
+//   Get.put(SocketReservationService(), permanent: true);
   // ✅ Check if user is logged in and sync settings
   await _checkAndSyncSettings();
   runApp(const AppLifecycleObserver(child: MyApp()));
@@ -945,7 +931,7 @@ void _registerForegroundListeners() {
   FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
     print("📥 Raw message received: ${message.toMap()}");
 
-    // हमेशा notification show करें (foreground में)
+
     if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
       String title = message.notification?.title ?? message.data['title'] ?? '';
       String body = message.notification?.body ?? message.data['body'] ?? '';
@@ -956,7 +942,7 @@ void _registerForegroundListeners() {
     }
   });
 
-  // main.dart में
+  // main.dart
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
     String title = message.notification?.title ?? message.data['title'] ?? '';
 
@@ -965,14 +951,13 @@ void _registerForegroundListeners() {
       final sessionID = prefs.getString(valueShared_BEARER_KEY);
 
       if (sessionID != null) {
-        // User is logged in, go directly to home with specific tab
         if (title.contains('New Order')) {
           Get.offAllNamed('/home', arguments: {'initialTab': 0});
         } else if (title.contains('Reservation')) {
           Get.offAllNamed('/home', arguments: {'initialTab': 1});
         }
       } else {
-        // User not logged in, go to splash/login
+
         Get.offAllNamed('/splash');
       }
     });
@@ -984,7 +969,6 @@ void _registerForegroundListeners() {
     if (message != null) {
       String title = message.notification?.title ?? message.data['title'] ?? '';
 
-      // Check if user is logged in
       SharedPreferences prefs = await SharedPreferences.getInstance();
       final sessionID = prefs.getString(valueShared_BEARER_KEY);
 
@@ -1154,7 +1138,7 @@ class MyApp extends StatelessWidget {
       fallbackLocale: const Locale('en'),
       builder: (_, child) => AppUpdateChecker(
         child: MediaQuery(
-          data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+          data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.0)),
           child: child ?? const SizedBox.shrink(),
         ),
       ),
@@ -1165,7 +1149,7 @@ class MyApp extends StatelessWidget {
 class AppUpdateChecker extends StatefulWidget {
   final Widget child;
 
-  const AppUpdateChecker({Key? key, required this.child}) : super(key: key);
+  const AppUpdateChecker({super.key, required this.child});
 
   @override
   State<AppUpdateChecker> createState() => _AppUpdateCheckerState();
@@ -1193,7 +1177,7 @@ class _AppUpdateCheckerState extends State<AppUpdateChecker> {
 class AppLifecycleObserver extends StatefulWidget {
   final Widget child;
 
-  const AppLifecycleObserver({Key? key, required this.child}) : super(key: key);
+  const AppLifecycleObserver({super.key, required this.child});
 
   @override
   State<AppLifecycleObserver> createState() => _AppLifecycleObserverState();

@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 
-final title = "CustomLogInterceptor";
+const title = "CustomLogInterceptor";
 
 /// [CustomLogInterceptor] is used to print logs during network requests.
 /// It's better to add [CustomLogInterceptor] to the tail of the interceptor queue,
@@ -61,7 +61,7 @@ class CustomLogInterceptor extends Interceptor {
   }
 
   @override
-  void onError(DioError err, ErrorInterceptorHandler handler) {
+  void onError(DioException err, ErrorInterceptorHandler handler) {
     if (error) {
       logPrint('************************ DioError ************************');
       logPrint('uri: ${err.requestOptions.uri}');
@@ -81,16 +81,14 @@ class CustomLogInterceptor extends Interceptor {
       if (response.isRedirect == true) {
         printKV('redirect', response.realUri);
       }
-      if (response.headers != null) {
-        logPrint('headers:');
-        response.headers.forEach((key, v) => printKV(' $key', v.join(',')));
-      }
-    }
+      logPrint('headers:');
+      response.headers.forEach((key, v) => printKV(' $key', v.join(',')));
+        }
     if (responseBody) {
       logPrint('Response Text:');
       //printAll(response.toString());
 
-      final pattern = new RegExp('.{1,800}'); // 800 is the size of each chunk
+      final pattern = RegExp('.{1,800}'); // 800 is the size of each chunk
       pattern
           .allMatches(response.toString())
           .forEach((match) => printAll(match.group(0)));

@@ -12,10 +12,10 @@ class EditProductGroupResponseModel {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['id'] = this.id;
-    data['product_id'] = this.productId;
-    data['topping_group_id'] = this.toppingGroupId;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['id'] = id;
+    data['product_id'] = productId;
+    data['topping_group_id'] = toppingGroupId;
     return data;
   }
 }

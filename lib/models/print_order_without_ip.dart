@@ -10,9 +10,9 @@ class printOrderWithoutIp {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['detail'] = this.detail;
-    data['order_id'] = this.orderId;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['detail'] = detail;
+    data['order_id'] = orderId;
     return data;
   }
 }

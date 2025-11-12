@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:get/get.dart';
 import 'package:new_version_plus/new_version_plus.dart';
 
 class AppUpdateService {

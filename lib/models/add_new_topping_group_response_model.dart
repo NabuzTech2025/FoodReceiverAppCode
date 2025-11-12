@@ -27,14 +27,14 @@ class AddToppingsGroupResponseModel {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['min_select'] = this.minSelect;
-    data['max_select'] = this.maxSelect;
-    data['is_required'] = this.isRequired;
-    data['store_id'] = this.storeId;
-    data['id'] = this.id;
-    data['isActive'] = this.isActive;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['min_select'] = minSelect;
+    data['max_select'] = maxSelect;
+    data['is_required'] = isRequired;
+    data['store_id'] = storeId;
+    data['id'] = id;
+    data['isActive'] = isActive;
     return data;
   }
 }

@@ -4,7 +4,7 @@ class CustomCheckbox extends StatefulWidget {
   final bool value;
   final Function(bool) onChanged;
 
-  CustomCheckbox({required this.value, required this.onChanged});
+  const CustomCheckbox({super.key, required this.value, required this.onChanged});
 
   @override
   _CustomCheckboxState createState() => _CustomCheckboxState();
@@ -17,11 +17,11 @@ class _CustomCheckboxState extends State<CustomCheckbox> {
       onTap: () {
         widget.onChanged(!widget.value);
       },
-      child: Container(
+      child: SizedBox(
         width: 40.0,
         height: 40.0,
         child: widget.value
-            ? Container(
+            ? const SizedBox(
                 width: 40,
                 height: 40,
                 /*child: SvgPicture.asset('assets/images/ic_tick.svg')*/)

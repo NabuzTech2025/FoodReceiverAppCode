@@ -18,8 +18,8 @@ class UserMe {
   UserMe.withError({
     int? code,
     String? mess,
-  })  : this.code = code,
-        this.mess = mess;
+  })  : code = code,
+        mess = mess;
 
   factory UserMe.fromJson(Map<String, dynamic> json) => UserMe(
         username: json["username"],

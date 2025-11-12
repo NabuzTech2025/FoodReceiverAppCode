@@ -219,7 +219,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
                           key: ValueKey(index),
                           endActionPane: ActionPane(
                             motion: const ScrollMotion(),
-                            extentRatio: 0.335,
+                            extentRatio: item.isActive == false ? 0.18 : 0.335 ,
                             children: [
                               GestureDetector(
                                 onTap: () => showAddToppingGroupBottomSheet(
@@ -239,7 +239,8 @@ class _ToppingGroupState extends State<ToppingGroup> {
                                   ),
                                 ),
                               ),
-                              GestureDetector(
+                              if (item.isActive ?? true)
+                                GestureDetector(
                                 onTap: (){
                                   showDeleteToppingGroup(context, item.name.toString(),
                                       item.id.toString());
@@ -283,20 +284,30 @@ class _ToppingGroupState extends State<ToppingGroup> {
                                      //overflow: TextOverflow.ellipsis,
                                    ),
                                  ),
-                                 Container(
-                                   decoration: BoxDecoration(
-                                     borderRadius: BorderRadius.circular(5),
-                                     color: (item.isActive ?? false) ? Colors.green : Colors.grey,
-                                   ),
-                                   padding: EdgeInsets.all(5),
-                                   width: MediaQuery.of(context).size.width * 0.32,
-                                   child: Center(
-                                     child: Text( (item.isActive ?? false)? 'Active':'InActive',
-                                       style: TextStyle(
+                                 GestureDetector(
+                                   onTap: () {
+                                     _showStatusChangeDialog(
+                                         context,
+                                         item.name ?? 'Topping Group',
+                                         item.id ?? 0,
+                                         item.isActive ?? false
+                                     );
+                                   },
+                                   child: Container(
+                                     decoration: BoxDecoration(
+                                       borderRadius: BorderRadius.circular(5),
+                                       color: (item.isActive ?? false) ? Colors.green : Colors.grey,
+                                     ),
+                                     padding: EdgeInsets.all(5),
+                                     width: MediaQuery.of(context).size.width * 0.32,
+                                     child: Center(
+                                       child: Text( (item.isActive ?? false)? 'Active':'InActive',
+                                         style: TextStyle(
                                            fontWeight: (item.isActive ?? false) ? FontWeight.w400:FontWeight.w600,
                                            fontSize: 12,
                                            fontFamily: 'Mulish',
-                                         color: (item.isActive ?? false) ? Colors.white : Colors.black,
+                                           color: (item.isActive ?? false) ? Colors.white : Colors.black,
+                                         ),
                                        ),
                                      ),
                                    ),
@@ -657,19 +668,15 @@ class _ToppingGroupState extends State<ToppingGroup> {
     }
   }
 
-  Future<bool> addToppingGroup({
-    required String name,
-  }) async {
+  Future<bool> addToppingGroup({required String name,}) async {
     if (sharedPreferences == null) {
-      Get.snackbar('Error', 'SharedPreferences not initialized',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('Error', 'SharedPreferences not initialized', snackPosition: SnackPosition.BOTTOM);
       return false;
     }
 
     storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
     if (storeId == null) {
-      Get.snackbar('Error', 'Store ID not found',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('Error', 'Store ID not found', snackPosition: SnackPosition.BOTTOM);
       return false;
     }
 
@@ -728,10 +735,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
     }
   }
 
-  Future<bool> editToppingGroup({
-    required int groupId,
-    required String name,
-  }) async {
+  Future<bool> editToppingGroup({required int groupId, required String name,}) async {
     if (sharedPreferences == null) {
       Get.snackbar('Error', 'SharedPreferences not initialized',
           snackPosition: SnackPosition.BOTTOM);
@@ -960,6 +964,208 @@ class _ToppingGroupState extends State<ToppingGroup> {
     );
   }
 
+  void _showStatusChangeDialog(BuildContext context, String groupName, int groupId, bool currentStatus) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.transparent,
+        child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 20),
+                    Text(
+                      currentStatus
+                          ? '${'deactivate_cat'.tr} "$groupName"?'
+                          : '${'reactivate_cat'.tr} "$groupName"?',
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black,
+                          fontFamily: 'Mulish'
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 30),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          height: 35,
+                          width: 70,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF8E9AAF),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: TextButton(
+                            onPressed: () => Get.back(),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                            child: Text(
+                              'cancel'.tr,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        Container(
+                          height: 35,
+                          width: 70,
+                          decoration: BoxDecoration(
+                            color: currentStatus ? const Color(0xFFE25454) : const Color(0xff49B27A),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: TextButton(
+                            onPressed: () {
+                              Get.back();
+                              _toggleToppingGroupStatus(groupId, !currentStatus);
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                            child: Text(
+                              'yes'.tr,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: -20,
+                child: GestureDetector(
+                  onTap: () => Get.back(),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFED4C5C),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              )
+            ]
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleToppingGroupStatus(int groupId, bool newStatus) async {
+    if (sharedPreferences == null) {
+      Get.snackbar('Error', 'SharedPreferences not initialized');
+      return;
+    }
+
+    storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
+    if (storeId == null) {
+      Get.snackbar('Error', 'Store ID not found');
+      return;
+    }
+
+    // Find the topping group
+    GetToppingsGroupResponseModel? group = toppingGroupList.firstWhere(
+          (g) => g.id == groupId,
+      orElse: () => GetToppingsGroupResponseModel(),
+    );
+
+    if (group.id == null) {
+      Get.snackbar('Error', 'Topping group not found');
+      return;
+    }
+
+    Get.dialog(
+      Center(
+          child: Lottie.asset(
+            'assets/animations/burger.json',
+            width: 150,
+            height: 150,
+            repeat: true,
+          )
+      ),
+      barrierDismissible: false,
+    );
+
+    try {
+      var map = {
+        "name": group.name ?? '',
+        "min_select": 0,
+        "max_select": 0,
+        "is_required": true,
+        "store_id": int.parse(storeId!),
+        "isActive": newStatus,  // ✅ Updated status
+      };
+
+      print("Toggle Topping Group Status Map: $map");
+
+      EditToppingsGroupResponseModel model =
+      await CallService().editToppingGroup(map, groupId.toString());
+
+      await getToppingGroup(showLoader: false);
+
+      Get.back();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(newStatus ? 'group_activated'.tr : 'group_deactivated'.tr),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+
+    } catch (e) {
+      Get.back();
+      print('Error toggling topping group status: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('failed_status_change'.tr),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
 
 
 }

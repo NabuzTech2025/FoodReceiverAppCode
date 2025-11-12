@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:food_app/api/Socket/socket_service.dart';
@@ -20,6 +19,8 @@ import '../models/today_report.dart' hide TaxBreakdown;
 import 'LoginScreen.dart';
 
 class OrderScreenNew extends StatefulWidget {
+  const OrderScreenNew({super.key});
+
   @override
   _OrderScreenState createState() => _OrderScreenState();
 }
@@ -105,8 +106,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    print("Callingapp When refresh reumed 1111 ");
+    // WidgetsBinding.instance.addObserver(this);
+    // print("Callingapp When refresh reumed 1111 ");
 
     _blinkController = AnimationController(
       vsync: this,
@@ -166,7 +167,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
+   // WidgetsBinding.instance.removeObserver(this);
     _initVarTimeoutTimer?.cancel();
     _internetCheckTimer?.cancel();
     _blinkController.dispose();
@@ -176,13 +177,13 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      print("Callingapp When refresh reumed 2222 ");
-      initVar(); // refresh when app returns to foreground
-    }
-  }
+  // @override
+  // void didChangeAppLifecycleState(AppLifecycleState state) {
+  //   if (state == AppLifecycleState.resumed) {
+  //     print("Callingapp When refresh reumed 2222 ");
+  //     initVar(); // refresh when app returns to foreground
+  //   }
+  // }
 
   Future<void> initVar() async {
     print("Callingapp When refresh resumed 3333");
@@ -206,7 +207,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
     try {
       // Set 10 second timeout for entire initVar process
-      timeoutTimer = Timer(Duration(seconds: 10), () {
+      timeoutTimer = Timer(const Duration(seconds: 10), () {
         if (mounted) {
           setState(() {
             isLoading = false;
@@ -328,7 +329,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       loaderShown = true;
 
       // Set timeout for logout process - maximum 8 seconds
-      timeoutTimer = Timer(Duration(seconds: 8), () {
+      timeoutTimer = Timer(const Duration(seconds: 8), () {
         if (loaderShown && (Get.isDialogOpen ?? false)) {
           try {
             Get.back();
@@ -339,7 +340,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
           }
         }
         // Force navigate to login even if timeout
-        Get.offAll(() => LoginScreen());
+        Get.offAll(() => const LoginScreen());
       });
 
       print("🚪 Starting offline logout process...");
@@ -364,7 +365,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       }
 
       // STEP 5: Navigate to login with complete reset
-      Get.offAll(() => LoginScreen());
+      Get.offAll(() => const LoginScreen());
 
       print("✅ Offline logout completed successfully");
     } catch (e) {
@@ -385,7 +386,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
       // Ensure navigation happens even if there's an error
       if (!Get.currentRoute.contains('LoginScreen')) {
-        Get.offAll(() => LoginScreen());
+        Get.offAll(() => const LoginScreen());
       }
     }
   }
@@ -505,7 +506,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
         for (String key in keysToRemove) {
           await prefs.remove(key);
-          await Future.delayed(Duration(milliseconds: 20));
+          await Future.delayed(const Duration(milliseconds: 20));
           print("🗑️ Removed: $key");
         }
 
@@ -520,9 +521,9 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
         // ✅ Force multiple reloads to ensure changes are committed
         await prefs.reload();
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
         await prefs.reload();
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
 
         // ✅ Verify cleanup for this attempt
         String? testToken = prefs.getString(valueShared_BEARER_KEY);
@@ -556,7 +557,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     try {
       print("🔌 Disconnecting socket (offline)...");
       _socketService.disconnect();
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 100));
       print("✅ Socket disconnected (offline)");
     } catch (e) {
       print("⚠️ Error disconnecting socket (offline): $e");
@@ -576,14 +577,14 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         return WillPopScope(
           onWillPop: () async => false,
           child: AlertDialog(
-            title: Row(
+            title: const Row(
               children: [
                 Icon(Icons.signal_wifi_off, color: Colors.red),
                 SizedBox(width: 8),
                 Text("Connection Error"),
               ],
             ),
-            content: Text(
+            content: const Text(
                 "Cannot connect to server. Please logout and login again to continue."),
             actions: [
               ElevatedButton(
@@ -594,7 +595,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                   _offlineLogout();
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: Text("Logout", style: TextStyle(color: Colors.white)),
+                child: const Text("Logout", style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
@@ -607,7 +608,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
   void _startInternetMonitoring() {
     _internetCheckTimer?.cancel();
-    _internetCheckTimer = Timer.periodic(Duration(seconds: 10), (timer) async {
+    _internetCheckTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
       final connectivityResult = await Connectivity().checkConnectivity();
       bool hasConnection = connectivityResult != ConnectivityResult.none;
 
@@ -701,7 +702,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         });
 
         // Show popup after a small delay
-        Future.delayed(Duration(milliseconds: 500), () {
+        Future.delayed(const Duration(milliseconds: 500), () {
           _showLogoutDialog();
         });
       }
@@ -845,7 +846,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
           setState(() {
             hasInternet = false;
           });
-          Future.delayed(Duration(milliseconds: 500), () {
+          Future.delayed(const Duration(milliseconds: 500), () {
             _showLogoutDialog();
           });
         }
@@ -888,7 +889,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         setState(() {
           hasInternet = false;
         });
-        Future.delayed(Duration(milliseconds: 500), () {
+        Future.delayed(const Duration(milliseconds: 500), () {
           _showLogoutDialog();
         });
       }
@@ -925,7 +926,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
           setState(() {
             hasInternet = false;
           });
-          Future.delayed(Duration(milliseconds: 500), () {
+          Future.delayed(const Duration(milliseconds: 500), () {
             _showLogoutDialog();
           });
           return;
@@ -949,7 +950,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         await _restoreUserSpecificData(newStoreId);
         await getOrdersWithoutLoader(bearerKey, newStoreId);
 
-        if (bearerKey != null && bearerKey!.isNotEmpty) {
+        if (bearerKey.isNotEmpty) {
           print("🔌 Initializing socket after getting user data");
           _initializeSocket();
         }
@@ -969,7 +970,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
           hasInternet = false;
         });
 
-        Future.delayed(Duration(milliseconds: 500), () {
+        Future.delayed(const Duration(milliseconds: 500), () {
           _showLogoutDialog();
         });
       } else {
@@ -1015,7 +1016,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
             setState(() {
               hasInternet = false;
             });
-            Future.delayed(Duration(milliseconds: 500), () {
+            Future.delayed(const Duration(milliseconds: 500), () {
               _showLogoutDialog();
             });
           }
@@ -1045,7 +1046,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
           hasInternet = false;
         });
 
-        Future.delayed(Duration(milliseconds: 500), () {
+        Future.delayed(const Duration(milliseconds: 500), () {
           _showLogoutDialog();
         });
       } else {
@@ -1076,13 +1077,11 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
         if (storeID != null) {
           final result = await ApiRepo().getStoreData(bearerKey!, storeID);
-          if (result != null) {
-            // Cache store name for quick access by OrderDetail screen
-            await sharedPreferences.setString(
-                'cached_store_name', result.name.toString());
-            print("âœ… Store data pre-loaded and cached");
-          }
-        }
+          // Cache store name for quick access by OrderDetail screen
+          await sharedPreferences.setString(
+              'cached_store_name', result.name.toString());
+          print("âœ… Store data pre-loaded and cached");
+                }
       } catch (e) {
         print("âŒ Store data preload failed: $e");
       }
@@ -1127,7 +1126,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       }
     } else {
       print("âŒ Store ID not found or empty in SharedPreferences");
-      if (userMe != null && userMe.store_id != null) {
+      if (userMe.store_id != null) {
         dynamicStoreId = userMe.store_id!;
         print("âœ… Using userMe.store_id: $dynamicStoreId");
         sharedPreferences.setString(
@@ -1233,7 +1232,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       loaderShown = true;
 
       // Set timeout timer for loader - force close after 8 seconds
-      timeoutTimer = Timer(Duration(seconds: 8), () {
+      timeoutTimer = Timer(const Duration(seconds: 8), () {
         if (loaderShown && (Get.isDialogOpen ?? false)) {
           try {
             Get.back();
@@ -1249,10 +1248,10 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       print("✅ Bearer token available: ${bearerKey!.substring(0, 20)}...");
 
       GetTodayReport model = await CallService().getLiveSaleData().timeout(
-        Duration(seconds: 6),
+        const Duration(seconds: 6),
         onTimeout: () {
           print("⏰ API call timeout");
-          throw TimeoutException('api_time'.tr, Duration(seconds: 6));
+          throw TimeoutException('api_time'.tr, const Duration(seconds: 6));
         },
       );
 
@@ -1335,7 +1334,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
   void _startNoOrderTimer() {
     _noOrderTimer?.cancel();
-    _noOrderTimer = Timer(Duration(seconds: 4), () {
+    _noOrderTimer = Timer(const Duration(seconds: 4), () {
       if (mounted && app.appController.searchResultOrder.isEmpty) {
         setState(() => _showNoOrderText = true);
       }
@@ -1520,7 +1519,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         loaderShown = true;
 
         // Set timeout for loader - force close after 8 seconds
-        timeoutTimer = Timer(Duration(seconds: 8), () {
+        timeoutTimer = Timer(const Duration(seconds: 8), () {
           if (loaderShown && (Get.isDialogOpen ?? false)) {
             try {
               Get.back();
@@ -1543,10 +1542,10 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       // API call with timeout
       final result =
           await ApiRepo().orderGetApiFilter(bearerKey!, data).timeout(
-        Duration(seconds: 6),
+        const Duration(seconds: 6),
         onTimeout: () {
           print("⏰ getOrders API timeout");
-          throw TimeoutException('api_timeout'.tr, Duration(seconds: 6));
+          throw TimeoutException('api_timeout'.tr, const Duration(seconds: 6));
         },
       );
 
@@ -1600,7 +1599,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
   int _getApprovalStatusCount(String status) {
     if (_hasSocketData && _currentDateReport?.data?.approvalStatuses != null) {
-      final approvalStatuses = _currentDateReport!.data!.approvalStatuses!;
+      final approvalStatuses = _currentDateReport!.data!.approvalStatuses;
 
       switch (status.toLowerCase()) {
         case "accepted":
@@ -1626,7 +1625,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   int _getOrderTypeCount(String type) {
     // If socket data is available, use socket data
     if (_hasSocketData && _currentDateReport?.data?.orderTypes != null) {
-      final orderTypes = _currentDateReport!.data!.orderTypes!;
+      final orderTypes = _currentDateReport!.data!.orderTypes;
 
       switch (type.toLowerCase()) {
         case "pickup":
@@ -1692,14 +1691,14 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.wifi_off, size: 80, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text("No Internet Connection",
+                  const Icon(Icons.wifi_off, size: 80, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  const Text("No Internet Connection",
                       style: TextStyle(fontSize: 18, color: Colors.grey)),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   ElevatedButton(
                     onPressed: () => _showLogoutDialog(),
-                    child: Text("Show Logout Dialog"),
+                    child: const Text("Show Logout Dialog"),
                   ),
                 ],
               ),
@@ -1737,7 +1736,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                           children: [
                             Text(
                               '${'total_order'.tr}: ${_getTotalOrders()}',
-                              style: TextStyle(
+                              style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w800,
                                   fontFamily: "Mulish",
@@ -1762,14 +1761,14 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                             '${'accepted'.tr} ${_getApprovalStatusCount("accepted")}',
                             Colors.green.withOpacity(0.1),
                           ),
-                          SizedBox(width: 8),
+                          const SizedBox(width: 8),
 
                           // Declined Orders
                           _buildStatusContainer(
                             '${"decline".tr} ${_getApprovalStatusCount("declined")}',
                             Colors.red.withOpacity(0.1),
                           ),
-                          SizedBox(width: 8),
+                          const SizedBox(width: 8),
 
                           // // Pending Orders
                           // _buildStatusContainer(
@@ -1783,7 +1782,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                             '${"pickup".tr} ${_getOrderTypeCount("pickup")}',
                             Colors.blue.withOpacity(0.1),
                           ),
-                          SizedBox(width: 8),
+                          const SizedBox(width: 8),
 
                           // Delivery Orders
                           _buildStatusContainer(
@@ -1813,22 +1812,22 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                     padding: EdgeInsets.zero,
                                     physics: const AlwaysScrollableScrollPhysics(),
                                     children: [
-                                      SizedBox(height: 100),
+                                      const SizedBox(height: 100),
                                       Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          Icon(Icons.wifi_off, size: 80, color: Colors.grey),
-                                          SizedBox(height: 16),
+                                          const Icon(Icons.wifi_off, size: 80, color: Colors.grey),
+                                          const SizedBox(height: 16),
                                           Text("no_internet".tr,
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                                 fontSize: 18,
                                                 color: Colors.grey,
                                                 fontWeight: FontWeight.w600),
                                           ),
-                                          SizedBox(height: 8),
+                                          const SizedBox(height: 8),
                                           Text(
                                             "please".tr,
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                                 fontSize: 14,
                                                 color: Colors.grey),
                                           ),
@@ -1844,7 +1843,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                         padding: EdgeInsets.zero,
                                         physics: const AlwaysScrollableScrollPhysics(),
                                         children: [
-                                          SizedBox(height: 100),
+                                          const SizedBox(height: 100),
                                           Column(mainAxisAlignment: MainAxisAlignment.center,
                                             children: [
                                               Lottie.asset(
@@ -1854,7 +1853,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                               ),
                                               Text(
                                                 'no_order'.tr,
-                                                style: TextStyle(
+                                                style: const TextStyle(
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.w500,
                                                   color: Colors.grey,
@@ -1889,9 +1888,9 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                               Color getContainerColor() {
                                                 switch (order.approvalStatus) {
                                                   case 2: // Accepted
-                                                    return Color(0xffEBFFF4);
+                                                    return const Color(0xffEBFFF4);
                                                   case 3: // Declined
-                                                    return Color(0xffFFEFEF);
+                                                    return const Color(0xffFFEFEF);
                                                   case 1: // Pending
                                                     return Colors.white;
                                                   default:
@@ -1902,14 +1901,14 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                               return Opacity(
                                                 opacity: isPending ? _opacityAnimation.value : 1.0,
                                                 child: Container(
-                                                  margin: EdgeInsets.only(bottom: 12),
+                                                  margin: const EdgeInsets.only(bottom: 12),
                                                   decoration: BoxDecoration(
                                                     color: getContainerColor(),
                                                     borderRadius: BorderRadius.circular(7),
                                                     border: Border.all(
                                                       color: (order.approvalStatus == 2)
-                                                          ? Color(0xffC3F2D9)
-                                                          : (order.approvalStatus == 3) ? Color(0xffFFD0D0) : Colors.grey.withOpacity(0.2),
+                                                          ? const Color(0xffC3F2D9)
+                                                          : (order.approvalStatus == 3) ? const Color(0xffFFD0D0) : Colors.grey.withOpacity(0.2),
                                                       width: 1,
                                                     ),
                                                     boxShadow: [
@@ -1917,12 +1916,12 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                         color: Colors.black.withOpacity(0.1),
                                                         spreadRadius: 0,
                                                         blurRadius: 4,
-                                                        offset: Offset(0, 2),
+                                                        offset: const Offset(0, 2),
                                                       ),
                                                     ],
                                                   ),
                                                   child: Padding(
-                                                    padding: EdgeInsets.all(8),
+                                                    padding: const EdgeInsets.all(8),
                                                     child: GestureDetector(
                                                       behavior: HitTestBehavior.opaque,
                                                       onTap: () => Get.to(() => OrderDetailEnglish(order)),
@@ -1950,15 +1949,15 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                                       color: Colors.white,
                                                                     ),
                                                                   ),
-                                                                  SizedBox(width: 6),
+                                                                  const SizedBox(width: 6),
                                                                   Column(
                                                                     crossAxisAlignment: CrossAxisAlignment.start,
                                                                     children: [
-                                                                      Container(
+                                                                      SizedBox(
                                                                         width: MediaQuery.of(context).size.width * 0.6,
                                                                         child: Row(crossAxisAlignment: CrossAxisAlignment.start,
                                                                           children: [
-                                                                            Container(
+                                                                            SizedBox(
                                                                               width: MediaQuery.of(context).size.width *
                                                                                   (_storeType == '2' ? 0.5
                                                                                       : (order.orderType == 2 ? 0.18 : 0.3)),
@@ -1973,7 +1972,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                                             ),
                                                                             if (order.deliveryTime != null &&
                                                                                 order.deliveryTime!.isNotEmpty)
-                                                                              Container(
+                                                                              SizedBox(
                                                                                 width: MediaQuery.of(context).size.width * 0.3,
                                                                                 child: Text(
                                                                                   '${'time'.tr}: ${_extractTime(order.deliveryTime!)}',
@@ -1985,7 +1984,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                                       ),
                                                                       Visibility(
                                                                         visible: (_storeType != '2') && (order.shipping_address != null || order.guestShippingJson != null),
-                                                                        child: Container(
+                                                                        child: SizedBox(
                                                                           width: MediaQuery.of(context).size.width * 0.5,
                                                                           child: Text(
                                                                             order.orderType == 1
@@ -2008,7 +2007,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                               ),
                                                               Row(
                                                                 children: [
-                                                                  Icon(Icons.access_time, size: 20,),
+                                                                  const Icon(Icons.access_time, size: 20,),
                                                                   Text(time,
                                                                     style: const TextStyle(
                                                                       fontWeight: FontWeight.w500,
@@ -2020,11 +2019,11 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
                                                               )
                                                             ],
                                                           ),
-                                                          SizedBox(height: 8),
+                                                          const SizedBox(height: 8),
                                                           Row(
                                                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                             children: [
-                                                              Container(
+                                                              SizedBox(
                                                                 width: MediaQuery.of(context).size.width * 0.5,
                                                                 child: Text(
                                                                   '${order.shipping_address?.customer_name ?? guestName ?? ""} / ${order.shipping_address?.phone ?? guestPhone}',
@@ -2152,7 +2151,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
   Widget _buildStatusContainer(String text, Color backgroundColor) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(6),
@@ -2160,7 +2159,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       ),
       child: Text(
         text,
-        style: TextStyle(
+        style: const TextStyle(
             fontFamily: "Mulish",
             fontWeight: FontWeight.w700,
             fontSize: 11,
@@ -2188,12 +2187,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   Future<void> getNewOrder(int orderID) async {
     try {
       final result = await ApiRepo().getNewOrderData(bearerKey!, orderID);
-      if (result != null) {
-        app.appController.addNewOrder(result);
-      } else {
-        String errorMessage = result.mess ?? "Unknown error";
-      }
-    } catch (e) {
+      app.appController.addNewOrder(result);
+        } catch (e) {
       Log.loga(title, "Login Api:: e >>>>> $e");
       showSnackbar("api_error".tr, "${'an_error'.tr}: $e");
     }
@@ -2209,7 +2204,7 @@ class SalesCacheHelper {
   // âœ… NEW: Get user-specific cache keys
   static String _getUserSpecificKey(String baseKey, String? storeId) {
     if (storeId != null && storeId.isNotEmpty) {
-      return "${baseKey}_store_${storeId}";
+      return "${baseKey}_store_$storeId";
     }
     return baseKey;
   }

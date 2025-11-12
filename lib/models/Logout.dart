@@ -12,8 +12,8 @@ class Logout {
   Logout.withError({
     int? code,
     String? mess,
-  })  : this.code = code,
-        this.mess = mess;
+  })  : code = code,
+        mess = mess;
 
   factory Logout.fromJson(Map<String, dynamic> json) => Logout(
         msg: json["msg"],

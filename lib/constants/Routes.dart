@@ -8,9 +8,9 @@ import '../ui/home_screen.dart';*/
 appRoutes() => [
   GetPage(
     name: '/splash',
-    page: () => SplashScreen(),
+    page: () => const SplashScreen(),
     transition: Transition.leftToRightWithFade,
-    transitionDuration: Duration(milliseconds: 500),
+    transitionDuration: const Duration(milliseconds: 500),
   ),
  /* GetPage(
     name: '/home',

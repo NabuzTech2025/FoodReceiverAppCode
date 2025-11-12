@@ -5,6 +5,7 @@ class GetStoreProducts {
   String? imageUrl;
   String? type;
   double? price;
+  double? discountPrice;
   int? storeId;
   String? taxId;
   bool? isActive;
@@ -24,6 +25,7 @@ class GetStoreProducts {
         this.imageUrl,
         this.type,
         this.price,
+        this.discountPrice,
         this.storeId,
         this.taxId,
         this.isActive,
@@ -43,47 +45,49 @@ class GetStoreProducts {
     imageUrl = json['image_url']?.toString();
     type = json['type']?.toString();
     price = json['price']?.toDouble();
+    discountPrice = json['discount_price']?.toDouble();
     storeId = json['store_id'] != null ? (json['store_id'] as num).toInt() : null;
     taxId = json['tax_id']?.toString();
+    isActive = json['isActive'] as bool?;  // ✅ ADDED
     description = json['description']?.toString();
     displayOrder = json['display_order'] != null ? (json['display_order'] as num).toInt() : null;
     id = json['id'] != null ? (json['id'] as num).toInt() : null;
     ownerId = json['owner_id'] != null ? (json['owner_id'] as num).toInt() : null;
     category = json['category'] != null
-        ? new Category.fromJson(json['category'])
+        ? Category.fromJson(json['category'])
         : null;
     if (json['variants'] != null) {
       variants = <Variants>[];
       json['variants'].forEach((v) {
-        variants!.add(new Variants.fromJson(v));
+        variants!.add(Variants.fromJson(v));
       });
     }
     tax = json['tax']?.toString();
-
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['item_code'] = this.itemCode;
-    data['category_id'] = this.categoryId;
-    data['image_url'] = this.imageUrl;
-    data['type'] = this.type;
-    data['price'] = this.price;
-    data['store_id'] = this.storeId;
-    data['tax_id'] = this.taxId;
-    data['isActive'] = this.isActive;
-    data['description'] = this.description;
-    data['display_order'] = this.displayOrder;
-    data['id'] = this.id;
-    data['owner_id'] = this.ownerId;
-    if (this.category != null) {
-      data['category'] = this.category!.toJson();
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['item_code'] = itemCode;
+    data['category_id'] = categoryId;
+    data['image_url'] = imageUrl;
+    data['type'] = type;
+    data['price'] = price;
+    data['discount_price'] = this.discountPrice;
+    data['store_id'] = storeId;
+    data['tax_id'] = taxId;
+    data['isActive'] = isActive;
+    data['description'] = description;
+    data['display_order'] = displayOrder;
+    data['id'] = id;
+    data['owner_id'] = ownerId;
+    if (category != null) {
+      data['category'] = category!.toJson();
     }
-    if (this.variants != null) {
-      data['variants'] = this.variants!.map((v) => v.toJson()).toList();
+    if (variants != null) {
+      data['variants'] = variants!.map((v) => v.toJson()).toList();
     }
-    data['tax'] = this.tax;
+    data['tax'] = tax;
     return data;
   }
 }
@@ -117,25 +121,25 @@ class Category {
     storeId = json['store_id'] != null ? (json['store_id'] as num).toInt() : null;
     taxId = json['tax_id'] != null ? (json['tax_id'] as num).toInt() : null;
     imageUrl = json['image_url']?.toString();
+    isActive = json['isActive'] as bool?;  // ✅ ADD THIS LINE
     description = json['description']?.toString();
     displayOrder = json['display_order'] != null ? (json['display_order'] as num).toInt() : null;
     id = json['id'] != null ? (json['id'] as num).toInt() : null;
-    tax = json['tax'] != null ? new Tax.fromJson(json['tax']) : null;
-
+    tax = json['tax'] != null ? Tax.fromJson(json['tax']) : null;
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['store_id'] = this.storeId;
-    data['tax_id'] = this.taxId;
-    data['image_url'] = this.imageUrl;
-    data['isActive'] = this.isActive;
-    data['description'] = this.description;
-    data['display_order'] = this.displayOrder;
-    data['id'] = this.id;
-    if (this.tax != null) {
-      data['tax'] = this.tax!.toJson();
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['store_id'] = storeId;
+    data['tax_id'] = taxId;
+    data['image_url'] = imageUrl;
+    data['isActive'] = isActive;
+    data['description'] = description;
+    data['display_order'] = displayOrder;
+    data['id'] = id;
+    if (tax != null) {
+      data['tax'] = tax!.toJson();
     }
 
     return data;
@@ -168,13 +172,13 @@ class Variants {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['price'] = this.price;
-    data['item_code'] = this.itemCode;
-    data['image_url'] = this.imageUrl;
-    data['description'] = this.description;
-    data['id'] = this.id;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['price'] = price;
+    data['item_code'] = itemCode;
+    data['image_url'] = imageUrl;
+    data['description'] = description;
+    data['id'] = id;
     return data;
   }
 }
@@ -196,11 +200,11 @@ class Tax {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['percentage'] = this.percentage;
-    data['store_id'] = this.storeId;
-    data['id'] = this.id;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['percentage'] = percentage;
+    data['store_id'] = storeId;
+    data['id'] = id;
     return data;
   }
 }

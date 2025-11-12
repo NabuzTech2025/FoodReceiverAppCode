@@ -30,21 +30,21 @@ class GetProductCategoryList {
     description = json['description'];
     displayOrder = json['display_order'] != null ? (json['display_order'] as num).toInt() : null;
     id = json['id'] != null ? (json['id'] as num).toInt() : null;
-    tax = json['tax'] != null ? new Tax.fromJson(json['tax']) : null;
+    tax = json['tax'] != null ? Tax.fromJson(json['tax']) : null;
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['store_id'] = this.storeId;
-    data['tax_id'] = this.taxId;
-    data['image_url'] = this.imageUrl;
-    data['isActive'] = this.isActive;
-    data['description'] = this.description;
-    data['display_order'] = this.displayOrder;
-    data['id'] = this.id;
-    if (this.tax != null) {
-      data['tax'] = this.tax!.toJson();
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['store_id'] = storeId;
+    data['tax_id'] = taxId;
+    data['image_url'] = imageUrl;
+    data['isActive'] = isActive;
+    data['description'] = description;
+    data['display_order'] = displayOrder;
+    data['id'] = id;
+    if (tax != null) {
+      data['tax'] = tax!.toJson();
     }
     return data;
   }
@@ -65,11 +65,11 @@ class Tax {
     id = json['id'] != null ? (json['id'] as num).toInt() : null;
   }
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['percentage'] = this.percentage;
-    data['store_id'] = this.storeId;
-    data['id'] = this.id;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['percentage'] = percentage;
+    data['store_id'] = storeId;
+    data['id'] = id;
     return data;
   }
 }

@@ -1,7 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/constant.dart';
-import '../utils/my_application.dart';
 
 class Api {
  // static const baseUrl = "http://62.171.181.21/";
