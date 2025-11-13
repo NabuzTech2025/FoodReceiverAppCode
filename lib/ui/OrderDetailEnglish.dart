@@ -84,11 +84,9 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
       );
 
       _orderTimer = Timer(const Duration(seconds: 7), () {
-        if (Get.isDialogOpen ?? false) {
-          Get.back(); // Close dialog
-          if (mounted) {
-            showSnackbar("order Timeout", "get Details request timed out. Please try again.");
-          }
+        // Close dialog if still open
+        if (mounted && (Get.isDialogOpen == true)) {
+          Navigator.of(Get.overlayContext!).pop();
         }
       });
 
@@ -103,9 +101,13 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
 
       _orderTimer?.cancel();
 
-      // Close dialog if still open
-      if (Get.isDialogOpen ?? false) {
-        Get.back();
+// Close dialog if still open
+      if (mounted && (Get.isDialogOpen == true)) {
+        try {
+          Navigator.of(Get.overlayContext!).pop();
+        } catch (e) {
+          print("Error closing dialog: $e");
+        }
       }
 
       if (result == null) {
@@ -852,6 +854,27 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                 }).toList(),
               ),
             ),
+          Row(
+            children: [
+              Text(
+                '${'note'.tr} :',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: Colors.green,
+                ),
+              ),
+              Text(
+                '${item.note}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w300,
+                  fontSize: 13,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 3,
+              ),
+            ],
+          )
         ],
       ),
     );

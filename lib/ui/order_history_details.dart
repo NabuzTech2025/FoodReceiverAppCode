@@ -670,8 +670,26 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                     style: const TextStyle(color: Colors.black, fontSize: 12),
                   );
                 }).toList(),
+
               ),
             ),
+          Row(
+            children: [
+              Text('${'note'.tr} :',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: Colors.green,
+                ),),
+              Text('${item.note}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w300,
+                  fontSize: 13,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 3,),
+            ],
+          )
         ],
       ),
     );

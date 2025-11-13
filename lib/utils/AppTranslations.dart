@@ -424,6 +424,7 @@ class AppTranslations extends Translations {
           'product_deactivated':'Product InActive Success',
           'topping_activated':'Toppings Active Successfully',
           'topping_deactivated':'Toppings InActive Successfully',
+          'item_note':'Item Note'
           },
         'de': {
           'order_details': 'Bestelldetails',
@@ -844,6 +845,13 @@ class AppTranslations extends Translations {
           'category_activated':'Kategorie erfolgreich aktiviert',
           'category_deactivated':'Kategorie erfolgreich deaktiviert',
           'failed_status_change':'Statusaktualisierung fehlgeschlagen',
+          'group_activated':'Topping-Gruppe wurde erfolgreich aktiviert',
+          'group_deactivated':'Topping-Gruppe wurde erfolgreich deaktiviert',
+          'product_activated':'Produkt wurde erfolgreich aktiviert',
+          'product_deactivated':'Produkt wurde erfolgreich deaktiviert',
+          'topping_activated':'Toppings wurden erfolgreich aktiviert',
+          'topping_deactivated':'Toppings wurden erfolgreich deaktiviert',
+          'item_note':'notiz',
         },
         'ch': {
           'order_details': 'Bestelldetails',
