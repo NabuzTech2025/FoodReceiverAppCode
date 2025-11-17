@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:food_app/constants/constant.dart';
-import 'package:food_app/ui/LoginScreen.dart';
 import 'package:food_app/ui/home_screen.dart';
 import 'package:lottie/lottie.dart';
 /*import 'package:hive/hive.dart';
@@ -11,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:get/get.dart';
 
 import 'api/api.dart';
+import 'ui/Login/LoginScreen.dart';
 
 /*import '../database/database_source.dart';
 import 'login_register/login_screen.dart';*/

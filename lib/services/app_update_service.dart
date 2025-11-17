@@ -2,12 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:new_version_plus/new_version_plus.dart';
+import 'package:upgrader/upgrader.dart';
 
 class AppUpdateService {
-  static const String _androidPackageName = 'com.food.mandeep.food_app'; // Replace with your actual package name
-  static const String _iosAppId = '6747834218'; // Your actual App Store ID
-  static const String _iosAppStoreUrl = 'https://apps.apple.com/in/app/magskr-food-app/id6747834218'; // Your actual App Store URL
+  static const String _androidPackageName = 'com.food.mandeep.food_app';
+  static const String _iosAppId = '6747834218';
+  static const String _iosAppStoreUrl = 'https://apps.apple.com/in/app/magskr-food-app/id6747834218';
 
   static Future<void> checkForUpdates(BuildContext context) async {
     print("🔄 ========== APP UPDATE CHECK STARTED ==========");
@@ -15,61 +15,81 @@ class AppUpdateService {
     print("🔄 Time: ${DateTime.now()}");
 
     try {
-      final newVersion = NewVersionPlus(
-        androidId: _androidPackageName,
-        iOSId: _iosAppId,
+      final upgrader = Upgrader(
+        countryCode: 'IN',
+        debugDisplayAlways: false,
+        debugLogging: true,
+        durationUntilAlertAgain: Duration(days: 1),
       );
 
-      final status = await newVersion.getVersionStatus();
+      // Check karo update available hai ya nahi
+      await upgrader.initialize();
 
-      if (status != null) {
-        print("📱 Local Version: ${status.localVersion}");
-        print("🎯 Store Version: ${status.storeVersion}");
-        print("🪩 Store Link: ${status.appStoreLink}");
-        print("⚖️ Can Update: ${status.canUpdate}");
+      final blocked = await upgrader.blocked();
+      print("🚫 Blocked (Force Update): $blocked");
 
-        if (status.canUpdate) {
-          print("🚀 Update available! Showing dialog...");
-          _showUpdateDialog(context, status.localVersion, status.storeVersion,
-                  () async {
-                // Use your actual App Store link for iOS
-                final uri = Platform.isIOS
-                    ? Uri.parse(_iosAppStoreUrl)
-                    : Uri.parse(status.appStoreLink);
+      final shouldDisplayUpgrade = upgrader.shouldDisplayUpgrade();
+      print("📱 Should Display Upgrade: $shouldDisplayUpgrade");
 
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                }
-              });
-        } else {
-          print("✅ App is up to date");
-        }
+      if (blocked) {
+        // Force update required
+        print("⚠️ Force update required!");
+        _showForceUpdateDialog(context);
+      } else if (shouldDisplayUpgrade) {
+        // Optional update available
+        print("🚀 Update available! Showing dialog...");
+        final appStoreVersion = upgrader.currentAppStoreVersion ?? 'Unknown';
+        final installedVersion = upgrader.currentInstalledVersion ?? 'Unknown';
+
+        print("📱 Local Version: $installedVersion");
+        print("🎯 Store Version: $appStoreVersion");
+
+        _showUpdateDialog(
+            context,
+            installedVersion,
+            appStoreVersion,
+                () => _launchStore()
+        );
       } else {
-        print("❌ Could not fetch version status from store");
+        print("✅ App is up to date");
       }
     } catch (e, stackTrace) {
       print("❌ Error checking for updates: $e");
       print("❌ Stack trace: $stackTrace");
 
-      // Fallback for testing - using your actual links
+      // Fallback for testing
       print("🔄 Showing fallback update dialog for testing...");
-      _showUpdateDialog(context, '1.0.0', '1.0.1', () async {
-        final uri = Uri.parse(
-            Platform.isAndroid
-                ? 'https://play.google.com/store/apps/details?id=$_androidPackageName'
-                : _iosAppStoreUrl); // Using your actual iOS App Store URL
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
-      });
+      _showUpdateDialog(context, '1.0.0', '1.0.1', () => _launchStore());
     }
 
     print("🔄 ========== APP UPDATE CHECK ENDED ==========");
   }
 
-  static void _showUpdateDialog(BuildContext context, String currentVersion,
-      String latestVersion, VoidCallback onUpdate)
-  {
+  static Future<void> _launchStore() async {
+    try {
+      final uri = Uri.parse(
+          Platform.isAndroid
+              ? 'https://play.google.com/store/apps/details?id=$_androidPackageName'
+              : _iosAppStoreUrl
+      );
+
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        print("✅ Store opened successfully");
+      } else {
+        print("❌ Could not launch store");
+      }
+    } catch (e) {
+      print("❌ Error launching store: $e");
+    }
+  }
+
+  static void _showUpdateDialog(
+      BuildContext context,
+      String currentVersion,
+      String latestVersion,
+      VoidCallback onUpdate
+      ) {
     print("📱 ========== SHOWING UPDATE DIALOG ==========");
     print("📱 Current: $currentVersion");
     print("📱 Latest: $latestVersion");
@@ -92,23 +112,23 @@ class AppUpdateService {
                 Text('Latest Version: $latestVersion'),
                 const SizedBox(height: 16),
                 const Text(
-                    'Please update to continue using the app with the latest features and bug fixes.'),
+                  'Please update to continue using the app with the latest features and bug fixes.',
+                ),
               ],
             ),
             actions: [
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
-                  _exitApp();
                 },
-                child: const Text('Cancel'),
+                child: const Text('Later'),
               ),
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).pop();
                   onUpdate();
                 },
-                child: const Text('Update'),
+                child: const Text('Update Now'),
               ),
             ],
           );
@@ -118,6 +138,38 @@ class AppUpdateService {
     } catch (e, stackTrace) {
       print("❌ Error showing update dialog: $e");
       print("❌ Stack trace: $stackTrace");
+    }
+  }
+
+  static void _showForceUpdateDialog(BuildContext context) {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return WillPopScope(
+            onWillPop: () async => false,
+            child: AlertDialog(
+              title: const Text('Update Required'),
+              content: const Text(
+                'This version of the app is no longer supported. Please update to the latest version to continue.',
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _launchStore();
+                  },
+                  child: const Text('Update Now'),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+      print("✅ Force update dialog shown successfully");
+    } catch (e) {
+      print("❌ Error showing force update dialog: $e");
     }
   }
 
@@ -133,9 +185,11 @@ class AppUpdateService {
     }
   }
 
-  // Force update dialog - also using your actual App Store link
+  // Direct force update dialog - public method
   static void showForceUpdateDialog(
-      BuildContext context, VoidCallback? customUpdate) {
+      BuildContext context,
+      VoidCallback? customUpdate
+      ) {
     try {
       showDialog(
         context: context,
@@ -146,18 +200,11 @@ class AppUpdateService {
             child: AlertDialog(
               title: const Text('Update Required'),
               content: const Text(
-                  'This version of the app is no longer supported. Please update to the latest version to continue.'),
+                'This version of the app is no longer supported. Please update to the latest version to continue.',
+              ),
               actions: [
                 ElevatedButton(
-                  onPressed: customUpdate ?? () async {
-                    final uri = Uri.parse(
-                        Platform.isAndroid
-                            ? 'https://play.google.com/store/apps/details?id=$_androidPackageName'
-                            : _iosAppStoreUrl); // Using your actual iOS App Store URL
-                    if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
-                    }
-                  },
+                  onPressed: customUpdate ?? () => _launchStore(),
                   child: const Text('Update Now'),
                 ),
               ],

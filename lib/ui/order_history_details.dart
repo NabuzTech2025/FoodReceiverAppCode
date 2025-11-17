@@ -13,9 +13,9 @@ import '../models/print_order_without_ip.dart';
 import '../utils/printer_helper_english.dart';
 
 class OrderHistoryDetails extends StatefulWidget {
-  final orderHistoryResponseModel historyOrder; // Add this parameter
+  final orderHistoryResponseModel historyOrder;
 
-  const OrderHistoryDetails({super.key, required this.historyOrder}); // Make it required
+  const OrderHistoryDetails({super.key, required this.historyOrder});
 
   @override
   State<OrderHistoryDetails> createState() => _OrderHistoryDetailsState();
@@ -673,23 +673,33 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
 
               ),
             ),
-          Row(
+          item.note!.isNotEmpty ?
+          Row(mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${'note'.tr} :',
+              Text(
+                '${'note'.tr} :',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
                   color: Colors.green,
-                ),),
-              Text('${item.note}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w300,
-                  fontSize: 13,
                 ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 3,),
+              ),
+              Container(
+                width: MediaQuery.of(context).size.width*0.75,
+                child: Text(
+                  '${item.note}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w300,
+                    fontSize: 13,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 3,
+                ),
+              ),
             ],
           )
+              : const SizedBox.shrink(),
         ],
       ),
     );

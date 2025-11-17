@@ -9,7 +9,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:food_app/push/NotificationService.dart';
 import 'package:food_app/services/app_update_service.dart';
-import 'package:food_app/ui/LoginScreen.dart';
 import 'package:food_app/utils/AppTranslations.dart';
 import 'package:food_app/utils/printer_helper_english.dart';
 import 'package:get/get.dart';
@@ -896,26 +895,26 @@ Future<void> main() async {
 // Initialize Socket Service
 //   Get.put(SocketReservationService(), permanent: true);
   // ✅ Check if user is logged in and sync settings
-  await _checkAndSyncSettings();
+  // await _checkAndSyncSettings();
   runApp(const AppLifecycleObserver(child: MyApp()));
 }
-
-Future<void> _checkAndSyncSettings() async {
-  try {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? bearerKey = prefs.getString(valueShared_BEARER_KEY);
-    String? storeID = prefs.getString(valueShared_STORE_KEY);
-
-    if (bearerKey != null && bearerKey.isNotEmpty && storeID != null && storeID.isNotEmpty) {
-      print("🔄 User is logged in, syncing settings on app start...");
-      await SettingsSync.syncSettingsAfterLogin();
-    } else {
-      print("ℹ️ User not logged in, skipping settings sync");
-    }
-  } catch (e) {
-    print("❌ Error checking settings on app start: $e");
-  }
-}
+//
+// Future<void> _checkAndSyncSettings() async {
+//   try {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     String? bearerKey = prefs.getString(valueShared_BEARER_KEY);
+//     String? storeID = prefs.getString(valueShared_STORE_KEY);
+//
+//     if (bearerKey != null && bearerKey.isNotEmpty && storeID != null && storeID.isNotEmpty) {
+//       print("🔄 User is logged in, syncing settings on app start...");
+//       await SettingsSync.syncSettingsAfterLogin();
+//     } else {
+//       print("ℹ️ User not logged in, skipping settings sync");
+//     }
+//   } catch (e) {
+//     print("❌ Error checking settings on app start: $e");
+//   }
+// }
 
 Future<void> _requestIOSPermissions() async {
   if (Platform.isIOS) {
@@ -985,6 +984,7 @@ void _registerForegroundListeners() {
     }
   });
 }
+
 void checkBatteryOptimization() async {
   bool isIgnored = await isIgnoringBatteryOptimizations();
   if (!isIgnored) {
