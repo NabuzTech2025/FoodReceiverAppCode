@@ -37,19 +37,23 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _fcmInitialized = false;
   int? _lastProcessedOrderId;
   String? _storeType;
+  int? _roleId;
 
   @override
   void initState() {
     _pageController = PageController(initialPage: 0);
     _setupFCMListeners();
     _loadInitialData();
-    _setupLocalNotificationTap(); // Add this line
+    _setupLocalNotificationTap();
 
     final arguments = Get.arguments;
     if (arguments != null && arguments['initialTab'] != null) {
       final int initialTab = arguments['initialTab'];
-      Future.delayed(const Duration(milliseconds: 100), () {
-        _openTab(initialTab);
+      // âœ… Increase delay to ensure PageController is attached
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          _openTab(initialTab);
+        }
       });
     }
     super.initState();
@@ -75,6 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadInitialData() async {
     SharedPreferences freshPrefs = await SharedPreferences.getInstance();
     _storeType = freshPrefs.getString(valueShared_STORE_TYPE);
+    //_roleId = freshPrefs.getInt(valueShared_ROLE_ID); // Add this
 
     await Future.wait([
       getOrdersInBackground(),
@@ -84,7 +89,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _isDataLoaded = true;
     });
   }
-
   DateTime? _lastProcessedTime;
 
   void _setupFCMListeners() {
@@ -185,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget floatingButton(BuildContext context) {
-    if (_storeType == '1' || _storeType == '2') {
+    if (_roleId != 1 && (_storeType == '1' || _storeType == '2')) {
       return const SizedBox.shrink();
     }
     return Container(
@@ -271,7 +275,7 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             // Only show reservation for storeType '0'
-            if (_storeType == '0')
+            if (_roleId == 1 || _storeType == '0')
               ItemBottomBar(
                 selected: app.appController.selectedTabIndex == 1,
                 icon: "assets/images/reservationIcon.png",
@@ -328,18 +332,29 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ✅ _openTab method me changes
+
   void _openTab(int index) {
-    if (_pageController.hasClients &&
-        _pageController.page == index.toDouble()) {
+    // ✅ First update the controller index immediately
+    app.appController.onTabChanged(index);
+
+    if (!_pageController.hasClients) {
+      print("PageController not ready yet. Scheduling navigation to tab $index");
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          _openTab(index);
+        }
+      });
+      return;
+    }
+
+    if (_pageController.page == index.toDouble()) {
       print("Already on tab $index. Skipping.");
 
-      // ✅ Add this - force refresh even if already on tab
       if (index == 3) {
-        // Trigger refresh for PrinterSettingsScreen
         Future.delayed(const Duration(milliseconds: 100), () {
-          // This will trigger didChangeDependencies in PrinterSettingsScreen
-          setState(() {});
+          if (mounted) {
+            setState(() {});
+          }
         });
       }
       return;
@@ -350,13 +365,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     Future.delayed(const Duration(milliseconds: 50), () {
       print("Switching to Tab 2 : $index");
-      app.appController.onTabChanged(index);
       if (index == 2) {
         app.appController.reportRefreshTrigger.refresh();
       }
-      // ✅ Add this for PrinterSettingsScreen
-      if (index == 3) {
-        // Notify PrinterSettingsScreen to refresh
+      if (index == 3 && mounted) {
         setState(() {});
       }
     });

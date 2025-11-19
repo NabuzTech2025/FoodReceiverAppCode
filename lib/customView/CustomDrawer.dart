@@ -363,7 +363,6 @@ import 'package:flutter/material.dart';
 import 'package:food_app/models/Store.dart';
 import 'package:food_app/ui/Allergy/item_allergy.dart';
 import 'package:food_app/ui/Category%20Availability/category_management.dart';
-import 'package:food_app/ui/Login/LoginScreen.dart';
 import 'package:food_app/ui/PostCode/postcode.dart';
 import 'package:food_app/ui/home_screen.dart';
 import 'package:get/get.dart';
@@ -375,6 +374,7 @@ import '../api/repository/api_repository.dart';
 import '../constants/constant.dart';
 import '../ui/Allergy/add_allergy.dart';
 import '../ui/Discount/discount.dart';
+import '../ui/Login/LoginScreen.dart';
 import '../ui/Products/Category/category.dart';
 import '../ui/Products/Group Item/group_item.dart';
 import '../ui/Products/Product/products.dart';
@@ -401,6 +401,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
   bool isProductExpanded = false;
   bool isAllergyExpanded = false;
   String? _storeType;
+  int? _roleId;
   @override
   initState() {
     initVar();
@@ -414,6 +415,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
       await getStoredta(bearerKey);
     }
     _storeType = sharedPreferences.getString(valueShared_STORE_TYPE);
+    //_roleId = sharedPreferences.getInt(valueShared_ROLE_ID); // Add this
   }
 
   Future<void> getStoredta(String bearerKey) async {
@@ -433,26 +435,31 @@ class _CustomDrawerState extends State<CustomDrawer> {
     }
   }
 
-  // Helper method to check if we're currently on HomeScreen
   bool _isOnHomeScreen() {
+    // ✅ More reliable check for HomeScreen
     return Get.currentRoute == '/HomeScreen' ||
-        ModalRoute.of(context)?.settings.name == '/HomeScreen' ||
-        Get.previousRoute == '/LoginScreen';
+        Get.currentRoute == '/' ||
+        context.widget.runtimeType.toString().contains('HomeScreen');
   }
 
-  // Helper method to navigate to HomeScreen with specific tab
   void _navigateToHomeScreenTab(int tabIndex) {
     Navigator.of(context).pop(); // Close drawer first
 
     if (_isOnHomeScreen()) {
-      // If already on HomeScreen, just switch tabs
-      widget.onSelectTab(tabIndex);
+      // ✅ Update app controller immediately before switching tabs
+      app.appController.onTabChanged(tabIndex);
+      Future.delayed(const Duration(milliseconds: 50), () {
+        widget.onSelectTab(tabIndex);
+      });
     } else {
-      // If on different screen, navigate back to HomeScreen with specific tab
-      Get.off(() => const HomeScreen(), arguments: {'initialTab': tabIndex});
+      // ✅ When coming from other screen, navigate with proper cleanup
+      Get.off(
+            () => const HomeScreen(),
+        arguments: {'initialTab': tabIndex},
+        transition: Transition.noTransition, // Smooth transition
+      );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -504,8 +511,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   _drawerItem('order'.tr,'assets/images/order.png', onTap: () {
                     _navigateToHomeScreenTab(0);
                   }),
-                if (_storeType == '0')
-                 _drawerItem('reserv'.tr,'assets/images/reserv.png', onTap: () {
+                  if (_roleId == 1 || _storeType == '0')
+                    _drawerItem('reserv'.tr,'assets/images/reserv.png', onTap: () {
                     _navigateToHomeScreenTab(1);
                   }),
 
@@ -522,8 +529,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     Navigator.of(context).pop();
                     Get.to(() => const Discount());
                   }),
-                  if (_storeType == '0')
-                  _drawerItem('category'.tr,'assets/images/discount.png', onTap: () {
+                  if (_roleId == 1 || _storeType == '0')
+                    _drawerItem('availability'.tr,'assets/images/discount.png', onTap: () {
                     Navigator.of(context).pop();
                     Get.to(() => const CategoryManagement());
                   }),
@@ -557,7 +564,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 ),
                 Padding(
                   padding: const EdgeInsets.only(left: 15.0),
-                  child: Text('${'version'.tr}:1.15.0', style: const TextStyle(
+                  child: Text('${'version'.tr}:1.16.1', style: const TextStyle(
                       fontWeight: FontWeight.w300,
                       fontSize: 15
                   ),),
@@ -627,6 +634,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
       showSnackbar("Api Error", "An error occurred: $e");
     }
   }
+
   Future<void> _disconnectSocket() async {
     try {
       print("🔌 Disconnecting socket...");
@@ -638,7 +646,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
       print("⚠️ Error disconnecting socket: $e");
     }
   }
-// ✅ NEW: Preserve IP data for the current user before logout
+
   Future<void> _preserveUserIPData() async {
     try {
       print("💾 Preserving IP data for current user...");
@@ -709,7 +717,6 @@ class _CustomDrawerState extends State<CustomDrawer> {
     }
   }
 
-// ✅ Complete logout cleanup WITHOUT clearing IP data
   Future<void> _forceCompleteLogoutCleanup() async {
     try {
       print("🧹 Starting complete logout cleanup...");
@@ -785,7 +792,6 @@ class _CustomDrawerState extends State<CustomDrawer> {
     }
   }
 
-// ✅ Force background handler to clear its token cache
   Future<void> _forceBackgroundHandlerClearCache() async {
     try {
       print("🔄 Forcing background handler cache clear...");
@@ -808,7 +814,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
       print("❌ Error clearing background handler cache: $e");
     }
   }
-  // 3. Add this new method to your _CustomDrawerState class:
+
   Widget _expandableProductItem() {
     return Column(
       children: [
@@ -829,7 +835,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
               isProductExpanded = !isProductExpanded;
             });
           },
-            dense: true, // Add this line
+            dense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0), // Add this line
             visualDensity: VisualDensity.compact,
         ),
@@ -841,8 +847,18 @@ class _CustomDrawerState extends State<CustomDrawer> {
           }),
           _subDrawerItem('product'.tr, onTap: () {
             Navigator.of(context).pop();
-            // Use named route for proper route detection
-            Get.to(() => const Products(), routeName: '/Products');
+            // ✅ Save current tab index before navigating
+            int currentTab = app.appController.selectedTabIndex;
+
+            Get.to(
+                  () => const Products(),
+              routeName: '/Products',
+            )?.then((_) {
+              // ✅ When returning from Products, restore tab index
+              if (Get.currentRoute == '/HomeScreen') {
+                app.appController.onTabChanged(currentTab);
+              }
+            });
           }),
           if (_storeType != '2')
           _subDrawerItem('topping'.tr, onTap: () {

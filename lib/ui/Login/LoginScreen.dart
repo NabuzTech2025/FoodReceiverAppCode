@@ -672,9 +672,9 @@ class LoginScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 80),
+              const SizedBox(height: 100),
               _buildLoginTitle(),
-              const SizedBox(height: 40),
+              const SizedBox(height: 30),
               _buildLoginForm(controller),
               const SizedBox(height: 10),
               _buildForgotPasswordButton(controller),
@@ -791,7 +791,8 @@ class LoginScreen extends StatelessWidget {
             valueChanged: (value) {},
             obscureText: false,
           ),
-          CustomTextFormPrefix(
+          // ✅ UPDATE THIS SECTION
+          Obx(() => CustomTextFormPrefix(
             keyboardType: TextInputType.visiblePassword,
             myLabelText: "Password...",
             controller: controller.passwordController,
@@ -801,8 +802,11 @@ class LoginScreen extends StatelessWidget {
               "Please enter password",
             ),
             valueChanged: (value) {},
-            obscureText: true,
-          ),
+            obscureText: !controller.isPasswordVisible.value,
+            isPasswordField: true,
+            isPasswordVisible: controller.isPasswordVisible.value,
+            onTogglePassword: controller.togglePasswordVisibility,
+          )),
         ],
       ),
     );
@@ -812,7 +816,7 @@ class LoginScreen extends StatelessWidget {
     return GestureDetector(
       onTap: () => controller.showPasswordResetDialog(),
       child: const Text(
-        "Forget Password",
+        "Forgot Password",
         style: TextStyle(
           fontSize: 17,
           color: Colors.black,

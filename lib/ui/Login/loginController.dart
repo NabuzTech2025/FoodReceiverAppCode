@@ -21,7 +21,7 @@ class LoginController extends GetxController {
   final selectedEnvironment = 'Prod'.obs;
   final selectedLanguage = 'en'.obs;
   final isLoading = false.obs;
-
+  final isPasswordVisible = false.obs;
   // Variables
   String? deviceToken;
   Timer? loginTimer;
@@ -62,6 +62,10 @@ class LoginController extends GetxController {
       print("Error getting device token: $e");
       deviceToken = "default_token";
     }
+  }
+
+  void togglePasswordVisibility() {
+    isPasswordVisible.value = !isPasswordVisible.value;
   }
 
   void _loadSavedCredentials() {
@@ -209,7 +213,7 @@ class LoginController extends GetxController {
     await prefs.setString(valueShared_STORE_TYPE, result.storeType?.toString() ?? '');
     await prefs.setString(valueShared_USERNAME_KEY, emailController.text.trim());
     await prefs.setString(valueShared_PASSWORD_KEY, passwordController.text.trim());
-   // await prefs.setInt(valueShared_ROLE_ID, result.role_id ?? 0);
+    //await prefs.setInt(valueShared_ROLE_ID, result.role_id ?? 0);
     await prefs.reload();
 
     print("✅ Credentials saved successfully");
