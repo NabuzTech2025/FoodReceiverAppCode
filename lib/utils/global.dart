@@ -28,13 +28,19 @@ void _cleanOldProcessedOrders() {
 
 Future<void> getOrdersInBackground() async {
   try {
-    print("🔄 Global API called from background");
+    print("🔄 Background order refresh started");
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? bearerKey = prefs.getString(valueShared_BEARER_KEY);
     String? storeID = prefs.getString(valueShared_STORE_KEY);
 
-    if (bearerKey == null) {
-      print("❌ Bearer key not found in SharedPreferences");
+    if (bearerKey == null || bearerKey.isEmpty) {
+      print("❌ No bearer token found");
+      return;
+    }
+
+    if (storeID == null || storeID.isEmpty) {
+      print("❌ No store ID found");
       return;
     }
 
@@ -51,27 +57,17 @@ Future<void> getOrdersInBackground() async {
     final result = await ApiRepo().orderGetApiFilter(bearerKey, data);
 
     if (result.isNotEmpty && result.first.code == null) {
-      print("✅ Background order fetch success: ${result.length} orders");
+      print("✅ Background orders fetched: ${result.length} orders");
 
-      // Safe update for background
-      try {
-        Future.delayed(Duration(milliseconds: 500), () {
-          if (app.appController.searchResultOrder.isNotEmpty) {
-            app.appController.setOrders(result);
-            print("🔄 Orders updated in controller");
-          }
-        });
-      } catch (e) {
-        print("⚠️ Controller update failed (app not in foreground): $e");
-      }
+      // ✅ Update app controller with new orders
+      app.appController.setOrders(result);
+
+      print("✅ Orders list updated in app controller");
     } else {
-      String errorMessage = result.isNotEmpty
-          ? result.first.mess ?? "Unknown error"
-          : "No data returned";
-      print("⚠️ Background fetch error: $errorMessage");
+      print("⚠️ No orders returned from API");
     }
   } catch (e) {
-    print("❌ Exception in background order fetch: $e");
+    print("❌ Background order fetch error: $e");
   }
 }
 

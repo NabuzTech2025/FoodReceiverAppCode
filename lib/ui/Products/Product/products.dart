@@ -3239,7 +3239,7 @@ class _ProductsState extends State<Products> {
     );
 
     try {
-      String apiProductType = product.type == 'simple' ? 'simple' : 'variable';
+      String apiProductType = product.type == 'simple'.tr ? 'simple' : 'variable';
 
       var map = {
         "name": product.name ?? '',
@@ -3254,13 +3254,11 @@ class _ProductsState extends State<Products> {
         "display_order": 0,
       };
 
-      if (product.type == 'simple') {
+      if (product.type == 'simple'.tr) {
         map["price"] = product.price ?? 0;
         map["discount_price"] = product.discountPrice ?? 0;
       }
-
-      // Variable product ke liye variants add karo
-      if (product.type == 'variable' && product.variants != null) {
+      if (product.type == 'variable'.tr && product.variants != null) {
         map["variants"] = product.variants!.map((v) => {
           "id": v.id,
           "name": v.name ?? '',

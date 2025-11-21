@@ -17,6 +17,7 @@ import '../customView/CustomDrawer.dart';
 import '../utils/global.dart';
 import '../utils/keep_alive_page.dart';
 import '../utils/my_application.dart';
+import 'Desktop/desktop_order.dart';
 import 'OrderScreen.dart';
 import 'ReportScreen.dart';
 
@@ -324,7 +325,8 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       children: [
         // KeepAlivePage(child: HomeTab()),
-        KeepAlivePage(child: const OrderScreenNew()),
+        KeepAlivePage(child: const DesktopOrderScreen()),
+        //KeepAlivePage(child: const OrderScreenNew()),
         KeepAlivePage(child: const Reservation()),
         KeepAlivePage(child: ReportScreen()),
         KeepAlivePage(child: const PrinterSettingsScreen()),

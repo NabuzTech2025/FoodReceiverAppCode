@@ -104,11 +104,12 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
   Timer? _internetCheckTimer;
   bool _isDialogShowing = false;
   String? _storeType;
+  bool _isRefreshing = false;
+  DateTime? _lastRefreshTime;
   @override
   void initState() {
     super.initState();
-    // WidgetsBinding.instance.addObserver(this);
-    // print("Callingapp When refresh reumed 1111 ");
+    WidgetsBinding.instance.addObserver(this);
 
     _blinkController = AnimationController(
       vsync: this,
@@ -119,14 +120,13 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       CurvedAnimation(parent: _blinkController, curve: Curves.easeInOut),
     );
 
-    // ✅ Start internet monitoring
     _startInternetMonitoring();
 
-    // ✅ Wait for the frame to complete before calling initVar
     WidgetsBinding.instance.addPostFrameCallback((_) {
       initVar();
     });
   }
+
 
   Future<void> _checkAndClearOldData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -168,29 +168,91 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
   @override
   void dispose() {
-   // WidgetsBinding.instance.removeObserver(this);
+    WidgetsBinding.instance.removeObserver(this);
     _initVarTimeoutTimer?.cancel();
     _internetCheckTimer?.cancel();
     _blinkController.dispose();
     _socketService.disconnect();
     _noOrderTimer?.cancel();
-
     super.dispose();
   }
 
-  // @override
-  // void didChangeAppLifecycleState(AppLifecycleState state) {
-  //   if (state == AppLifecycleState.resumed) {
-  //     print("Callingapp When refresh reumed 2222 ");
-  //     initVar(); // refresh when app returns to foreground
-  //   }
-  // }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    print("📱 App lifecycle state changed: $state");
+
+    if (state == AppLifecycleState.resumed) {
+      print("✅ App resumed from background");
+
+      // ✅ Check if already refreshing
+      if (_isRefreshing) {
+        print("⏭️ Refresh already in progress, skipping");
+        return;
+      }
+
+      // ✅ Check if last refresh was less than 2 seconds ago
+      if (_lastRefreshTime != null) {
+        final timeSinceLastRefresh = DateTime.now().difference(_lastRefreshTime!);
+        if (timeSinceLastRefresh.inSeconds < 2) {
+          print("⏭️ Refresh called too soon (${timeSinceLastRefresh.inSeconds}s ago), skipping");
+          return;
+        }
+      }
+
+      // Close any existing dialogs
+      if (Get.isDialogOpen ?? false) {
+        try {
+          Get.back();
+          print("Closed existing dialog on resume");
+        } catch (e) {
+          print("Error closing dialog on resume: $e");
+        }
+      }
+
+      // ✅ Call refresh WITHOUT loader (silent refresh)
+      _silentRefresh();
+    } else if (state == AppLifecycleState.paused) {
+      print("⏸️ App paused/minimized");
+    }
+  }
+
+  Future<void> _silentRefresh() async {
+    if (_isRefreshing) return;
+
+    _isRefreshing = true;
+    _lastRefreshTime = DateTime.now();
+
+    print("🔄 Starting silent refresh...");
+
+    try {
+      // Get fresh data WITHOUT showing loader
+      final storeID = sharedPreferences.getString(valueShared_STORE_KEY);
+
+      if (storeID != null && storeID.isNotEmpty && !_isErrorCode(storeID)) {
+        // Refresh orders silently
+        await getOrdersWithoutLoader(bearerKey, storeID);
+
+        // Refresh sales data silently
+        await getLiveSaleReportWithoutLoader();
+
+        print("✅ Silent refresh completed");
+      } else {
+        print("⚠️ Invalid store ID, skipping silent refresh");
+      }
+    } catch (e) {
+      print("❌ Silent refresh error: $e");
+    } finally {
+      _isRefreshing = false;
+    }
+  }
 
   Future<void> initVar() async {
     print("Callingapp When refresh resumed 3333");
     _initVarTimeoutTimer?.cancel();
 
-    // Close any existing dialogs first
+    // ✅ Close any existing dialogs
     if (Get.isDialogOpen ?? false) {
       try {
         Get.back();
@@ -200,14 +262,16 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       }
     }
 
-    setState(() {
-      isLoading = true;
-    });
+    // ✅ Only show loader on initial load
+    if (_isInitialLoading) {
+      setState(() {
+        isLoading = true;
+      });
+    }
 
     Timer? timeoutTimer;
 
     try {
-      // Set 10 second timeout for entire initVar process
       timeoutTimer = Timer(const Duration(seconds: 10), () {
         if (mounted) {
           setState(() {
@@ -234,7 +298,8 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
 
       sharedPreferences = await SharedPreferences.getInstance();
       bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
-      _storeType=sharedPreferences.getString(valueShared_STORE_TYPE);
+      _storeType = sharedPreferences.getString(valueShared_STORE_TYPE);
+
       _socketService.disconnect();
       setState(() {
         _isLiveDataActive = false;
@@ -257,7 +322,7 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
         await getOrdersWithoutLoader(bearerKey, storeID);
 
         if (bearerKey != null && bearerKey!.isNotEmpty) {
-          print("📌 Initializing socket with store ID: $storeID");
+          print("🔌 Initializing socket with store ID: $storeID");
           _initializeSocket();
         }
       } else {
@@ -273,10 +338,10 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
       _loadCachedSalesData();
       _startNoOrderTimer();
       await getLiveSaleReportWithoutLoader();
+
     } catch (e) {
       print("Error in initVar: $e");
     } finally {
-      // Always close loader and cancel timeout
       timeoutTimer?.cancel();
       _initVarTimeoutTimer?.cancel();
 
@@ -1475,14 +1540,44 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
     }
   }
 
-  Future<void> _handleRefresh() async {
-    final storeID = sharedPreferences.getString(valueShared_STORE_KEY);
-    await getOrders(bearerKey, false, false, storeID);
-  }
-
   Future<void> _manualRefresh() async {
+    // ✅ Prevent multiple simultaneous refreshes
+    if (_isRefreshing) {
+      print("⏭️ Refresh already in progress");
+      return;
+    }
+
+    // ✅ Check if last refresh was less than 1 second ago
+    if (_lastRefreshTime != null) {
+      final timeSinceLastRefresh = DateTime.now().difference(_lastRefreshTime!);
+      if (timeSinceLastRefresh.inSeconds < 1) {
+        print("⏭️ Please wait ${1 - timeSinceLastRefresh.inSeconds}s before refreshing again");
+        return;
+      }
+    }
+
     final storeID = sharedPreferences.getString(valueShared_STORE_KEY);
     await getOrders(bearerKey, true, false, storeID);
+  }
+
+  // ✅ MODIFIED: Pull-to-refresh without loader
+  Future<void> _handleRefresh() async {
+    if (_isRefreshing) {
+      print("⏭️ Refresh already in progress");
+      return;
+    }
+
+    _isRefreshing = true;
+    _lastRefreshTime = DateTime.now();
+
+    try {
+      final storeID = sharedPreferences.getString(valueShared_STORE_KEY);
+      await getOrdersWithoutLoader(bearerKey, storeID);
+      await getLiveSaleReportWithoutLoader();
+      print("✅ Pull-to-refresh completed");
+    } finally {
+      _isRefreshing = false;
+    }
   }
 
   Future<void> getOrders(
@@ -1677,15 +1772,16 @@ class _OrderScreenState extends State<OrderScreenNew> with TickerProviderStateMi
           print(
               "🏗️ Building body - hasInternet: $hasInternet, isLoading: $isLoading");
 
-          if (isLoading) {
+          if (isLoading && _isInitialLoading) {
             return Center(
                 child: Lottie.asset(
-              'assets/animations/burger.json',
-              width: 150,
-              height: 150,
-              repeat: true,
-            ));
+                  'assets/animations/burger.json',
+                  width: 150,
+                  height: 150,
+                  repeat: true,
+                ));
           }
+
 
           if (!hasInternet) {
             return Center(

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:food_app/constants/constant.dart';
+import 'package:food_app/ui/Login/desktopLogin.dart';
 import 'package:food_app/ui/home_screen.dart';
 import 'package:lottie/lottie.dart';
 /*import 'package:hive/hive.dart';
@@ -61,7 +62,8 @@ class _SplashScreenState extends State<SplashScreen> {
           }
         }
       } else {
-        Get.off(() => const LoginScreen());
+        Get.off(() => const DesktopLoginScreen());
+        //Get.off(() => const LoginScreen());
       }
     });
   }
