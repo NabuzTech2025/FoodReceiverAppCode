@@ -4,12 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../Database/databse_helper.dart';
 import '../../api/api.dart';
 import '../../api/repository/api_repository.dart';
 import '../../constants/constant.dart';
 import '../../models/StoreSetting.dart';
 import '../../utils/log_util.dart';
+import '../SuperAdmin/super_admin.dart';
 import '../home_screen.dart';
+import 'package:flutter/services.dart';
+
+import 'LoginScreen.dart';
 
 class LoginController extends GetxController {
   // Controllers
@@ -32,6 +37,12 @@ class LoginController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    // SystemChrome.setPreferredOrientations([
+    //   DeviceOrientation.portraitUp,
+    //   DeviceOrientation.portraitDown,
+    //   DeviceOrientation.landscapeLeft,
+    //   DeviceOrientation.landscapeRight,
+    // ]);
     _initialize();
   }
 
@@ -40,9 +51,12 @@ class LoginController extends GetxController {
     _cancelTimer();
     emailController.dispose();
     passwordController.dispose();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     super.onClose();
   }
-
   Future<void> _initialize() async {
     await _initSharedPreferences();
     await _getDeviceToken();
@@ -132,7 +146,33 @@ class LoginController extends GetxController {
       Log.loga("LoginController", "Login error: $e");
 
       final errorMessage = _parseErrorMessage(e.toString());
-      _showErrorDialog("Login Error", errorMessage);
+
+      if (Get.context != null) {
+        _showErrorDialog("Login Error", errorMessage);
+      }
+    }
+  }
+
+  Future<void> logout() async {
+    try {
+      final storeId = prefs.getString(valueShared_STORE_KEY);
+
+      if (storeId != null) {
+        // Clear database for this store
+        await DatabaseHelper().clearStoreData(storeId);
+        print('✅ Database cleared for store: $storeId');
+      }
+
+      // Clear SharedPreferences
+      await prefs.clear();
+      await prefs.reload();
+
+      print('✅ Logout completed successfully');
+
+      // Navigate to login screen
+      Get.offAll(() => const LoginScreen());
+    } catch (e) {
+      print('❌ Error during logout: $e');
     }
   }
 
@@ -161,7 +201,8 @@ class LoginController extends GetxController {
       isLoading.value = false;
       if (Get.isDialogOpen == true) {
         try {
-          Get.back();
+          // Use Navigator.pop instead of Get.back() to avoid snackbar controller issues
+          Navigator.of(Get.overlayContext!).pop();
         } catch (e) {
           print("⚠️ Error closing dialog: $e");
         }
@@ -174,7 +215,9 @@ class LoginController extends GetxController {
     loginTimer = Timer(const Duration(seconds: 7), () {
       _closeLoadingDialog();
       Future.delayed(const Duration(milliseconds: 500), () {
-        _showErrorDialog("Timeout", "Login request timed out. Please try again.");
+        if (Get.context != null) {
+          _showErrorDialog("Timeout", "Login request timed out. Please try again.");
+        }
       });
     });
   }
@@ -192,8 +235,9 @@ class LoginController extends GetxController {
       // Wait for dialog to fully close before showing message
       await Future.delayed(const Duration(milliseconds: 500));
 
-      // Use a simple dialog instead of snackbar to avoid overlay issues
-      _showErrorDialog("Login Failed", "Invalid email or password");
+      if (Get.context != null) {
+        _showErrorDialog("Login Failed", "Invalid email or password");
+      }
       return;
     }
 
@@ -202,8 +246,8 @@ class LoginController extends GetxController {
 
     _closeLoadingDialog();
 
-    // Wait a bit before navigation
-    await Future.delayed(const Duration(milliseconds: 300));
+    // Wait a bit before navigation to ensure dialog is fully closed
+    await Future.delayed(const Duration(milliseconds: 500));
 
     _navigateToHome(result.role_id);
   }
@@ -213,7 +257,7 @@ class LoginController extends GetxController {
     await prefs.setString(valueShared_STORE_TYPE, result.storeType?.toString() ?? '');
     await prefs.setString(valueShared_USERNAME_KEY, emailController.text.trim());
     await prefs.setString(valueShared_PASSWORD_KEY, passwordController.text.trim());
-    //await prefs.setInt(valueShared_ROLE_ID, result.role_id ?? 0);
+    await prefs.setInt(valueShared_ROLE_ID, result.role_id ?? 0);
     await prefs.reload();
 
     print("✅ Credentials saved successfully");
@@ -243,7 +287,7 @@ class LoginController extends GetxController {
 
   void _navigateToHome(int? roleId) {
     if (roleId == 1) {
-      //Get.offAll(() => const SuperAdmin());
+      Get.offAll(() => const SuperAdmin());
     } else {
       Get.offAll(() => const HomeScreen());
     }
@@ -285,7 +329,7 @@ class LoginController extends GetxController {
   Future<void> changeEnvironment(String value) async {
     final newBaseUrl = value == "Prod"
         ? "https://magskr.com/"
-        : "https://magskr.de/";
+        : "https://Magskr.site/";
 
     await prefs.setString(valueShared_BASEURL, newBaseUrl);
     await Future.delayed(const Duration(milliseconds: 100));
@@ -330,8 +374,12 @@ class LoginController extends GetxController {
     );
   }
 
-  // Show error dialog instead of snackbar to avoid overlay issues
   void _showErrorDialog(String title, String message) {
+    if (Get.context == null) {
+      print("⚠️ Cannot show dialog: No context available");
+      return;
+    }
+
     Get.dialog(
       AlertDialog(
         title: Text(
@@ -341,7 +389,11 @@ class LoginController extends GetxController {
         content: Text(message),
         actions: [
           TextButton(
-            onPressed: () => Get.back(),
+            onPressed: () {
+              if (Get.isDialogOpen == true) {
+                Navigator.of(Get.overlayContext!).pop();
+              }
+            },
             child: const Text('OK', style: TextStyle(color: Colors.blue)),
           ),
         ],

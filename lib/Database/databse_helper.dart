@@ -1,0 +1,1064 @@
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+import '../models/get_product_category_list_response_model.dart';
+import '../models/get_store_products_response_model.dart';
+import 'dart:io';
+import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:path/path.dart';
+
+class DatabaseHelper {
+  static final DatabaseHelper _instance = DatabaseHelper._internal();
+  static Database? _database;
+
+  factory DatabaseHelper() => _instance;
+  DatabaseHelper._internal();
+
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+
+    // ✅ Initialize for desktop platforms
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    }
+
+    _database = await _initDatabase();
+    return _database!;
+  }
+
+  Future<Database> _initDatabase() async {
+    String path;
+
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      // ✅ Desktop path
+      var databasesPath = await databaseFactory.getDatabasesPath();
+      path = join(databasesPath, 'food_app.db');
+    } else {
+      // ✅ Mobile path
+      path = join(await getDatabasesPath(), 'food_app.db');
+    }
+
+    return await openDatabase(
+      path,
+      version: 8,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
+  }
+
+  Future<void> _onCreate(Database db, int version) async {
+    // Stores table
+    await db.execute('''
+    CREATE TABLE stores(
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      lastUpdated INTEGER
+    )
+  ''');
+
+    // Categories table
+    await db.execute('''
+    CREATE TABLE categories(
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      imageUrl TEXT,
+      storeId TEXT,
+      displayOrder INTEGER,
+      lastUpdated INTEGER
+    )
+  ''');
+
+    // Products table
+    await db.execute('''
+    CREATE TABLE products(
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      price REAL,
+      categoryId TEXT,
+      imageUrl TEXT,
+      description TEXT,
+      isActive INTEGER,
+      isSpicy INTEGER,
+      isVeg INTEGER,
+      storeId TEXT,
+      lastUpdated INTEGER
+    )
+  ''');
+
+    // ✅ NEW: Product Variants table
+    await db.execute('''
+    CREATE TABLE product_variants(
+      id TEXT PRIMARY KEY,
+      product_id TEXT,
+      name TEXT,
+      price REAL,
+      item_code TEXT,
+      description TEXT,
+      FOREIGN KEY (product_id) REFERENCES products(id)
+    )
+  ''');
+    // Add in _onCreate method around line 90:
+    await db.execute('''
+  CREATE TABLE order_item_toppings(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_item_id INTEGER,
+    topping_name TEXT,
+    topping_price REAL,
+    topping_quantity INTEGER,
+    FOREIGN KEY (order_item_id) REFERENCES order_items(id)
+  )
+''');
+
+    await db.execute('''
+  CREATE TABLE variant_topping_groups(
+    id TEXT PRIMARY KEY,
+    variant_id TEXT,
+    name TEXT,
+    min_select INTEGER,
+    max_select INTEGER,
+    is_required INTEGER,
+    FOREIGN KEY (variant_id) REFERENCES product_variants(id)
+  )
+''');
+
+    await db.execute('''
+  CREATE TABLE variant_toppings(
+    id TEXT PRIMARY KEY,
+    topping_group_id TEXT,
+    name TEXT,
+    description TEXT,
+    price REAL,
+    store_id TEXT,
+    is_active INTEGER,
+    FOREIGN KEY (topping_group_id) REFERENCES variant_topping_groups(id)
+  )
+''');
+    // Orders table
+    await db.execute('''
+    CREATE TABLE orders(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      discount_id TEXT,
+      note TEXT,
+      order_type INTEGER,
+      order_status INTEGER,
+      approval_status INTEGER,
+      delivery_time TEXT,
+      store_id TEXT,
+      isActive INTEGER,
+      email TEXT,
+      captcha_token TEXT,
+      created_at INTEGER,
+      synced INTEGER DEFAULT 0
+    )
+  ''');
+
+    // Order Shipping Address table
+    await db.execute('''
+    CREATE TABLE order_shipping_address(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER,
+      type TEXT,
+      line1 TEXT,
+      city TEXT,
+      zip TEXT,
+      country TEXT,
+      phone TEXT,
+      customer_name TEXT,
+      FOREIGN KEY (order_id) REFERENCES orders(id)
+    )
+  ''');
+
+    // Order Items table
+    await db.execute('''
+    CREATE TABLE order_items(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER,
+      note TEXT,
+      product_id INTEGER,
+      quantity INTEGER,
+      unit_price REAL,
+      variant_id INTEGER,
+      FOREIGN KEY (order_id) REFERENCES orders(id)
+    )
+  ''');
+
+    // Order Payment table
+    await db.execute('''
+    CREATE TABLE order_payment(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER,
+      payment_method TEXT,
+      status TEXT,
+      paid_at TEXT,
+      amount REAL,
+      FOREIGN KEY (order_id) REFERENCES orders(id)
+    )
+  ''');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+      CREATE TABLE IF NOT EXISTS categories(
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        imageUrl TEXT,
+        storeId TEXT,
+        displayOrder INTEGER,
+        lastUpdated INTEGER
+      )
+    ''');
+
+      await db.execute('''
+      CREATE TABLE IF NOT EXISTS products(
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        price REAL,
+        categoryId TEXT,
+        imageUrl TEXT,
+        description TEXT,
+        isActive INTEGER,
+        isSpicy INTEGER,
+        isVeg INTEGER,
+        storeId TEXT,
+        lastUpdated INTEGER
+      )
+    ''');
+    }
+
+    if (oldVersion < 3) {
+      try {
+        var tables = await db.rawQuery(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='products'"
+        );
+
+        if (tables.isNotEmpty) {
+          await db.execute('''
+          CREATE TABLE products_new(
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            price REAL,
+            categoryId TEXT,
+            imageUrl TEXT,
+            description TEXT,
+            isActive INTEGER,
+            isSpicy INTEGER,
+            isVeg INTEGER,
+            storeId TEXT,
+            lastUpdated INTEGER
+          )
+        ''');
+
+          await db.execute('''
+          INSERT INTO products_new 
+          SELECT id, name, CAST(price AS REAL), categoryId, imageUrl, 
+                 description, isActive, isSpicy, isVeg, storeId, lastUpdated
+          FROM products
+        ''');
+
+          await db.execute('DROP TABLE products');
+          await db.execute('ALTER TABLE products_new RENAME TO products');
+          print('✅ Products table migrated to use REAL for price');
+        }
+      } catch (e) {
+        print('⚠️ Error migrating products table: $e');
+        await db.execute('''
+        CREATE TABLE IF NOT EXISTS products(
+          id TEXT PRIMARY KEY,
+          name TEXT,
+          price REAL,
+          categoryId TEXT,
+          imageUrl TEXT,
+          description TEXT,
+          isActive INTEGER,
+          isSpicy INTEGER,
+          isVeg INTEGER,
+          storeId TEXT,
+          lastUpdated INTEGER
+        )
+      ''');
+      }
+    }
+
+    if (oldVersion < 4) {
+      try {
+        var columns = await db.rawQuery('PRAGMA table_info(categories)');
+        bool hasDisplayOrder = columns.any((col) => col['name'] == 'displayOrder');
+
+        if (!hasDisplayOrder) {
+          await db.execute('ALTER TABLE categories ADD COLUMN displayOrder INTEGER DEFAULT 0');
+          print('✅ Added displayOrder column to categories table');
+        }
+      } catch (e) {
+        print('⚠️ Error adding displayOrder column: $e');
+      }
+    }
+
+    if (oldVersion < 5) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS orders(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          discount_id TEXT,
+          note TEXT,
+          order_type INTEGER,
+          order_status INTEGER,
+          approval_status INTEGER,
+          delivery_time TEXT,
+          store_id TEXT,
+          isActive INTEGER,
+          email TEXT,
+          captcha_token TEXT,
+          created_at INTEGER,
+          synced INTEGER DEFAULT 0
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS order_shipping_address(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          order_id INTEGER,
+          type TEXT,
+          line1 TEXT,
+          city TEXT,
+          zip TEXT,
+          country TEXT,
+          phone TEXT,
+          customer_name TEXT,
+          FOREIGN KEY (order_id) REFERENCES orders(id)
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS order_items(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          order_id INTEGER,
+          note TEXT,
+          product_id INTEGER,
+          quantity INTEGER,
+          unit_price REAL,
+          variant_id INTEGER,
+          FOREIGN KEY (order_id) REFERENCES orders(id)
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS order_payment(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          order_id INTEGER,
+          payment_method TEXT,
+          status TEXT,
+          paid_at TEXT,
+          amount REAL,
+          FOREIGN KEY (order_id) REFERENCES orders(id)
+        )
+      ''');
+
+      print('✅ Order tables created');
+    }
+
+    if (oldVersion < 6) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS product_variants(
+          id TEXT PRIMARY KEY,
+          product_id TEXT,
+          name TEXT,
+          price REAL,
+          item_code TEXT,
+          description TEXT,
+          FOREIGN KEY (product_id) REFERENCES products(id)
+        )
+      ''');
+      print('✅ Product variants table created');
+    }
+
+    if (oldVersion < 7) {
+      await db.execute('''
+    CREATE TABLE IF NOT EXISTS variant_topping_groups(
+      id TEXT PRIMARY KEY,
+      variant_id TEXT,
+      name TEXT,
+      min_select INTEGER,
+      max_select INTEGER,
+      is_required INTEGER,
+      FOREIGN KEY (variant_id) REFERENCES product_variants(id)
+    )
+  ''');
+      if (oldVersion < 8) {
+        await db.execute('''
+    CREATE TABLE IF NOT EXISTS order_item_toppings(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_item_id INTEGER,
+      topping_name TEXT,
+      topping_price REAL,
+      topping_quantity INTEGER,
+      FOREIGN KEY (order_item_id) REFERENCES order_items(id)
+    )
+  ''');
+        print('✅ Order item toppings table created');
+      }
+
+      await db.execute('''
+    CREATE TABLE IF NOT EXISTS variant_toppings(
+      id TEXT PRIMARY KEY,
+      topping_group_id TEXT,
+      name TEXT,
+      description TEXT,
+      price REAL,
+      store_id TEXT,
+      is_active INTEGER,
+      FOREIGN KEY (topping_group_id) REFERENCES variant_topping_groups(id)
+    )
+  ''');
+      print('✅ Variant topping tables created');
+    }
+  }
+
+  // ==================== STORE METHODS ====================
+
+  Future<void> saveStore(String storeId, String storeName) async {
+    final db = await database;
+    await db.insert(
+      'stores',
+      {
+        'id': storeId,
+        'name': storeName,
+        'lastUpdated': DateTime.now().millisecondsSinceEpoch,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<String?> getStoreName(String storeId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'stores',
+      where: 'id = ?',
+      whereArgs: [storeId],
+    );
+
+    if (maps.isEmpty) return null;
+    return maps.first['name'] as String?;
+  }
+
+  Future<void> deleteStore(String storeId) async {
+    final db = await database;
+    await db.delete('stores', where: 'id = ?', whereArgs: [storeId]);
+  }
+
+  Future<void> clearAllStores() async {
+    final db = await database;
+    await db.delete('stores');
+  }
+
+  // ==================== CATEGORY METHODS ====================
+
+  Future<void> saveCategories(
+      List<GetProductCategoryList> categories, String storeId) async
+  {
+    final db = await database;
+    final batch = db.batch();
+
+    for (int i = 0; i < categories.length; i++) {
+      var category = categories[i];
+      batch.insert(
+        'categories',
+        {
+          'id': category.id.toString(),
+          'name': category.name ?? '',
+          'imageUrl': category.imageUrl ?? '',
+          'storeId': storeId,
+          'displayOrder': i,
+          'lastUpdated': DateTime.now().millisecondsSinceEpoch,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    await batch.commit(noResult: true);
+    print('✅ Saved ${categories.length} categories to database with order');
+  }
+
+  Future<List<GetProductCategoryList>> getCategories(String storeId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'categories',
+      where: 'storeId = ?',
+      whereArgs: [storeId],
+      orderBy: 'displayOrder ASC',
+    );
+
+    print('📦 Retrieved ${maps.length} categories from database in API order');
+
+    return maps.map((map) {
+      return GetProductCategoryList(
+        id: int.tryParse(map['id']?.toString() ?? '0'),
+        name: map['name'] as String?,
+        imageUrl: map['imageUrl'] as String?,
+      );
+    }).toList();
+  }
+
+  // ==================== PRODUCT METHODS ====================
+     Future<void> saveProducts(
+      List<GetStoreProducts> products, String storeId) async
+     {
+    final db = await database;
+    final batch = db.batch();
+
+    for (var product in products) {
+      // Convert price to double for storage
+      double? priceValue;
+      if (product.price != null) {
+        if (product.price is String) {
+          priceValue = double.tryParse(product.price.toString());
+        } else if (product.price is num) {
+          priceValue = (product.price as num).toDouble();
+        }
+      }
+
+      batch.insert(
+        'products',
+        {
+          'id': product.id.toString(),
+          'name': product.name ?? '',
+          'price': priceValue ?? 0.0,
+          'categoryId': product.categoryId?.toString() ?? '',
+          'imageUrl': product.imageUrl ?? '',
+          'description': product.description ?? '',
+          'isActive': (product.isActive ?? false) ? 1 : 0,
+          'isSpicy': 0,
+          'isVeg': 0,
+          'storeId': storeId,
+          'lastUpdated': DateTime.now().millisecondsSinceEpoch,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+
+      if (product.variants != null && product.variants!.isNotEmpty) {
+        for (var variant in product.variants!) {
+          // ✅ FIX: Handle price correctly
+          double variantPrice = 0.0;
+          if (variant.price != null) {
+            if (variant.price is double) {
+              variantPrice = variant.price as double;
+            } else if (variant.price is int) {
+              variantPrice = (variant.price as int).toDouble();
+            } else if (variant.price is num) {
+              variantPrice = (variant.price as num).toDouble();
+            }
+          }
+
+          print('💾 Saving variant ${variant.id} (${variant.name}) - Price: $variantPrice');
+
+          batch.insert(
+            'product_variants',
+            {
+              'id': variant.id.toString(),
+              'product_id': product.id.toString(),
+              'name': variant.name ?? '',
+              'price': variantPrice,
+              'item_code': variant.itemCode ?? '',
+              'description': variant.description ?? '',
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+
+          if (variant.enrichedToppingGroups != null &&
+              variant.enrichedToppingGroups!.isNotEmpty) {
+            print('  📦 Variant ${variant.id} has ${variant.enrichedToppingGroups!.length} topping groups');
+
+            for (var group in variant.enrichedToppingGroups!) {
+              // ✅ CREATE UNIQUE KEY: variant_id + group_id
+              String uniqueGroupId = '${variant.id}_${group.id}';
+
+              print('    🔹 Saving group $uniqueGroupId (${group.name}) with ${group.toppings?.length ?? 0} toppings');
+
+              batch.insert(
+                'variant_topping_groups',
+                {
+                  'id': uniqueGroupId,  // ✅ Use unique key
+                  'variant_id': variant.id.toString(),
+                  'name': group.name ?? '',
+                  'min_select': group.minSelect ?? 0,
+                  'max_select': group.maxSelect ?? 0,
+                  'is_required': (group.isRequired ?? false) ? 1 : 0,
+                },
+                conflictAlgorithm: ConflictAlgorithm.replace,
+              );
+
+              if (group.toppings != null && group.toppings!.isNotEmpty) {
+                for (var topping in group.toppings!) {
+                  // ✅ CREATE UNIQUE KEY: variant_id + group_id + topping_id
+                  String uniqueToppingId = '${variant.id}_${group.id}_${topping.id}';
+
+                  print('      🍕 Saving topping $uniqueToppingId (${topping.name})');
+
+                  batch.insert(
+                    'variant_toppings',
+                    {
+                      'id': uniqueToppingId,  // ✅ Use unique key
+                      'topping_group_id': uniqueGroupId,  // ✅ Reference unique group key
+                      'name': topping.name ?? '',
+                      'description': topping.description ?? '',
+                      'price': topping.price ?? 0.0,
+                      'store_id': topping.storeId.toString(),
+                      'is_active': (topping.isActive ?? false) ? 1 : 0,
+                    },
+                    conflictAlgorithm: ConflictAlgorithm.replace,
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    await batch.commit(noResult: true);
+    print('✅ Saved ${products.length} products to database');
+  }
+
+    Future<List<GetStoreProducts>> getProducts(String storeId) async {
+      final db = await database;
+      final List<Map<String, dynamic>> maps = await db.query(
+        'products',
+        where: 'storeId = ?',
+        whereArgs: [storeId],
+        orderBy: 'name ASC',
+      );
+
+      print('📦 Retrieved ${maps.length} products from database');
+
+      return maps.map((map) {
+        double? priceValue;
+        if (map['price'] != null) {
+          if (map['price'] is double) {
+            priceValue = map['price'] as double;
+          } else if (map['price'] is int) {
+            priceValue = (map['price'] as int).toDouble();
+          } else if (map['price'] is String) {
+            priceValue = double.tryParse(map['price'] as String);
+          }
+        }
+
+        return GetStoreProducts(
+          id: int.tryParse(map['id']?.toString() ?? '0'),
+          name: map['name'] as String?,
+          price: priceValue,
+          categoryId: int.tryParse(map['categoryId']?.toString() ?? '0'),
+          imageUrl: map['imageUrl'] as String?,
+          description: map['description'] as String?,
+          isActive: map['isActive'] == 1,
+        );
+      }).toList();
+    }
+
+    // ✅ NEW: Get variants for a specific product
+    Future<List<Variants>> getProductVariants(String productId) async {
+      final db = await database;
+      final List<Map<String, dynamic>> maps = await db.query(
+        'product_variants',
+        where: 'product_id = ?',
+        whereArgs: [productId],
+      );
+
+      print('📦 Retrieved ${maps.length} variants for product $productId');
+
+      return maps.map((map) {
+        return Variants(
+          id: int.tryParse(map['id']?.toString() ?? '0'),
+          name: map['name'] as String?,
+          price: (map['price'] as double?)?.toInt(),
+          itemCode: map['item_code'] as String?,
+          description: map['description'] as String?,
+        );
+      }).toList();
+    }
+
+    Future<List<EnrichedToppingGroups>> getVariantToppingGroups(String variantId) async {
+    final db = await database;
+
+    final groupMaps = await db.query(
+      'variant_topping_groups',
+      where: 'variant_id = ?',
+      whereArgs: [variantId],
+    );
+
+    print('📦 Found ${groupMaps.length} topping groups for variant $variantId'); // ADD THIS
+
+    List<EnrichedToppingGroups> groups = [];
+
+    for (var groupMap in groupMaps) {
+      final toppingMaps = await db.query(
+        'variant_toppings',
+        where: 'topping_group_id = ?',
+        whereArgs: [groupMap['id']],
+      );
+
+      print('🔍 Found ${toppingMaps.length} toppings for group ${groupMap['id']}'); // ADD THIS
+
+      List<Toppings> toppings = toppingMaps.map((map) {
+        // Extract the actual topping ID from the composite key
+        String compositeId = map['id']?.toString() ?? '';
+        int? toppingId;
+
+        // Format is: variant_id_group_id_topping_id
+        List<String> parts = compositeId.split('_');
+        if (parts.length >= 3) {
+          toppingId = int.tryParse(parts[2]); // Get the last part (topping_id)
+        }
+
+        return Toppings(
+          id: toppingId ?? 0,
+          name: map['name'] as String?,
+          description: map['description'] as String?,
+          price: map['price'] as double?,
+          storeId: int.tryParse(map['store_id']?.toString() ?? '0'),
+          isActive: map['is_active'] == 1,
+        );
+      }).toList();
+
+      // Extract group ID from composite key
+      String compositeGroupId = groupMap['id']?.toString() ?? '';
+      int? groupId;
+
+// Format is: variant_id_group_id
+      List<String> groupParts = compositeGroupId.split('_');
+      if (groupParts.length >= 2) {
+        groupId = int.tryParse(groupParts[1]); // Get the second part (group_id)
+      }
+
+      groups.add(EnrichedToppingGroups(
+        id: groupId ?? 0,
+        name: groupMap['name'] as String?,
+        minSelect: groupMap['min_select'] as int?,
+        maxSelect: groupMap['max_select'] as int?,
+        isRequired: groupMap['is_required'] == 1,
+        toppings: toppings,
+      ));
+    }
+
+    print('✅ Returning ${groups.length} topping groups with toppings'); // ADD THIS
+    return groups;
+  }
+
+  Future<GetStoreProducts?> getProductById(String productId) async {
+    try {
+      final db = await database;
+      final List<Map<String, dynamic>> maps = await db.query(
+        'products',
+        where: 'id = ?',
+        whereArgs: [productId],
+        limit: 1,
+      );
+
+      if (maps.isEmpty) return null;
+
+      final map = maps.first;
+      double? priceValue;
+      if (map['price'] != null) {
+        if (map['price'] is double) {
+          priceValue = map['price'] as double;
+        } else if (map['price'] is int) {
+          priceValue = (map['price'] as int).toDouble();
+        } else if (map['price'] is String) {
+          priceValue = double.tryParse(map['price'] as String);
+        }
+      }
+
+      return GetStoreProducts(
+        id: int.tryParse(map['id']?.toString() ?? '0'),
+        name: map['name'] as String?,
+        price: priceValue,
+        categoryId: int.tryParse(map['categoryId']?.toString() ?? '0'),
+        imageUrl: map['imageUrl'] as String?,
+        description: map['description'] as String?,
+        isActive: map['isActive'] == 1,
+      );
+    } catch (e) {
+      print('Error getting product by ID: $e');
+      return null;
+    }
+  }
+
+    // ==================== ORDER METHODS ====================
+
+    Future<int> saveOrder({
+      required String storeId,
+      required String orderType,
+      required String? note,
+      required String customerName,
+      required String phone,
+      required String email,
+      required String address,
+      required String region,
+      required List<Map<String, dynamic>> items,
+      required double amount,
+    }) async
+    {
+      final db = await database;
+
+      int orderTypeInt = orderType == 'Lieferzeit' ? 1 : 2;
+
+      int orderId = await db.insert('orders', {
+        'discount_id': null,
+        'note': note,
+        'order_type': orderTypeInt,
+        'order_status': 1,
+        'approval_status': 1,
+        'delivery_time': null,
+        'store_id': storeId,
+        'isActive': 1,
+        'email': email.isEmpty ? null : email,
+        'captcha_token': '',
+        'created_at': DateTime
+            .now()
+            .millisecondsSinceEpoch,
+        'synced': 0,
+      });
+
+      await db.insert('order_shipping_address', {
+        'order_id': orderId,
+        'type': 'shipping',
+        'line1': address,
+        'city': region,
+        'zip': region,
+        'country': 'Germany',
+        'phone': phone,
+        'customer_name': customerName,
+      });
+
+      for (var item in items) {
+        int itemId = await db.insert('order_items', {
+          'order_id': orderId,
+          'note': item['note'],
+          'product_id': item['product_id'],
+          'quantity': item['quantity'],
+          'unit_price': item['price'],
+          'variant_id': item['variant_id'] ?? 0,
+        });
+
+        // ✅ Save toppings if present
+        if (item['toppings'] != null && item['toppings'] is List) {
+          for (var topping in item['toppings']) {
+            await db.insert('order_item_toppings', {
+              'order_item_id': itemId,
+              'topping_name': topping['name'],
+              'topping_price': topping['price'],
+              'topping_quantity': topping['quantity'] ?? 1,
+            });
+          }
+        }
+      }
+
+      await db.insert('order_payment', {
+        'order_id': orderId,
+        'payment_method': 'stripe',
+        'status': 'pending',
+        'paid_at': DateTime.now().toIso8601String(),
+        'amount': amount,
+      });
+
+      print('✅ Order saved with ID: $orderId');
+      return orderId;
+    }
+
+    Future<List<Map<String, dynamic>>> getAllOrders(String storeId) async {
+      final db = await database;
+      return await db.query(
+        'orders',
+        where: 'store_id = ?',
+        whereArgs: [storeId],
+        orderBy: 'created_at DESC',
+      );
+    }
+
+    Future<Map<String, dynamic>?> getOrderDetails(int orderId) async {
+      final db = await database;
+
+      final order = await db.query(
+        'orders',
+        where: 'id = ?',
+        whereArgs: [orderId],
+      );
+
+      if (order.isEmpty) return null;
+
+      final address = await db.query(
+        'order_shipping_address',
+        where: 'order_id = ?',
+        whereArgs: [orderId],
+      );
+
+      final items = await db.query(
+        'order_items',
+        where: 'order_id = ?',
+        whereArgs: [orderId],
+      );
+
+      // ✅ Load toppings for each item
+      List<Map<String, dynamic>> itemsWithToppings = [];
+      for (var item in items) {
+        final toppings = await db.query(
+          'order_item_toppings',
+          where: 'order_item_id = ?',
+          whereArgs: [item['id']],
+        );
+
+        Map<String, dynamic> itemWithToppings = Map.from(item);
+        itemWithToppings['toppings'] = toppings;
+        itemsWithToppings.add(itemWithToppings);
+      }
+
+      // ✅ Load payment data
+      final payment = await db.query(
+        'order_payment',
+        where: 'order_id = ?',
+        whereArgs: [orderId],
+      );
+
+      return {
+        'order': order.first,
+        'shipping_address': address.isNotEmpty ? address.first : null,
+        'items': itemsWithToppings,
+        'payment': payment.isNotEmpty ? payment.first : null,
+      };
+    }
+
+    Future<List<Map<String, dynamic>>> getUnsyncedOrders(String storeId) async {
+      final db = await database;
+      return await db.query(
+        'orders',
+        where: 'store_id = ? AND synced = 0',
+        whereArgs: [storeId],
+        orderBy: 'created_at ASC',
+      );
+    }
+
+    Future<void> markOrderAsSynced(int orderId) async {
+      final db = await database;
+      await db.update(
+        'orders',
+        {'synced': 1},
+        where: 'id = ?',
+        whereArgs: [orderId],
+      );
+    }
+
+    Future<void> deleteOrder(int orderId) async {
+      final db = await database;
+      await db.delete('order_shipping_address', where: 'order_id = ?',
+          whereArgs: [orderId]);
+      await db.delete(
+          'order_items', where: 'order_id = ?', whereArgs: [orderId]);
+      await db.delete(
+          'order_payment', where: 'order_id = ?', whereArgs: [orderId]);
+      await db.delete('orders', where: 'id = ?', whereArgs: [orderId]);
+      print('🗑️ Deleted order: $orderId');
+    }
+
+    // ==================== UTILITY METHODS ====================
+
+    Future<bool> hasStoredData(String storeId) async {
+      final db = await database;
+      final result = await db.query(
+        'categories',
+        where: 'storeId = ?',
+        whereArgs: [storeId],
+        limit: 1,
+      );
+      return result.isNotEmpty;
+    }
+
+    Future<void> clearStoreData(String storeId) async {
+      final db = await database;
+      await db.rawDelete('''
+      DELETE FROM product_variants 
+      WHERE product_id IN (
+        SELECT id FROM products WHERE storeId = ?
+      )
+    ''', [storeId]);
+
+      await db.rawDelete('''
+  DELETE FROM variant_toppings 
+  WHERE topping_group_id IN (
+    SELECT id FROM variant_topping_groups 
+    WHERE variant_id IN (
+      SELECT id FROM product_variants 
+      WHERE product_id IN (
+        SELECT id FROM products WHERE storeId = ?
+      )
+    )
+  )
+''',
+          [storeId]);
+
+      await db.rawDelete('''
+  DELETE FROM variant_topping_groups 
+  WHERE variant_id IN (
+    SELECT id FROM product_variants 
+    WHERE product_id IN (
+      SELECT id FROM products WHERE storeId = ?
+    )
+  )
+''', [storeId]);
+      await db.delete('categories', where: 'storeId = ?', whereArgs: [storeId]);
+      await db.delete('products', where: 'storeId = ?', whereArgs: [storeId]);
+      print('🗑️ Cleared all data for store: $storeId');
+    }
+
+    Future<void> clearAllData() async {
+      final db = await database;
+      await db.delete('product_variants'); // ✅ ADDED
+      await db.delete('categories');
+      await db.delete('products');
+      await db.delete('stores');
+      await db.delete('orders');
+      await db.delete('order_shipping_address');
+      await db.delete('order_items');
+      await db.delete('order_payment');
+      print('🗑️ Cleared entire database');
+    }
+
+    Future<Map<String, int>> getDataCount(String storeId) async {
+      final db = await database;
+
+      final categoryCount = Sqflite.firstIntValue(
+        await db.rawQuery(
+          'SELECT COUNT(*) FROM categories WHERE storeId = ?',
+          [storeId],
+        ),
+      ) ?? 0;
+
+      final productCount = Sqflite.firstIntValue(
+        await db.rawQuery(
+          'SELECT COUNT(*) FROM products WHERE storeId = ?',
+          [storeId],
+        ),
+      ) ?? 0;
+
+      final orderCount = Sqflite.firstIntValue(
+        await db.rawQuery(
+          'SELECT COUNT(*) FROM orders WHERE store_id = ?',
+          [storeId],
+        ),
+      ) ?? 0;
+
+      // ✅ NEW: Get variant count
+      final variantCount = Sqflite.firstIntValue(
+        await db.rawQuery('''
+        SELECT COUNT(*) FROM product_variants 
+        WHERE product_id IN (
+          SELECT id FROM products WHERE storeId = ?
+        )
+      ''', [storeId]),
+      ) ?? 0;
+
+      return {
+        'categories': categoryCount,
+        'products': productCount,
+        'orders': orderCount,
+        'variants': variantCount,
+      };
+    }
+  }

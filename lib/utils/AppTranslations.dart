@@ -137,6 +137,7 @@ class AppTranslations extends Translations {
           'enter_percent': 'Enter Percentage(e.g., 18.5)',
           'delete': 'Delete',
           'are': 'Are You Sure You Want to delete',
+          'are_sure': 'Are You Sure You Want to',
           'reserv': 'Reservation',
           'total_reserv': 'Total Reservation',
           'details': 'Reservation Details',
@@ -425,7 +426,8 @@ class AppTranslations extends Translations {
           'product_deactivated':'Product InActive Success',
           'topping_activated':'Toppings Active Successfully',
           'topping_deactivated':'Toppings InActive Successfully',
-          'item_note':'Item Note'
+          'item_note':'Item Note',
+          "syncing": "Syncing...",
           },
         'de': {
           'order_details': 'Bestelldetails',
@@ -561,6 +563,7 @@ class AppTranslations extends Translations {
           "enter_percent": "Prozentsatz eingeben (z. B. 18,5)",
           "delete": "Löschen",
           "are": "Sind Sie sicher, dass Sie löschen möchten?",
+          'are_sure': "Sind Sie sicher, dass Sie … möchten?",
           'reserv': 'Reservierung',
           'total_reserv': 'Gesamtreservierung',
           'details': 'Reservierungsdetails',
@@ -854,6 +857,7 @@ class AppTranslations extends Translations {
           'topping_activated':'Toppings wurden erfolgreich aktiviert',
           'topping_deactivated':'Toppings wurden erfolgreich deaktiviert',
           'item_note':'notiz',
+          "syncing": "Synchronisierung...",
         },
         'ch': {
           'order_details': 'Bestelldetails',

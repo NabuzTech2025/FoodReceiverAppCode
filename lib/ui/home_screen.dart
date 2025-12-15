@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:food_app/main.dart';
 import 'package:food_app/ui/PrinterSettingsScreen.dart';
+import 'package:food_app/ui/SuperAdmin/SuperAdmin%20Report/super_admin_report.dart';
 import 'package:food_app/ui/table%20Book/reservation.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
@@ -18,8 +19,10 @@ import '../utils/global.dart';
 import '../utils/keep_alive_page.dart';
 import '../utils/my_application.dart';
 import 'Desktop/desktop_order.dart';
-import 'OrderScreen.dart';
+import 'Order/OrderScreen.dart';
 import 'ReportScreen.dart';
+import 'SuperAdmin/SuperAdminReservation/super_admin_reservation.dart';
+import 'SuperAdmin/Super_admin_order/admin_order.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -40,24 +43,60 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _storeType;
   int? _roleId;
 
+  // @override
+  // void initState() {
+  //   _pageController = PageController(initialPage: 0);
+  //   _setupFCMListeners();
+  //   _loadInitialData();
+  //   _setupLocalNotificationTap();
+  //
+  //   final arguments = Get.arguments;
+  //   if (arguments != null && arguments['initialTab'] != null) {
+  //     final int initialTab = arguments['initialTab'];
+  //
+  //     Future.delayed(const Duration(milliseconds: 300), () {
+  //       if (mounted) {
+  //         _openTab(initialTab);
+  //       }
+  //     });
+  //   }
+  //   super.initState();
+  // }
   @override
   void initState() {
+    super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     _pageController = PageController(initialPage: 0);
     _setupFCMListeners();
     _loadInitialData();
     _setupLocalNotificationTap();
 
     final arguments = Get.arguments;
-    if (arguments != null && arguments['initialTab'] != null) {
-      final int initialTab = arguments['initialTab'];
-      // âœ… Increase delay to ensure PageController is attached
-      Future.delayed(const Duration(milliseconds: 300), () {
-        if (mounted) {
-          _openTab(initialTab);
-        }
-      });
+    if (arguments != null) {
+      // Store the roleId from arguments if present
+      if (arguments['roleId'] != null) {
+        _roleId = arguments['roleId'];
+      }
+
+      if (arguments['initialTab'] != null) {
+        final int initialTab = arguments['initialTab'];
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            _openTab(initialTab);
+          }
+        });
+      }
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Force rebuild when orientation changes
+    });
     super.initState();
+
   }
 
   void _setupLocalNotificationTap() {
@@ -80,11 +119,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadInitialData() async {
     SharedPreferences freshPrefs = await SharedPreferences.getInstance();
     _storeType = freshPrefs.getString(valueShared_STORE_TYPE);
-    //_roleId = freshPrefs.getInt(valueShared_ROLE_ID); // Add this
+    _roleId = freshPrefs.getInt(valueShared_ROLE_ID); // Add this
 
     await Future.wait([
       getOrdersInBackground(),
-      getReservationsInBackground(),
+      //getReservationsInBackground(),
     ]);
     setState(() {
       _isDataLoaded = true;
@@ -102,8 +141,6 @@ class _HomeScreenState extends State<HomeScreen> {
       print('Message body: ${message.notification?.body}');
 
       final title = message.notification?.title ?? '';
-
-      // केवल data refresh करें, auto navigation नहीं करें
       if (title.contains("New Order")) {
         final body = message.notification?.body ?? '';
         RegExp regex = RegExp(r'#(\d+)');
@@ -156,7 +193,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<bool> _onWillPop() async {
-    // Direct exit from app without any dialog
+    // Check if roleId is 1 (super admin)
+    if (_roleId == 1) {
+      // Clear store ID from SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove(valueShared_STORE_KEY);
+
+      // Navigate back to SuperAdmin screen
+      Get.back();
+      return false;
+    }
+
+    // Direct exit from app for regular users
     SystemNavigator.pop();
     return false;
   }
@@ -164,11 +212,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final orientation = MediaQuery.of(context).orientation;
+    final size = MediaQuery.of(context).size;
+
+    print("📐 Home Orientation: $orientation");
+    print("📐 Home Size: ${size.width} x ${size.height}");
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
         drawer: CustomDrawer(onSelectTab: _openTab),
-        appBar: const CustomAppBar(),
+          appBar: CustomAppBar(roleId: _roleId),
         resizeToAvoidBottomInset: true,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
         floatingActionButton: !_isDataLoaded ? const SizedBox.shrink() : Obx(() {
@@ -193,9 +246,13 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_roleId != 1 && (_storeType == '1' || _storeType == '2')) {
       return const SizedBox.shrink();
     }
+
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final fabSize = isLandscape ? 50.0 : 55.0;
+
     return Container(
-      height: 55,
-      width: 55,
+      height: fabSize,
+      width: fabSize,
       decoration: BoxDecoration(
         color: Colors.orange,
         borderRadius: BorderRadius.circular(27.5),
@@ -239,12 +296,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
   Widget _buildBottomBar() {
-    // Don't show bottom bar until data is loaded
     if (!_isDataLoaded) {
       return const SizedBox.shrink();
     }
 
-    double bottomBarHeight = Platform.isIOS ? 90 : 75;
+    // Adjust height based on orientation
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    double bottomBarHeight = isLandscape
+        ? (Platform.isIOS ? 100 : 80)  // Shorter in landscape
+        : (Platform.isIOS ? 100 : 75);
     return Container(
       height: bottomBarHeight,
       decoration: BoxDecoration(
@@ -266,8 +326,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ItemBottomBar(
               selected: app.appController.selectedTabIndex == 0,
               icon: "assets/images/ic_order.png",
-              iconHeight: 20,
-              iconWidth: 20,
+              iconHeight: isLandscape ? 18 : 20,  // Smaller icons in landscape
+              iconWidth: isLandscape ? 18 : 20,
               name: 'order'.tr,
               showBadge: app.appController.getPendingOrder > 0,
               badgeValue: app.appController.getPendingOrder,
@@ -280,7 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ItemBottomBar(
                 selected: app.appController.selectedTabIndex == 1,
                 icon: "assets/images/reservationIcon.png",
-                iconHeight: 25,
+                iconHeight: 20,
                 iconWidth: 30,
                 name: 'reserv'.tr,
                 showBadge: app.appController.getPendingReservations > 0,
@@ -317,6 +377,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
   Widget _buildBody() {
+    final bool isAdmin = _roleId == 1;
     return PageView(
       controller: _pageController,
       physics: const NeverScrollableScrollPhysics(),
@@ -324,11 +385,10 @@ class _HomeScreenState extends State<HomeScreen> {
         print("Page changedto: $index");
       },
       children: [
-        // KeepAlivePage(child: HomeTab()),
-        KeepAlivePage(child: const DesktopOrderScreen()),
-        //KeepAlivePage(child: const OrderScreenNew()),
-        KeepAlivePage(child: const Reservation()),
-        KeepAlivePage(child: ReportScreen()),
+        KeepAlivePage(child: isAdmin ? const AdminOrder() : const OrderScreenNew()),
+       // KeepAlivePage(child: const DesktopOrderScreen()),
+        KeepAlivePage(child: isAdmin ? const SuperAdminReservation() : const Reservation()),
+        KeepAlivePage(child: isAdmin?  const SuperAdminReport():ReportScreen()),
         KeepAlivePage(child: const PrinterSettingsScreen()),
       ],
     );

@@ -35,7 +35,7 @@ class Order {
   List<TaxSummary>? taxSummary;
   List<BruttoSummary>? brutto_netto_summary;
   GuestShippingJson? guestShippingJson;
-
+  bool? isLocalOrder;
 
   Order({
     this.userId,
@@ -60,7 +60,8 @@ class Order {
     this.shipping_address,
     this.taxSummary,
     this.brutto_netto_summary,
-    this.guestShippingJson
+    this.guestShippingJson,
+    this.isLocalOrder,
   });
 
   Order.withError({
@@ -110,6 +111,7 @@ class Order {
           : [],
       guestShippingJson:
       json["guest_shipping_json"] != null ? GuestShippingJson.fromJson(json["guest_shipping_json"]) : null,
+      isLocalOrder: json["is_local_order"] ?? false,
     );
   }
 
@@ -138,6 +140,7 @@ class Order {
         "brutto_netto_summary":
             brutto_netto_summary?.map((x) => x.toJson()).toList(),
     "guest_shipping_json": guestShippingJson?.toJson(),
+    "is_local_order": isLocalOrder,
       };
 
   static List<Order> fromJsonList(String str) =>

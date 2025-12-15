@@ -45,9 +45,9 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
       _selectedDate = selectedDate;
     });
 
-    // Call reservation history with selected date
     reservationHistory();
   }
+
   Future<void> loadReservationCounts() async {
     var reservations = app.appController.reservationsList;
 
@@ -145,7 +145,7 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
             Row(
               children: [
                 IconButton(
-                  icon: Icon(Icons.arrow_left, color: Colors.green),
+                  icon: Icon(Icons.arrow_left, size: 40,color: Colors.green),
                   onPressed: () {
                     setState(() {
                       if (selectedMonth == 1) {
@@ -155,11 +155,11 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
                         selectedMonth--;
                       }
                     });
-                    loadReservationCounts(); // Add this line
+                    loadReservationCounts();
                   },
                 ),
                 IconButton(
-                  icon: Icon(Icons.arrow_right, color: Colors.green),
+                  icon: Icon(Icons.arrow_right, size: 40,color: Colors.green),
                   onPressed: () {
                     setState(() {
                       if (selectedMonth == 12) {
@@ -169,7 +169,7 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
                         selectedMonth++;
                       }
                     });
-                    loadReservationCounts(); // Add this line
+                    loadReservationCounts();
                   },
                 ),
               ],
@@ -354,7 +354,6 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
     return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
   }
 
-
   Future<void> reservationHistory() async {
     setState(() {
       isLoading = true;
@@ -368,7 +367,6 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
       targetDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
     }
 
-    // SharedPreferences se store ID get करें
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? storeIdString = prefs.getString(valueShared_STORE_KEY);
     int storeId;
@@ -409,15 +407,12 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
         isLoading = false;
       });
 
-      // ✅ Close loading dialog using Navigator instead of Get.back()
       if (Get.isDialogOpen == true) {
         Navigator.of(Get.overlayContext!).pop();
       }
 
-      // ✅ Wait a bit to ensure dialog is closed
       await Future.delayed(Duration(milliseconds: 300));
 
-      // Return selected date and close bottom sheet
       if (_selectedDate != null) {
         String displayDate = DateFormat('d MMMM, y').format(_selectedDate!);
         Navigator.of(context).pop(displayDate);
@@ -428,7 +423,6 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
         isLoading = false;
       });
 
-      // ✅ Close loading dialog using Navigator instead of Get.back()
       if (Get.isDialogOpen == true) {
         Navigator.of(Get.overlayContext!).pop();
       }
@@ -445,4 +439,6 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
       print('Getting History error: $e');
     }
   }
+
 }
+

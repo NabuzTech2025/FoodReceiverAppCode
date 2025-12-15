@@ -40,6 +40,10 @@ class AppColor {
   static const Color notWhite = Color(0xFFEDF0F2);
   static const Color notWhite2 = Color(0xFFF7F3F3);
   static const Color nearlyWhite = Color(0x8EE2E1E1);
+  static const Color borderGreen = Color(0xff00B10E);
+
+
+
 
    Color colorBG2 = const Color(0xffBAE3F7);
 

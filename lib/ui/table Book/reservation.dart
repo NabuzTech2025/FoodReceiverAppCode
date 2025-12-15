@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:food_app/ui/Login/LoginScreen.dart';
 import 'package:food_app/ui/table%20Book/reservation_details.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
@@ -15,7 +14,8 @@ import '../../models/reservation/get_user_reservation_details.dart';
 import '../../utils/my_application.dart';
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import '../OrderScreen.dart';
+import '../Login/LoginScreen.dart';
+import '../Order/OrderScreen.dart';
 import 'ReservationBottomDialogSheet.dart';
 
 class Reservation extends StatefulWidget {
@@ -865,8 +865,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
         });
         return;
       }
-      List<GetUserReservationDetailsResponseModel> reservations =
-      await CallService().getReservationDetailsList();
+      List<GetUserReservationDetailsResponseModel> reservations = await CallService().getReservationDetailsList();
       _reservationTimer?.cancel();
       if (Get.isDialogOpen == true) {
         Navigator.of(Get.overlayContext!).pop();

@@ -549,15 +549,15 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
       });
 
       Get.dialog(
-        Center(child: Lottie.asset('assets/animations/burger.json', width: 150, height: 150, repeat: true)),
+        Center(child: Lottie.asset('assets/animations/burger.json',
+            width: 150, height: 150, repeat: true)),
         barrierDismissible: false,
       );
     }
 
     try {
       // ✅ 6 second timeout wrapper
-      final result = await Future.any([
-        CallService().getIpAddress(),
+      final result = await Future.any([CallService().getIpAddress(),
         Future.delayed(Duration(seconds: 6)).then((_) => <GetPrinterIpResponseModel>[])
       ]);
 
@@ -591,7 +591,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
 
     if (storeId == null) {
       print('Store ID not found in SharedPreferences');
-      // ✅ Get.snackbar ki jagah ye use karo
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('storeId'.tr), backgroundColor: Colors.red),
@@ -606,7 +606,8 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
     }
 
     Get.dialog(
-      Center(child: Lottie.asset('assets/animations/burger.json', width: 150, height: 150, repeat: true)),
+      Center(child: Lottie.asset('assets/animations/burger.json',
+          width: 150, height: 150, repeat: true)),
       barrierDismissible: false,
     );
 

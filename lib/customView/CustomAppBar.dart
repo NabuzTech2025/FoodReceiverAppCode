@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:food_app/ui/SuperAdmin/super_admin.dart';
 import 'package:get/get.dart';
+import 'package:hive/hive.dart';
 
 import '../utils/my_application.dart';
 
 class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
-  const CustomAppBar({super.key});
+  final int? roleId;
+
+  const CustomAppBar({super.key, this.roleId});
 
   @override
   State<CustomAppBar> createState() => _CustomAppBarState();
@@ -221,7 +225,6 @@ class _CustomAppBarState extends State<CustomAppBar> {
             ),
             const SizedBox(width: 8),
             Obx(() {
-              // Show search box for Orders, Reservations, Products, and Category
               String currentRoute = Get.currentRoute;
               bool showSearchBox = app.appController.selectedTabIndex == 0 ||
                   app.appController.selectedTabIndex == 1 ||
@@ -235,6 +238,22 @@ class _CustomAppBarState extends State<CustomAppBar> {
               }
             }),
             const SizedBox(width: 12),
+
+            if (widget.roleId == 1)
+              GestureDetector(
+                onTap: (){
+                  Get.offAll(()=>SuperAdmin());
+                },
+                child: Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey, width: 1),
+                    ),
+                    child: const Icon(Icons.arrow_back_ios, size: 16,)
+                ),
+              )
           ],
         ),
       ),

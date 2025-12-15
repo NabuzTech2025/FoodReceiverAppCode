@@ -1,6 +1,8 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:food_app/ui/Login/LoginScreen.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -13,7 +15,6 @@ import '../customView/custom_text_form_prefiex.dart';
 import '../utils/log_util.dart';
 import '../utils/my_application.dart';
 import '../utils/validators.dart';
-import 'Login/LoginScreen.dart';
 import 'home_screen.dart';
 
 class ResetPasswordScreen extends StatefulWidget {

@@ -16,7 +16,7 @@ class GetStoreProducts {
   Category? category;
   List<Variants>? variants;
   String? tax;
-
+  List<EnrichedToppingGroups>? enrichedToppingGroups;
 
   GetStoreProducts(
       {this.name,
@@ -36,6 +36,7 @@ class GetStoreProducts {
         this.category,
         this.variants,
         this.tax,
+        this.enrichedToppingGroups,
        });
 
   GetStoreProducts.fromJson(Map<String, dynamic> json) {
@@ -63,6 +64,12 @@ class GetStoreProducts {
       });
     }
     tax = json['tax']?.toString();
+    if (json['enriched_topping_groups'] != null) {
+      enrichedToppingGroups = <EnrichedToppingGroups>[];
+      json['enriched_topping_groups'].forEach((v) {
+        enrichedToppingGroups!.add(new EnrichedToppingGroups.fromJson(v));
+      });
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -88,6 +95,10 @@ class GetStoreProducts {
       data['variants'] = variants!.map((v) => v.toJson()).toList();
     }
     data['tax'] = tax;
+    if (this.enrichedToppingGroups != null) {
+      data['enriched_topping_groups'] =
+          this.enrichedToppingGroups!.map((v) => v.toJson()).toList();
+    }
     return data;
   }
 }
@@ -148,27 +159,35 @@ class Category {
 
 class Variants {
   String? name;
-  int? price;
+  num? price;
   String? itemCode;
   String? imageUrl;
   String? description;
   int? id;
-
+  List<EnrichedToppingGroups>? enrichedToppingGroups;
   Variants(
       {this.name,
         this.price,
         this.itemCode,
         this.imageUrl,
         this.description,
-        this.id});
+        this.id,
+        this.enrichedToppingGroups,
+      });
 
   Variants.fromJson(Map<String, dynamic> json) {
     name = json['name'];
-    price = json['price'] != null ? (json['price'] as num).toInt() : null;
+    price = json['price'] as num?;
     itemCode = json['item_code'];
     imageUrl = json['image_url'];
     description = json['description'];
     id = json['id'] != null ? (json['id'] as num).toInt() : null;
+    if (json['enriched_topping_groups'] != null) {
+      enrichedToppingGroups = <EnrichedToppingGroups>[];
+      json['enriched_topping_groups'].forEach((v) {
+        enrichedToppingGroups!.add(EnrichedToppingGroups.fromJson(v));
+      });
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -179,6 +198,10 @@ class Variants {
     data['image_url'] = imageUrl;
     data['description'] = description;
     data['id'] = id;
+    if (enrichedToppingGroups != null) {
+      data['enriched_topping_groups'] =
+          enrichedToppingGroups!.map((v) => v.toJson()).toList();
+    }
     return data;
   }
 }
@@ -205,6 +228,87 @@ class Tax {
     data['percentage'] = percentage;
     data['store_id'] = storeId;
     data['id'] = id;
+    return data;
+  }
+}
+
+class EnrichedToppingGroups {
+  int? id;
+  String? name;
+  int? minSelect;
+  int? maxSelect;
+  bool? isRequired;
+  List<Toppings>? toppings;
+
+  EnrichedToppingGroups(
+      {this.id,
+        this.name,
+        this.minSelect,
+        this.maxSelect,
+        this.isRequired,
+        this.toppings});
+
+  EnrichedToppingGroups.fromJson(Map<String, dynamic> json) {
+    id = json['id'];
+    name = json['name'];
+    minSelect = json['min_select'];
+    maxSelect = json['max_select'];
+    isRequired = json['is_required'];
+    if (json['toppings'] != null) {
+      toppings = <Toppings>[];
+      json['toppings'].forEach((v) {
+        toppings!.add(new Toppings.fromJson(v));
+      });
+    }
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['id'] = this.id;
+    data['name'] = this.name;
+    data['min_select'] = this.minSelect;
+    data['max_select'] = this.maxSelect;
+    data['is_required'] = this.isRequired;
+    if (this.toppings != null) {
+      data['toppings'] = this.toppings!.map((v) => v.toJson()).toList();
+    }
+    return data;
+  }
+}
+
+class Toppings {
+  String? name;
+  String? description;
+  double? price;
+  int? storeId;
+  bool? isActive;
+  int? id;
+
+  Toppings(
+      {this.name,
+        this.description,
+        this.price,
+        this.storeId,
+        this.isActive,
+        this.id});
+
+  Toppings.fromJson(Map<String, dynamic> json) {
+    name = json['name'];
+    description = json['description'];
+    price = json['price'];
+    storeId = json['store_id'];
+    isActive = json['isActive'];
+    id = json['id'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['name'] = this.name;
+    data['description'] = this.description;
+    data['price'] = this.price;
+    data['store_id'] = this.storeId;
+    data['isActive'] = this.isActive;
+    data['id'] = this.id;
     return data;
   }
 }

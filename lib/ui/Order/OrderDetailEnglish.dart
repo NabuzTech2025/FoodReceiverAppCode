@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:food_app/api/repository/api_repository.dart';
 import 'package:food_app/constants/constant.dart';
@@ -13,7 +12,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/print_order_without_ip.dart';
+import '../../models/print_order_without_ip.dart';
 
 class OrderDetailEnglish extends StatefulWidget {
   final Order order;
@@ -65,7 +64,9 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
       "order_status": 2,
       "approval_status": isAccept ? 2 : 3,
     };
-
+    if (isAccept && updatedOrder.deliveryTime != null && updatedOrder.deliveryTime!.isNotEmpty) {
+      jsonData["delivery_time"] = updatedOrder.deliveryTime;
+    }
     try {
       // Show loading dialog
       Get.dialog(
@@ -437,6 +438,29 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                     const SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
                     const SizedBox(height: 2),
+                    // ListView.builder(
+                    //   shrinkWrap: true,
+                    //   physics: const NeverScrollableScrollPhysics(),
+                    //   padding: const EdgeInsets.all(1),
+                    //   itemCount: updatedOrder.items?.length ?? 0,
+                    //   itemBuilder: (context, index) {
+                    //     final item = updatedOrder.items?[index];
+                    //     if (item == null) return const SizedBox.shrink();
+                    //
+                    //     final toppingsTotal = item.toppings?.fold<double>(
+                    //       0,
+                    //           (sum, topping) => sum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
+                    //     ) ?? 0;
+                    //     final itemTotal = ((item.unitPrice ?? 0) + toppingsTotal) * (item.quantity ?? 0);
+                    //
+                    //     return _orderItem(
+                    //       item.productName ?? "Unknown",
+                    //       itemTotal.toString(),
+                    //       item,
+                    //       note: item.note ?? "",
+                    //     );
+                    //   },
+                    // ),
                     ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -446,17 +470,19 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                         final item = updatedOrder.items?[index];
                         if (item == null) return const SizedBox.shrink();
 
+                        // ✅ FIX: Calculate totals with null safety
                         final toppingsTotal = item.toppings?.fold<double>(
                           0,
                               (sum, topping) => sum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
                         ) ?? 0;
+
                         final itemTotal = ((item.unitPrice ?? 0) + toppingsTotal) * (item.quantity ?? 0);
 
                         return _orderItem(
-                          item.productName ?? "Unknown",
-                          itemTotal.toString(),
+                          item.productName ?? "Product", // ✅ Use default name if null
+                          itemTotal.toStringAsFixed(2),
                           item,
-                          note: item.note ?? "",
+                          note: item.note ?? "", // ✅ Ensure note is never null
                         );
                       },
                     ),
@@ -680,10 +706,18 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.only(top: 10, bottom: 20),
-              child: _buildActionButtons(
-                  context, updatedOrder.approvalStatus ?? 0),
+            GestureDetector(
+              onLongPress: () {
+                if (updatedOrder.approvalStatus == 2) {
+                  _showDeliveryTimeDialog();
+                }
+              },
+              child: Container(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 10, bottom: 20),
+                  child: _buildActionButtons(context, updatedOrder.approvalStatus ?? 0),
+                ),
+              ),
             ),
             const SizedBox(height: 30,)
           ],
@@ -698,16 +732,72 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
         setState(() {
           isPrint = false;
         });
+
+        // Get current delivery time
+        DateTime currentDeliveryTime;
+        try {
+          currentDeliveryTime = updatedOrder.deliveryTime != null && updatedOrder.deliveryTime!.isNotEmpty
+              ? DateTime.parse(updatedOrder.deliveryTime!)
+              : DateTime.now().add(const Duration(minutes: 30));
+        } catch (e) {
+          currentDeliveryTime = DateTime.now().add(const Duration(minutes: 30));
+        }
+
         return Column(
           children: [
-            Center(
-              child: Text("status_pending".tr,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w400, color: Colors.orangeAccent)),
+            // Delivery Time Container
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${'delivery_time'.tr}:',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          setState(() {
+                            currentDeliveryTime = currentDeliveryTime.subtract(const Duration(minutes: 15));
+                            updatedOrder.deliveryTime = currentDeliveryTime.toIso8601String();
+                          });
+                        },
+                        icon: const Icon(Icons.remove_circle, color: Colors.red, size: 28),
+                      ),
+                      Text(
+                        DateFormat('HH:mm').format(currentDeliveryTime),
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          setState(() {
+                            currentDeliveryTime = currentDeliveryTime.add(const Duration(minutes: 15));
+                            updatedOrder.deliveryTime = currentDeliveryTime.toIso8601String();
+                          });
+                        },
+                        icon: const Icon(Icons.add_circle, color: Colors.green, size: 28),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(
-              height: 5,
-            ),
+            // Accept/Decline Buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -784,6 +874,86 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     return const SizedBox.shrink();
   }
 
+  // Widget _orderItem(String title, String price, OrderItem item, {String? note}) {
+  //   return Padding(
+  //     padding: const EdgeInsets.only(bottom: 12),
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         // Product title and price row
+  //         Row(
+  //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //           children: [
+  //             Expanded(
+  //               child: Text(
+  //                 '${item.quantity ?? 0}X $title'
+  //                     '${((item.toppings?.isNotEmpty ?? false) && item.variant == null) ? ' [${formatAmount(item.unitPrice)}]' : ''}',
+  //                 style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+  //                 overflow: TextOverflow.ellipsis,
+  //                 maxLines: 3,
+  //               ),
+  //             ),
+  //             Text(
+  //               '${'currency'.tr} ${formatAmount(double.parse(price))}',
+  //               style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+  //             ),
+  //           ],
+  //         ),
+  //
+  //         // Variant info
+  //         if (item.variant != null)
+  //           Padding(
+  //             padding: const EdgeInsets.only(left: 10, top: 2),
+  //             child: Text("${item.quantity} × ${item.variant!.name ?? ''} [${formatAmount(item.variant!.price ?? 0)} ${'currency'.tr}]",
+  //                 style: const TextStyle(fontWeight: FontWeight.w400, fontSize: 13)
+  //             ),
+  //           ),
+  //
+  //         // Toppings info
+  //         if ((item.toppings?.isNotEmpty ?? false))
+  //           Padding(
+  //             padding: const EdgeInsets.only(left: 10, top: 2),
+  //             child: Column(
+  //               crossAxisAlignment: CrossAxisAlignment.start,
+  //               children: item.toppings!.map((topping) {
+  //                 final totalPrice = (topping.price ?? 0) * (topping.quantity ?? 0);
+  //                 return Text("${topping.quantity} × ${topping.name} [${formatAmount(totalPrice)}]",
+  //                   style: const TextStyle(color: Colors.black, fontSize: 12),
+  //                 );
+  //               }).toList(),
+  //             ),
+  //           ),
+  //         item.note!.isNotEmpty ?
+  //         Row(mainAxisAlignment: MainAxisAlignment.start,
+  //           crossAxisAlignment: CrossAxisAlignment.start,
+  //           children: [
+  //             Text(
+  //               '${'note'.tr} :',
+  //               style: const TextStyle(
+  //                 fontWeight: FontWeight.bold,
+  //                 fontSize: 13,
+  //                 color: Colors.green,
+  //               ),
+  //             ),
+  //             Container(
+  //               width: MediaQuery.of(context).size.width*0.75,
+  //               child: Text(
+  //                 '${item.note}',
+  //                 style: const TextStyle(
+  //                   fontWeight: FontWeight.w300,
+  //                   fontSize: 13,
+  //                 ),
+  //                 overflow: TextOverflow.ellipsis,
+  //                 maxLines: 3,
+  //               ),
+  //             ),
+  //           ],
+  //         )
+  //             : const SizedBox.shrink(),
+  //       ],
+  //     ),
+  //   );
+  // }
   Widget _orderItem(String title, String price, OrderItem item, {String? note}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -797,7 +967,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
               Expanded(
                 child: Text(
                   '${item.quantity ?? 0}X $title'
-                      '${((item.toppings?.isNotEmpty ?? false) && item.variant == null) ? ' [${formatAmount(item.unitPrice)}]' : ''}',
+                      '${((item.toppings?.isNotEmpty ?? false) && item.variant == null) ? ' [${formatAmount(item.unitPrice ?? 0)}]' : ''}',
                   style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 3,
@@ -810,56 +980,60 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
             ],
           ),
 
-          // Variant info
+          // Variant info (only if variant exists)
           if (item.variant != null)
             Padding(
               padding: const EdgeInsets.only(left: 10, top: 2),
-              child: Text("${item.quantity} × ${item.variant!.name ?? ''} [${formatAmount(item.variant!.price ?? 0)} ${'currency'.tr}]",
+              child: Text(
+                  "${item.quantity} × ${item.variant!.name ?? ''} [${formatAmount(item.variant!.price ?? 0)} ${'currency'.tr}]",
                   style: const TextStyle(fontWeight: FontWeight.w400, fontSize: 13)
               ),
             ),
 
-          // Toppings info
-          if ((item.toppings?.isNotEmpty ?? false))
+          // Toppings info (only if toppings exist and not empty)
+          if (item.toppings != null && item.toppings!.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(left: 10, top: 2),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: item.toppings!.map((topping) {
                   final totalPrice = (topping.price ?? 0) * (topping.quantity ?? 0);
-                  return Text("${topping.quantity} × ${topping.name} [${formatAmount(totalPrice)}]",
+                  return Text(
+                    "${topping.quantity} × ${topping.name} [${formatAmount(totalPrice)}]",
                     style: const TextStyle(color: Colors.black, fontSize: 12),
                   );
                 }).toList(),
               ),
             ),
-          item.note!.isNotEmpty ?
-          Row(mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${'note'.tr} :',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  color: Colors.green,
-                ),
-              ),
-              Container(
-                width: MediaQuery.of(context).size.width*0.75,
-                child: Text(
-                  '${item.note}',
+
+          // Note (only if not empty) - ✅ Added null check
+          if (item.note != null && item.note!.isNotEmpty)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${'note'.tr} :',
                   style: const TextStyle(
-                    fontWeight: FontWeight.w300,
+                    fontWeight: FontWeight.bold,
                     fontSize: 13,
+                    color: Colors.green,
                   ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 3,
                 ),
-              ),
-            ],
-          )
-              : const SizedBox.shrink(),
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.75,
+                  child: Text(
+                    item.note!,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w300,
+                      fontSize: 13,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 3,
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -915,7 +1089,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
 
   Widget _actionButton(BuildContext context, IconData icon, String label, Color color) {
     return GestureDetector(
-      onTap: isLoading ? null : () async {  // Disable if already loading
+      onTap: isLoading ? null : () async {
         if (bearerKey == null) return;
 
         if (label == 'accept'.tr) {
@@ -1076,6 +1250,213 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+    }
+  }
+
+  void _showDeliveryTimeDialog() {
+    if (updatedOrder.approvalStatus != 2) return; // Only for accepted orders
+
+    DateTime currentDeliveryTime;
+    try {
+      currentDeliveryTime = updatedOrder.deliveryTime != null && updatedOrder.deliveryTime!.isNotEmpty
+          ? DateTime.parse(updatedOrder.deliveryTime!)
+          : DateTime.now().add(const Duration(minutes: 30));
+    } catch (e) {
+      currentDeliveryTime = DateTime.now().add(const Duration(minutes: 30));
+    }
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        DateTime updatedTime = currentDeliveryTime;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text('update_delivery_time'.tr),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    DateFormat('HH:mm').format(updatedTime),
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          setDialogState(() {
+                            updatedTime = updatedTime.subtract(const Duration(minutes: 15));
+                          });
+                        },
+                        icon: const Icon(Icons.remove_circle, size: 40, color: Colors.red),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          setDialogState(() {
+                            updatedTime = updatedTime.add(const Duration(minutes: 15));
+                          });
+                        },
+                        icon: const Icon(Icons.add_circle, size: 40, color: Colors.green),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('cancel'.tr),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    await _updateDeliveryTime(updatedTime);
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  child: Text('save'.tr, style: const TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _updateDeliveryTime(DateTime newTime) async {
+    if (!mounted) return;
+
+    bool loaderShown = false;
+    Timer? timeoutTimer;
+
+    try {
+      if (Get.isDialogOpen ?? false) {
+        try {
+          Get.back();
+        } catch (e) {
+          // Handle error
+        }
+      }
+
+      Get.dialog(
+        Center(
+          child: Lottie.asset(
+            'assets/animations/burger.json',
+            width: 150,
+            height: 150,
+            repeat: true,
+          ),
+        ),
+        barrierDismissible: false,
+      );
+      loaderShown = true;
+
+      timeoutTimer = Timer(const Duration(seconds: 8), () {
+        if (loaderShown && (Get.isDialogOpen ?? false)) {
+          try {
+            Get.back();
+            loaderShown = false;
+          } catch (e) {
+            // Handle error
+          }
+        }
+      });
+
+      Map<String, dynamic> jsonData ={
+        "order_status": 2,
+        "approval_status": 2,
+        "delivery_time": newTime.toIso8601String()
+       // "delivery_time": "2025-12-07T00:15:00.000"
+      };
+      print('map value is $jsonData');
+      final result = await ApiRepo().orderAcceptDecline(
+          bearerKey!,
+          jsonData,
+          updatedOrder.id ?? 0
+      ).timeout(
+        const Duration(seconds: 6),
+        onTimeout: () {
+          throw TimeoutException('Request timeout', const Duration(seconds: 6));
+        },
+      );
+
+      timeoutTimer?.cancel();
+
+      if (loaderShown && (Get.isDialogOpen ?? false)) {
+        Get.back();
+        loaderShown = false;
+      }
+
+      if (!mounted) return;
+
+      if (result.code == null) {
+        setState(() {
+          updatedOrder = result;
+        });
+        app.appController.updateOrder(result);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('delivery_time_updated'.tr),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.mess ?? 'failed'.tr),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } on TimeoutException catch (e) {
+      timeoutTimer?.cancel();
+
+      if (loaderShown && (Get.isDialogOpen ?? false)) {
+        try {
+          Get.back();
+        } catch (e) {
+          // Handle error
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Request timed out. Please try again.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      timeoutTimer?.cancel();
+
+      if (loaderShown && (Get.isDialogOpen ?? false)) {
+        try {
+          Get.back();
+        } catch (e) {
+          // Handle error
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 

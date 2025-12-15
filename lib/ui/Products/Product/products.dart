@@ -2576,30 +2576,6 @@ class _ProductsState extends State<Products> {
       ),
     );
   }
-  // Positioned(
-  // top: -70,
-  // right: 0,
-  // left: 0,
-  // child: Center(
-  // child: GestureDetector(
-  // onTap: () => Navigator.pop(context),
-  // child: Container(
-  // padding: const EdgeInsets.all(12),
-  // decoration: const BoxDecoration(
-  // shape: BoxShape.circle,
-  // color: Colors.white,
-  // boxShadow: [
-  // BoxShadow(
-  // color: Colors.black12,
-  // blurRadius: 6,
-  // )
-  // ],
-  // ),
-  // child: const Icon(Icons.close, size: 25, color: Colors.black),
-  // ),
-  // ),
-  // ),
-  // ),
 
   Future<void> getStoreTaxes() async {
     if (sharedPreferences == null) {

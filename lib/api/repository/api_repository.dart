@@ -34,6 +34,7 @@ import '../../models/add_new_store_timing_response_model.dart';
 import '../../models/add_new_store_topping_response_model.dart';
 import '../../models/add_new_topping_group_response_model.dart';
 import '../../models/add_printer_ip_response_model.dart';
+import '../../models/all_admin_order_response_model.dart';
 import '../../models/discount_change_response_model.dart';
 import '../../models/driver/get_deliver_driver_response_model.dart';
 import '../../models/edit_allergy_item_response_model.dart';
@@ -49,6 +50,8 @@ import '../../models/edit_store_toppings_response_model.dart';
 import '../../models/edit_tax_response_model.dart';
 import '../../models/edit_topping_group_response_model.dart';
 import '../../models/get_added_tax_response_model.dart';
+import '../../models/get_admin_report_response_model.dart' hide TaxBreakdown, PaymentMethods, OrderTypes, ApprovalStatuses;
+import '../../models/get_all_store_response_model.dart';
 import '../../models/get_allergy_response_model.dart';
 import '../../models/get_discount_percentage_response_model.dart';
 import '../../models/get_group_item_response_model.dart';
@@ -101,9 +104,7 @@ class ApiRepo {
       final response = await apiUtils.post(url: url, data: formData);
       print("REsponseData $response");
       return UserLoginH.fromJson(response.data);
-    
-      //return null;
-      return UserLoginH.withError(code: CODE_RESPONSE_NULL, mess: "");
+
     } catch (e) {
       return UserLoginH.withError(
           code: CODE_ERROR, mess: apiUtils.handleError(e));
@@ -278,6 +279,7 @@ class ApiRepo {
       ];
     }
   }
+
 
   Future<Order> orderAcceptDecline(String bearer, Map<String, dynamic> jsonData, int? id) async {
     //print("JsonDatsss "+jsonData.toString());
@@ -1195,7 +1197,7 @@ class CallService extends GetConnect {
     httpClient.baseUrl = Api.baseUrl;
     var res = await get('categories/?store_id=$storeId&include_inactive=true', headers: {
       'accept': 'application/json',
-      'Authorization': "Bearer $accessToken",
+      //'Authorization': "Bearer $accessToken",
     });
 
     if (res.statusCode == 200) {
@@ -3044,6 +3046,144 @@ class CallService extends GetConnect {
         return true;
       }
       return false;
+    }
+  }
+
+  //For Get All Store
+  Future<List<GetAllStoreResponseModel>> getAllStore() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? Token = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $Token");
+    httpClient.baseUrl = Api.baseUrl;
+    var res = await get('stores/', headers: {
+      'accept': 'application/json',
+      'Authorization': "Bearer $Token",
+    });
+
+    if (res.statusCode == 200) {
+      print("Getting All Store response is :${res.statusCode.toString()}");
+      List<dynamic> jsonList = res.body;
+      return jsonList.map((json) => GetAllStoreResponseModel.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load All Store : ${res.statusCode}');
+    }
+  }
+
+  //For Get All Admin Order
+  Future<List<AllOrderAdminResponseModel>> getAllAdminOrder({int limit = 20, int offset = 0}) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? Token = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $Token");
+      print("Fetching orders with limit=$limit, offset=$offset");
+
+      httpClient.baseUrl = Api.baseUrl;
+      httpClient.timeout = Duration(seconds: 30);
+
+      var res = await get('orders/admin/list?limit=$limit&offset=$offset', headers: {
+        'accept': 'application/json',
+        'Authorization': "Bearer $Token",
+      }).timeout(
+        Duration(seconds: 30),
+        onTimeout: () {
+          throw Exception('Request timeout');
+        },
+      );
+
+      print("Response status code: ${res.statusCode}");
+      print("Response body type: ${res.body.runtimeType}");
+
+      if (res.statusCode == null) {
+        throw Exception('No response from server');
+      }
+
+      if (res.statusCode == 200) {
+        print("Getting All Admin Order response is :${res.statusCode.toString()}");
+
+        if (res.body == null) {
+          print("Response body is null");
+          return [];
+        }
+
+        List<dynamic> jsonList = res.body is List ? res.body : [];
+        print("Fetched ${jsonList.length} orders");
+
+        if (jsonList.isEmpty) {
+          return [];
+        }
+
+        return jsonList.map((json) {
+          try {
+            return AllOrderAdminResponseModel.fromJson(json);
+          } catch (e) {
+            print("Error parsing order: $e");
+            print("JSON: $json");
+            rethrow;
+          }
+        }).toList();
+      } else {
+        throw Exception('Failed to load All Admin Order : ${res.statusCode}');
+      }
+    } catch (e) {
+      print("API Error: $e");
+      rethrow;
+    }
+  }
+
+  //For Get Admin Report
+  Future<GetAdminReportResponseModel> getAdminReport(String storeId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? Token = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $Token");
+    httpClient.baseUrl = Api.baseUrl;
+    var res = await get('reports/admin/today?store_ids=$storeId', headers: {
+      'accept': 'application/json',
+      'Authorization': "Bearer $Token",
+    });
+
+    if (res.statusCode == 200) {
+      print("Getting Admin Report response is :${res.statusCode.toString()}");
+      return GetAdminReportResponseModel.fromJson(res.body);
+    } else {
+      throw Exception('Failed to load Admin Report : ${res.statusCode}');
+    }
+  }
+
+  Future<List<DailySalesReport>> reportGetApiAdmin(String bearer,String storeId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? Token = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $Token");
+    httpClient.baseUrl = Api.baseUrl;
+    var res = await get('reports/?store_id=$storeId', headers: {
+      'accept': 'application/json',
+      'Authorization': "Bearer $Token",
+    });
+
+    if (res.statusCode == 200) {
+      print("Getting Admin Daily Report For Calender is :${res.statusCode.toString()}");
+      List<dynamic> jsonList = res.body;
+      return jsonList.map((json) => DailySalesReport.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load All Store : ${res.statusCode}');
+    }
+  }
+
+//For Get Admin Report
+  Future<GetAdminReportResponseModel> getAdminReportAllStore() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? Token = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $Token");
+    httpClient.baseUrl = Api.baseUrl;
+    var res = await get('reports/admin/today', headers: {
+      'accept': 'application/json',
+      'Authorization': "Bearer $Token",
+    });
+
+    if (res.statusCode == 200) {
+      print("Getting Admin Report response is :${res.statusCode.toString()}");
+      return GetAdminReportResponseModel.fromJson(res.body);
+    } else {
+      throw Exception('Failed to load Admin Report : ${res.statusCode}');
     }
   }
 

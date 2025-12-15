@@ -1,24 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../customView/custom_button.dart';
 import '../../customView/custom_text_form_prefiex.dart';
 import '../../utils/validators.dart';
 import 'loginController.dart';
 
-
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+class DesktopLoginScreen extends StatelessWidget {
+  const DesktopLoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-    print("📐 Orientation: ${MediaQuery.of(context).orientation}");
     final controller = Get.put(LoginController());
 
     return Scaffold(
@@ -31,32 +22,43 @@ class LoginScreen extends StatelessWidget {
           _buildLanguageDropdown(controller),
         ],
       ),
-        body: SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height -
-                  AppBar().preferredSize.height -
-                  MediaQuery.of(context).padding.top,
+      body: Center(
+        child: SingleChildScrollView(
+          child: Container(
+            width: 600,
+            constraints: const BoxConstraints(
+              maxWidth: 600,
+              minWidth: 400,
             ),
-            child: Container(
-              margin: const EdgeInsets.all(10),
-              child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-             // const SizedBox(height: 100),
-              _buildLoginTitle(),
-              const SizedBox(height: 30),
-              _buildLoginForm(controller),
-              const SizedBox(height: 10),
-              _buildForgotPasswordButton(controller),
-              const SizedBox(height: 20),
-              _buildLoginButton(controller),
-            ],
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 60),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _buildLoginTitle(),
+                const SizedBox(height: 40),
+                _buildLoginForm(controller),
+                const SizedBox(height: 20),
+                _buildForgotPasswordButton(controller),
+                const SizedBox(height: 30),
+                _buildLoginButton(controller),
+              ],
+            ),
           ),
         ),
       ),
-    ));
+    );
   }
 
   Widget _buildEnvironmentDropdown(LoginController controller) {
@@ -137,11 +139,12 @@ class LoginScreen extends StatelessWidget {
 
   Widget _buildLoginTitle() {
     return const Text(
-      "Login!",
+      "Login",
       style: TextStyle(
-        fontSize: 30,
+        fontSize: 36,
         color: Colors.black,
         fontWeight: FontWeight.w700,
+        letterSpacing: 0.5,
       ),
     );
   }
@@ -151,63 +154,82 @@ class LoginScreen extends StatelessWidget {
       key: controller.formKey,
       child: Column(
         children: [
-          CustomTextFormPrefix(
-            keyboardType: TextInputType.emailAddress,
-            myLabelText: "Username...",
-            controller: controller.emailController,
-            icon: const Icon(Icons.person, color: Colors.black),
-            validate: (value) => validateFieldCustomText(
-              value,
-              "Please enter username",
+          // Username Field
+          SizedBox(
+            width: double.infinity,
+            height: 65,
+            child: CustomTextFormPrefix(
+              keyboardType: TextInputType.emailAddress,
+              myLabelText: "Username",
+              controller: controller.emailController,
+              icon: const Icon(Icons.person, color: Colors.black87),
+              validate: (value) => validateFieldCustomText(
+                value,
+                "Please enter username",
+              ),
+              valueChanged: (value) {},
+              obscureText: false,
             ),
-            valueChanged: (value) {},
-            obscureText: false,
           ),
-          // ✅ UPDATE THIS SECTION
-          Obx(() => CustomTextFormPrefix(
-            keyboardType: TextInputType.visiblePassword,
-            myLabelText: "Password...",
-            controller: controller.passwordController,
-            icon: const Icon(Icons.lock, color: Colors.black),
-            validate: (value) => validateFieldCustomText(
-              value,
-              "Please enter password",
+          const SizedBox(height: 20),
+          // Password Field
+          Obx(
+                () => SizedBox(
+              width: double.infinity,
+              height: 65,
+              child: CustomTextFormPrefix(
+                keyboardType: TextInputType.visiblePassword,
+                myLabelText: "Password",
+                controller: controller.passwordController,
+                icon: const Icon(Icons.lock, color: Colors.black87),
+                validate: (value) => validateFieldCustomText(
+                  value,
+                  "Please enter password",
+                ),
+                valueChanged: (value) {},
+                obscureText: !controller.isPasswordVisible.value,
+                isPasswordField: true,
+                isPasswordVisible: controller.isPasswordVisible.value,
+                onTogglePassword: controller.togglePasswordVisibility,
+              ),
             ),
-            valueChanged: (value) {},
-            obscureText: !controller.isPasswordVisible.value,
-            isPasswordField: true,
-            isPasswordVisible: controller.isPasswordVisible.value,
-            onTogglePassword: controller.togglePasswordVisibility,
-          )),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildForgotPasswordButton(LoginController controller) {
-    return GestureDetector(
-      onTap: () => controller.showPasswordResetDialog(),
-      child: const Text(
-        "Forgot Password",
-        style: TextStyle(
-          fontSize: 17,
-          color: Colors.black,
-          fontWeight: FontWeight.w600,
-          decoration: TextDecoration.underline,
-          decorationStyle: TextDecorationStyle.solid,
+    return Align(
+      alignment: Alignment.centerRight,
+      child: GestureDetector(
+        onTap: () => controller.showPasswordResetDialog(),
+        child: const Text(
+          "Forgot Password?",
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.blue,
+            fontWeight: FontWeight.w600,
+            decoration: TextDecoration.underline,
+            decorationStyle: TextDecorationStyle.solid,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildLoginButton(LoginController controller) {
-    return CustomButton(
-      onPressed: () => controller.login(),
-      myText: "Login",
-      color: Colors.black,
-      textColor: Colors.white,
-      fontSize: 17,
-      fontWeigt: FontWeight.w700,
+    return SizedBox(
+      width: double.infinity,
+      height: 55,
+      child: CustomButton(
+        onPressed: () => controller.login(),
+        myText: "Login",
+        color: Colors.black,
+        textColor: Colors.white,
+        fontSize: 16,
+        fontWeigt: FontWeight.w700,
+      ),
     );
   }
 }

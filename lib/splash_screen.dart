@@ -1,20 +1,15 @@
 import 'dart:async';
-
+import 'package:food_app/ui/SuperAdmin/super_admin.dart';
 import 'package:flutter/material.dart';
 import 'package:food_app/constants/constant.dart';
-import 'package:food_app/ui/Login/desktopLogin.dart';
+import 'package:food_app/ui/Login/LoginScreen.dart';
 import 'package:food_app/ui/home_screen.dart';
 import 'package:lottie/lottie.dart';
-/*import 'package:hive/hive.dart';
-import 'package:raxar_project/ui/home_screen.dart';*/
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:get/get.dart';
-
+import 'package:flutter/services.dart';
 import 'api/api.dart';
-import 'ui/Login/LoginScreen.dart';
 
-/*import '../database/database_source.dart';
-import 'login_register/login_screen.dart';*/
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -29,7 +24,22 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     _initFlow();
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+    super.dispose();
   }
 
   Future<void> _initFlow() async {
@@ -43,27 +53,33 @@ class _SplashScreenState extends State<SplashScreen> {
 
     Timer(const Duration(seconds: 4), () {
       if (sessionID != null) {
+        // Get role_id from SharedPreferences
+        int? roleId = _prefs.getInt(valueShared_ROLE_ID);
+
         // Check if we have a stored tab preference from notification
         String? notificationTab = _prefs.getString('notification_initial_tab');
 
         if (notificationTab != null) {
-          // Clear the stored preference
           _prefs.remove('notification_initial_tab');
-          // Navigate with the tab preference
           Get.off(() => const HomeScreen(), arguments: {'initialTab': int.parse(notificationTab)});
         } else {
-          // Check if we have navigation arguments from Get.arguments
           final arguments = Get.arguments;
           if (arguments != null && arguments['initialTab'] != null) {
             Get.off(() => const HomeScreen(), arguments: arguments);
           } else {
-            // Normal navigation to default tab
-            Get.off(() => const HomeScreen());
+            // Navigate based on role_id
+            if (roleId == 1) {
+              // Super Admin
+              Get.off(() => const SuperAdmin());
+            } else {
+              // Regular users (role_id 2 or others)
+              Get.off(() => const HomeScreen());
+            }
           }
         }
       } else {
-        Get.off(() => const DesktopLoginScreen());
-        //Get.off(() => const LoginScreen());
+        //Get.off(() => const DesktopLoginScreen());
+       Get.off(() => const LoginScreen());
       }
     });
   }
