@@ -428,6 +428,8 @@ class AppTranslations extends Translations {
           'topping_deactivated':'Toppings InActive Successfully',
           'item_note':'Item Note',
           "syncing": "Syncing...",
+          "update_delivery_time": "Update Delivery Time",
+          "sync_time":"Sync Time"
           },
         'de': {
           'order_details': 'Bestelldetails',
@@ -858,6 +860,8 @@ class AppTranslations extends Translations {
           'topping_deactivated':'Toppings wurden erfolgreich deaktiviert',
           'item_note':'notiz',
           "syncing": "Synchronisierung...",
+          "update_delivery_time": "Lieferzeit aktualisieren",
+          "sync_time": "Zeit synchronisieren",
         },
         'ch': {
           'order_details': 'Bestelldetails',

@@ -19,6 +19,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../Database/databse_helper.dart';
 import '../../models/Topping.dart';
 import '../../models/order_model.dart';
+import '../../models/sync_order_response_model.dart';
 import '../../models/today_report.dart' hide TaxBreakdown;
 import '../Login/LoginScreen.dart';
 import '../../models/order_model.dart'; // Order model
@@ -103,7 +104,7 @@ class _OrderScreenState extends State<OrderScreenNew>
   Timer? _syncTimer;
   late AnimationController _syncRotationController;
   late Animation<double> _syncRotationAnimation;
-
+  Timer? _autoSyncTimer;
 
   @override
   void initState() {
@@ -131,6 +132,7 @@ class _OrderScreenState extends State<OrderScreenNew>
       initVar();
       _loadAndSyncLocalOrders();
     });
+    _startAutoSync();
   }
 
   Future<void> _checkAndClearOldData() async {
@@ -171,6 +173,7 @@ class _OrderScreenState extends State<OrderScreenNew>
     _socketService.disconnect();
     _noOrderTimer?.cancel();
     _syncTimer?.cancel();
+    _autoSyncTimer?.cancel();
     super.dispose();
   }
 
@@ -225,6 +228,12 @@ class _OrderScreenState extends State<OrderScreenNew>
         _isSyncingLocalOrders = false;
       });
     }
+  }
+
+  void _startAutoSync() {
+    _autoSyncTimer = Timer.periodic(const Duration(minutes: 30), (timer) async {
+      await _autoSyncLocalOrders();
+    });
   }
 
 
@@ -1685,6 +1694,12 @@ class _OrderScreenState extends State<OrderScreenNew>
                             icon: const Icon(Icons.refresh),
                             onPressed: _manualRefresh,
                           ),
+                          IconButton(
+                            icon: Icon(Icons.sync),
+                            onPressed: () async {
+                              await syncLocalPosOrder();
+                            },
+                          )
                         ],
                       ),
                     ],
@@ -1911,10 +1926,10 @@ class _OrderScreenState extends State<OrderScreenNew>
                                                         SizedBox(width: MediaQuery.of(context).size.width * 0.6,
                                                           child: Row(crossAxisAlignment: CrossAxisAlignment.start,
                                                             children: [
-                                                              SizedBox(width: MediaQuery.of(context).size.width *
-                                                                    (_storeType == '2' ? 0.5 : (order.orderType == 2 ? 0.18 : 0.3)),
-                                                                child: Text(
-                                                                  order.orderType == 2 ? 'pickup'.tr : (_storeType == '2'
+                                                              Container(
+                                                                width: MediaQuery.of(context).size.width *
+                                                                    (_storeType == '2' ? 0.35 : (order.orderType == 2 ? 0.18 : 0.18)),
+                                                                child: Text(order.orderType == 2 ? 'pickup'.tr : (_storeType == '2'
                                                                       ? _getFullAddress(
                                                                       order.shipping_address ?? order.guestShippingJson,
                                                                       order.shipping_address == null)
@@ -1926,7 +1941,7 @@ class _OrderScreenState extends State<OrderScreenNew>
                                                                 ),
                                                               ),
                                                               if (order.deliveryTime != null && order.deliveryTime!.isNotEmpty)
-                                                                SizedBox(width: MediaQuery.of(context).size.width * 0.3,
+                                                                SizedBox(width: MediaQuery.of(context).size.width * 0.25,
                                                                   child: Text(
                                                                     '${'time'.tr}: ${_extractTime(order.deliveryTime!)}',
                                                                     style: const TextStyle(fontWeight: FontWeight.w700,
@@ -2258,7 +2273,7 @@ class _OrderScreenState extends State<OrderScreenNew>
                      borderRadius: BorderRadius.circular(12),
                       color: Color(0xff14b65f)
                     ),
-                    child: Text('Save'.tr, style: const TextStyle(color: Colors.white)),
+                    child: Text('saved'.tr, style: const TextStyle(color: Colors.white)),
                   ),
                 ),
               ],
@@ -2486,37 +2501,167 @@ class _OrderScreenState extends State<OrderScreenNew>
     }
   }
 
-  Map<String, dynamic> _prepareOrderApiPayload(Map<String, dynamic> orderDetails) {
+  Future<bool> syncLocalPosOrder() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    var StoreId = prefs.getString(valueShared_STORE_KEY);
+
+    try {
+      // Get unsynced orders from database
+      final unsyncedOrders = await DatabaseHelper().getUnsyncedOrders(StoreId!);
+
+      if (unsyncedOrders.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('No orders to sync'.tr),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+        return false;
+      }
+
+      // Build order maps
+      List<Map<String, dynamic>> ordersToSync = [];
+      for (var dbOrder in unsyncedOrders) {
+        final orderDetails = await DatabaseHelper().getOrderDetails(dbOrder['id'] as int);
+        if (orderDetails != null) {
+          ordersToSync.add(await _buildSyncOrderMap(orderDetails));
+        }
+      }
+
+      print('📤 Syncing ${ordersToSync.length} orders');
+      print('📦 Orders payload: ${jsonEncode(ordersToSync)}');
+
+      // Call API with list of orders
+      SyncLocalOrder model = await CallService().syncLocalOrder(ordersToSync);
+
+      // Mark orders as synced
+      for (var dbOrder in unsyncedOrders) {
+        await DatabaseHelper().markOrderAsSynced(dbOrder['id'] as int);
+      }
+
+      // Reload local orders
+      await _loadAndSyncLocalOrders();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${ordersToSync.length} Order(s) Synced Successfully'.tr),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+
+      return true;
+
+    } catch (e) {
+      print('❌ Syncing error: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${'Failed to sync order'.tr}: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      return false;
+    }
+  }
+
+  Future<void> _autoSyncLocalOrders() async {
+    try {
+      final storeId = sharedPreferences.getString(valueShared_STORE_KEY);
+      if (storeId == null || storeId.isEmpty) return;
+
+      final unsyncedOrders = await DatabaseHelper().getUnsyncedOrders(storeId);
+      if (unsyncedOrders.isEmpty) {
+        print('✅ No orders to sync');
+        return;
+      }
+
+      List<Map<String, dynamic>> ordersToSync = [];
+
+      for (var dbOrder in unsyncedOrders) {
+        final orderDetails = await DatabaseHelper().getOrderDetails(dbOrder['id'] as int);
+        if (orderDetails != null) {
+          ordersToSync.add(await _buildSyncOrderMap(orderDetails));
+        }
+      }
+
+      if (ordersToSync.isNotEmpty) {
+        print('📤 Auto-syncing ${ordersToSync.length} orders');
+
+        // ✅ Call API
+        var result = await CallService().syncLocalOrder(ordersToSync);
+
+        // ✅ Mark as synced
+        for (var dbOrder in unsyncedOrders) {
+          await DatabaseHelper().markOrderAsSynced(dbOrder['id'] as int);
+        }
+
+        await _loadAndSyncLocalOrders();
+        print('✅ Auto-sync completed: ${ordersToSync.length} orders synced');
+      }
+    } catch (e) {
+      print('❌ Auto-sync error: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> _buildSyncOrderMap(Map<String, dynamic> orderDetails) async {
     final orderData = orderDetails['order'] as Map<String, dynamic>;
-    final addressData = orderDetails['shipping_address'] as Map<String, dynamic>?;
-    final itemsData = orderDetails['items'] as List<Map<String, dynamic>>;
+    final itemsData = orderDetails['items'] as List<dynamic>;
     final paymentData = orderDetails['payment'] as Map<String, dynamic>?;
 
-    return {
-      "store_id": orderData['store_id'],
-      "order_type": orderData['order_type'],
-      "note": orderData['note'],
-      "email": orderData['email'],
-      "shipping_address": addressData != null ? {
-        "customer_name": addressData['customer_name'],
-        "phone": addressData['phone'],
-        "line1": addressData['line1'],
-        "city": addressData['city'],
-        "zip": addressData['zip'],
-        "country": addressData['country'],
-      } : null,
-      "items": itemsData.map((item) => {
-        "product_id": item['product_id'],
-        "quantity": item['quantity'],
-        "unit_price": item['unit_price'],
-        "variant_id": item['variant_id'],
-      }).toList(),
-      "payment": paymentData != null ? {
-        "payment_method": paymentData['payment_method'],
-        "amount": paymentData['amount'],
-      } : null,
+    // ✅ Build items array
+    List<Map<String, dynamic>> items = [];
+    for (var item in itemsData) {
+      // ✅ Convert toppings - keep empty array if no toppings
+      List<Map<String, dynamic>> toppings = [];
+
+
+      if (item['toppings'] != null && item['toppings'] is List && (item['toppings'] as List).isNotEmpty) {
+        for (var t in item['toppings']) {
+          toppings.add({
+            'topping_id': t['id'] ?? 0,  // ✅ Changed from 'name' to 'topping_id'
+            'quantity': t['topping_quantity'] ?? 1,
+          });
+        }
+      }
+
+      items.add({
+        'product_id': item['product_id'],
+        'quantity': item['quantity'],
+        'unit_price': (item['unit_price'] as num?)?.toInt() ?? 0,
+        'note': item['note'] ?? '',
+        'variant_id': item['variant_id'] ?? 0,
+        'toppings': toppings,
+      });
+    }
+
+    final orderMap = {
+      'client_uuid': orderData['client_uuid'],
+      'store_id': int.tryParse(orderData['store_id'].toString()) ?? 0,
+      'order_type': 3, // ✅ Hardcoded to 3 for POS orders
+      'created_at': DateTime.fromMillisecondsSinceEpoch(orderData['created_at'] as int).toIso8601String(),
+      'note': orderData['note'] ?? '',
+      'items': items,
+      'payment': {
+        'payment_method': 'cash',
+        'status': 'paid',
+        'amount': (paymentData?['amount'] as num?)?.toInt() ?? 0,
+        'order_id': 0,
+      },
     };
+
+    print('🔍 Built order map: ${jsonEncode(orderMap)}');
+    return orderMap;
   }
+
 }
 
 class SalesCacheHelper {

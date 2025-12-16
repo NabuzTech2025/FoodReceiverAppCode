@@ -8,8 +8,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:food_app/push/NotificationService.dart';
-import 'package:food_app/services/app_update_service.dart';
-import 'package:food_app/ui/Pos/pos.dart';
 import 'package:food_app/ui/SuperAdmin/super_admin.dart';
 import 'package:food_app/utils/AppTranslations.dart';
 import 'package:food_app/utils/printer_helper_english.dart';
@@ -1086,7 +1084,7 @@ Future<void> _initializeLocalNotifications() async {
     'Order Notifications',
     description: 'Notifications for new orders and reservations',
     importance: Importance.max,
-    sound: RawResourceAndroidNotificationSound('alarm'),
+    sound: const RawResourceAndroidNotificationSound('alarm'),
     playSound: true,
     enableVibration: true,
     vibrationPattern: Int64List.fromList([0, 1000, 500, 1000]),
@@ -1237,13 +1235,6 @@ class _AppUpdateCheckerState extends State<AppUpdateChecker> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          AppUpdateService.checkForUpdates(context);
-        }
-      });
-    });
   }
 
   @override
@@ -1282,16 +1273,8 @@ class _AppLifecycleObserverState extends State<AppLifecycleObserver>
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
       clearBadgeOnAppOpen();
-
-      // Check for updates when app comes to foreground
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          AppUpdateService.checkForUpdates(context);
-        }
-      });
     }
   }
-
 
   void clearBadgeOnAppOpen() async {
     badgeCount = 0;

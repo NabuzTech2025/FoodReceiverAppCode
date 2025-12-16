@@ -185,7 +185,7 @@ class Items {
   double? unitPrice;
   String? note;
   int? id;
-  String? variant;
+  Variant? variant;
   String? productName;
   String? variantName;
   double? tax;
@@ -212,7 +212,9 @@ class Items {
     unitPrice = json['unit_price'] != null ? (json['unit_price'] as num).toDouble() : null;
     note = json['note'] as String?;
     id = json['id'] as int?;
-    variant = json['variant'] as String?;
+    variant = json['variant'] != null && json['variant'] is Map
+        ? Variant.fromJson(json['variant'])
+        : null;
     productName = json['product_name'] as String?;
     variantName = json['variant_name'] as String?;
     tax = json['tax'] != null ? (json['tax'] as num).toDouble() : null;
@@ -232,7 +234,9 @@ class Items {
     data['unit_price'] = this.unitPrice;
     data['note'] = this.note;
     data['id'] = this.id;
-    data['variant'] = this.variant;
+    if (this.variant != null) {
+      data['variant'] = this.variant!.toJson();
+    }
     data['product_name'] = this.productName;
     data['variant_name'] = this.variantName;
     data['tax'] = this.tax;
@@ -527,7 +531,7 @@ class ShippingAddress {
 class Toppings {
   int? toppingId;
   int? quantity;
-  int? price;
+  double? price;  // ✅ Changed from int? to double?
   String? name;
 
   Toppings({this.toppingId, this.quantity, this.price, this.name});
@@ -535,7 +539,7 @@ class Toppings {
   Toppings.fromJson(Map<String, dynamic> json) {
     toppingId = json['topping_id'];
     quantity = json['quantity'];
-    price = json['price'];
+    price = json['price'] != null ? (json['price'] as num).toDouble() : null;  // ✅ Changed
     name = json['name'];
   }
 
@@ -545,6 +549,52 @@ class Toppings {
     data['quantity'] = this.quantity;
     data['price'] = this.price;
     data['name'] = this.name;
+    return data;
+  }
+}
+
+class Variant {
+  String? name;
+  double? price;
+  double? discountPrice;
+  String? itemCode;
+  String? imageUrl;
+  String? description;
+  int? id;
+  double? qtyOnHand;
+
+  Variant({
+    this.name,
+    this.price,
+    this.discountPrice,
+    this.itemCode,
+    this.imageUrl,
+    this.description,
+    this.id,
+    this.qtyOnHand,
+  });
+
+  Variant.fromJson(Map<String, dynamic> json) {
+    name = json['name'] as String?;
+    price = json['price'] != null ? (json['price'] as num).toDouble() : null;
+    discountPrice = json['discount_price'] != null ? (json['discount_price'] as num).toDouble() : null;
+    itemCode = json['item_code'] as String?;
+    imageUrl = json['image_url'] as String?;
+    description = json['description'] as String?;
+    id = json['id'] as int?;
+    qtyOnHand = json['qty_on_hand'] != null ? (json['qty_on_hand'] as num).toDouble() : null;
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = {};
+    data['name'] = this.name;
+    data['price'] = this.price;
+    data['discount_price'] = this.discountPrice;
+    data['item_code'] = this.itemCode;
+    data['image_url'] = this.imageUrl;
+    data['description'] = this.description;
+    data['id'] = this.id;
+    data['qty_on_hand'] = this.qtyOnHand;
     return data;
   }
 }

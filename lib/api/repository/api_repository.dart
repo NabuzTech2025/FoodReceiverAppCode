@@ -72,6 +72,7 @@ import '../../models/reservation/accept_decline_reservation_response_model.dart'
 import '../../models/reservation/add_new_reservation_response_model.dart';
 import '../../models/reservation/get_history_reservation.dart';
 import '../../models/reservation/get_reservation_table_full_details.dart';
+import '../../models/sync_order_response_model.dart';
 import '../api.dart';
 import '../api_end_points.dart';
 import '../api_params.dart';
@@ -3149,6 +3150,7 @@ class CallService extends GetConnect {
     }
   }
 
+  //For get daily admin report
   Future<List<DailySalesReport>> reportGetApiAdmin(String bearer,String storeId) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? Token = prefs.getString(valueShared_BEARER_KEY);
@@ -3168,7 +3170,7 @@ class CallService extends GetConnect {
     }
   }
 
-//For Get Admin Report
+  //For Get Admin Report
   Future<GetAdminReportResponseModel> getAdminReportAllStore() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? Token = prefs.getString(valueShared_BEARER_KEY);
@@ -3184,6 +3186,42 @@ class CallService extends GetConnect {
       return GetAdminReportResponseModel.fromJson(res.body);
     } else {
       throw Exception('Failed to load Admin Report : ${res.statusCode}');
+    }
+  }
+
+  //For Sync Order
+  Future<SyncLocalOrder> syncLocalOrder(dynamic body) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+
+      print("🔑 User Access Token: $accessToken");
+      print("📦 Request Body Type: ${body.runtimeType}");
+      print("📦 Request Body: ${jsonEncode(body)}");
+
+      var res = await post(
+        'sync/orders',
+        body,
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer $accessToken",
+        },
+      );
+
+      print("📡 Sync Order Response Status: ${res.statusCode}");
+      print("📡 Sync Order Response Body: ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        return SyncLocalOrder.fromJson(res.body);
+      } else {
+        print("❌ Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}. Response: ${res.body}');
+      }
+    } catch (e) {
+      print("❌ Syncing error: $e");
+      rethrow;
     }
   }
 

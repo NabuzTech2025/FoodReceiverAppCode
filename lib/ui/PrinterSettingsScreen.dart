@@ -20,12 +20,15 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
   bool get wantKeepAlive => true;
   final TextEditingController _newIpController = TextEditingController();
   final FocusNode _ipFocusNode = FocusNode();
+  final TextEditingController _syncTimeController = TextEditingController();
+  final FocusNode _syncTimeFocusNode = FocusNode();
   bool isLoading =false;
   bool _autoRemoteOrderrAccept = false;
   List<IpAddressItem> _ipAddresses = [];
   late SharedPreferences sharedPreferences;
   List<GetPrinterIpResponseModel> ip = [];
   String? storeId;
+
   @override
   void initState() {
     super.initState();
@@ -36,7 +39,11 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
   Future<void> _initSharedPrefs() async {
     sharedPreferences = await SharedPreferences.getInstance();
     await getPrinterIp();
-    await _loadSettings(); // ✅ Make this await so it completes
+    await _loadSettings();
+    String? savedSyncTime = sharedPreferences.getString('sync_time');
+    if (savedSyncTime != null && savedSyncTime.isNotEmpty) {
+      _syncTimeController.text = savedSyncTime;
+    }
   }
     @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -66,8 +73,6 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
     await getPrinterIp(showLoader: false);
     _loadSettings();
   }
-
-
 
   Future<void> _loadSettings() async {
     // First load local cache
@@ -196,9 +201,67 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
   void dispose() {
     _newIpController.dispose();
     _ipFocusNode.dispose();
+    _syncTimeController.dispose();
+    _syncTimeFocusNode.dispose();
     super.dispose();
   }
+  Future<void> _saveSyncTime() async {
+    String syncTime = _syncTimeController.text.trim();
 
+    if (syncTime.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('please_enter_sync'.tr),
+            backgroundColor: Colors.red,
+            duration: Duration(milliseconds: 1500),
+          ),
+        );
+      }
+      return;
+    }
+
+    // Validate if it's a number
+    int? syncTimeValue = int.tryParse(syncTime);
+    if (syncTimeValue == null || syncTimeValue <= 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('please_enter_valid'.tr),
+            backgroundColor: Colors.red,
+            duration: Duration(milliseconds: 1500),
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      await sharedPreferences.setString('sync_time', syncTime);
+      _syncTimeFocusNode.unfocus();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('sync_time_saved'.tr),
+            backgroundColor: Colors.green,
+            duration: Duration(milliseconds: 1500),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error saving sync time: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('failed_save_sync'.tr),
+            backgroundColor: Colors.red,
+            duration: Duration(milliseconds: 1500),
+          ),
+        );
+      }
+    }
+  }
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -231,11 +294,11 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
                       ),
                     ),
                     Switch(
-                      value: _autoRemoteOrderrAccept,  // Change this
+                      value: _autoRemoteOrderrAccept,
                       activeThumbColor: Colors.green,
                       onChanged: (val) async {
                         setState(() {
-                          _autoRemoteOrderrAccept = val;  // Change this
+                          _autoRemoteOrderrAccept = val;
                         });
                         await poststoreSetting(val, showDialog: true);
                       },
@@ -243,7 +306,71 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
                   ],
                 ),
               ),
-
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey[300]!, width: 1),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'sync_time'.tr,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _syncTimeController,
+                            focusNode: _syncTimeFocusNode,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              hintText: 'e.g. 30',
+                              suffixText: 'seconds'.tr,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                            ),
+                            onFieldSubmitted: (value) => _saveSyncTime(),
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: _saveSyncTime,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green[300],
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          ),
+                          child: Text(
+                            'saved'.tr,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
               // IP Address List Header
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

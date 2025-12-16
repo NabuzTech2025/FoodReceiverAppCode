@@ -9,7 +9,31 @@ class AppUpdateService {
   static const String _iosAppId = '6747834218';
   static const String _iosAppStoreUrl = 'https://apps.apple.com/in/app/magskr-food-app/id6747834218';
 
+  static bool _isChecking = false;
+  static DateTime? _lastCheckTime;
+  static const bool _hasShownInitialCheck = false;
   static Future<void> checkForUpdates(BuildContext context) async {
+    // ✅ ADD: Prevent duplicate checks
+    if (_isChecking) {
+      print("⏭️ Update check already in progress, skipping");
+      return;
+    }
+
+    // ✅ ADD: Don't check more than once per minute
+    if (_lastCheckTime != null &&
+        DateTime.now().difference(_lastCheckTime!) < const Duration(minutes: 1)) {
+      print("⏭️ Update check done recently, skipping");
+      return;
+    }
+
+    if (!context.mounted) {
+      print("⚠️ Context not mounted, skipping update check");
+      return;
+    }
+
+    _isChecking = true;
+    _lastCheckTime = DateTime.now();
+
     print("🔄 ========== APP UPDATE CHECK STARTED ==========");
     print("🔄 Platform: ${Platform.operatingSystem}");
     print("🔄 Time: ${DateTime.now()}");
@@ -19,24 +43,24 @@ class AppUpdateService {
         countryCode: 'IN',
         debugDisplayAlways: false,
         debugLogging: true,
-        durationUntilAlertAgain: Duration(days: 1),
+        durationUntilAlertAgain: const Duration(days: 1),
       );
 
-      // Check karo update available hai ya nahi
       await upgrader.initialize();
 
-      final blocked = await upgrader.blocked();
+      final blocked = upgrader.blocked();
       print("🚫 Blocked (Force Update): $blocked");
 
       final shouldDisplayUpgrade = upgrader.shouldDisplayUpgrade();
       print("📱 Should Display Upgrade: $shouldDisplayUpgrade");
 
       if (blocked) {
-        // Force update required
         print("⚠️ Force update required!");
-        _showForceUpdateDialog(context);
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (context.mounted) {
+          _showForceUpdateDialog(context);
+        }
       } else if (shouldDisplayUpgrade) {
-        // Optional update available
         print("🚀 Update available! Showing dialog...");
         final appStoreVersion = upgrader.currentAppStoreVersion ?? 'Unknown';
         final installedVersion = upgrader.currentInstalledVersion ?? 'Unknown';
@@ -44,26 +68,28 @@ class AppUpdateService {
         print("📱 Local Version: $installedVersion");
         print("🎯 Store Version: $appStoreVersion");
 
-        _showUpdateDialog(
-            context,
-            installedVersion,
-            appStoreVersion,
-                () => _launchStore()
-        );
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (context.mounted) {
+          _showUpdateDialog(
+              context,
+              installedVersion,
+              appStoreVersion,
+                  () => _launchStore()
+          );
+        }
       } else {
         print("✅ App is up to date");
       }
     } catch (e, stackTrace) {
       print("❌ Error checking for updates: $e");
       print("❌ Stack trace: $stackTrace");
-
-      // Fallback for testing
-      print("🔄 Showing fallback update dialog for testing...");
-      _showUpdateDialog(context, '1.0.0', '1.0.1', () => _launchStore());
+    } finally {
+      _isChecking = false; // ✅ ADD: Reset flag
     }
 
     print("🔄 ========== APP UPDATE CHECK ENDED ==========");
   }
+
 
   static Future<void> _launchStore() async {
     try {

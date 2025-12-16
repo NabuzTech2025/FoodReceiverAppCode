@@ -253,9 +253,9 @@ class PosController extends GetxController {
     double basePrice = double.tryParse(selectedProduct.value!.price?.toString() ?? '0') ?? 0.0;
     double variantPrice = (selectedVariant.value!.price ?? 0).toDouble();
 
-    // Calculate topping prices for selected variant
     double toppingPrice = 0.0;
-    List<String> toppingDetails = []; // Changed from toppingNames
+    List<String> toppingDetails = [];
+    List<Map<String, dynamic>> toppingDataList = [];  // ✅ Add this line
 
     print('🔍 Checking toppings for variant ${selectedVariant.value!.id}');
     print('🔍 Selected topping IDs: ${selectedToppingsMap[selectedVariant.value!.id]}');
@@ -264,16 +264,23 @@ class PosController extends GetxController {
       var selectedToppingIds = selectedToppingsMap[selectedVariant.value!.id]!;
 
       print('🔍 Found ${selectedToppingIds.length} selected toppings');
+      List<Map<String, dynamic>> toppingDataList = [];  // ✅ Store full topping data
 
       selectedVariant.value!.enrichedToppingGroups?.forEach((group) {
-        print('🔍 Checking group: ${group.name}');
         group.toppings?.forEach((topping) {
-          print('🔍 Checking topping: ${topping.name} (ID: ${topping.id})');
-
           if (selectedToppingIds.contains(topping.id)) {
             toppingPrice += topping.price ?? 0.0;
             toppingDetails.add('${topping.name} [€${(topping.price ?? 0.0).toStringAsFixed(2)}]');
-            print('✅ Added topping: ${topping.name}');
+
+            // ✅ Store actual topping ID (not composite key)
+            toppingDataList.add({
+              'topping_id': topping.id,  // ✅ This should be the actual topping ID from API
+              'name': topping.name,
+              'price': topping.price ?? 0.0,
+              'quantity': 1,
+            });
+
+            print('✅ Added topping: ${topping.name} with ID: ${topping.id}');  // Debug log
           }
         });
       });
@@ -300,7 +307,8 @@ class PosController extends GetxController {
         'variant_id': selectedVariant.value!.id,
         'product_id': selectedProduct.value!.id,
         'topping_details': toppingDetails,
-        'item_note': '', // Add this line
+        'topping_data': toppingDataList,  // ✅ Add this line
+        'item_note': '',
       });
     }
 
@@ -756,7 +764,6 @@ class PosController extends GetxController {
   // Place Order - Landscape
   void placeOrder() async {
     if (cartItems.isEmpty) {
-      // Use ScaffoldMessenger instead of Get.snackbar
       if (Get.context != null) {
         ScaffoldMessenger.of(Get.context!).showSnackBar(
           SnackBar(
@@ -786,20 +793,10 @@ class PosController extends GetxController {
         );
 
         // ✅ Parse toppings from cart item
+        // ✅ Use topping_data directly from cart item
         List<Map<String, dynamic>>? toppings;
-        if (item['topping_details'] != null && item['topping_details'] is List) {
-          toppings = (item['topping_details'] as List<String>).map((detail) {
-            // Parse "Topping Name [€2.50]"
-            final match = RegExp(r'(.+?)\s*\[€([\d.]+)\]').firstMatch(detail);
-            if (match != null) {
-              return {
-                'name': match.group(1)?.trim(),
-                'price': double.tryParse(match.group(2) ?? '0') ?? 0.0,
-                'quantity': 1,
-              };
-            }
-            return {'name': detail, 'price': 0.0, 'quantity': 1};
-          }).toList();
+        if (item['topping_data'] != null && item['topping_data'] is List) {
+          toppings = List<Map<String, dynamic>>.from(item['topping_data']);
         }
 
         return {
@@ -807,15 +804,15 @@ class PosController extends GetxController {
           'quantity': item['quantity'],
           'price': item['price'],
           'variant_id': item['variant_id'],
-          'note': item['item_note'],
+          'note': item['item_note'] ?? '', // ✅ Ensure note is never null
           'toppings': toppings,
         };
       }).toList();
 
-      // Save order to database
+      // Save order to database with order_type = 3 for POS
       int orderId = await dbHelper.saveOrder(
         storeId: storeId!,
-        orderType: selectedOrderType.value,
+        orderType: '3', // ✅ Changed to '3' for POS orders (was using selectedOrderType.value)
         note: orderNote.value.isEmpty ? null : orderNote.value,
         customerName: customerDetails['name'] ?? '',
         phone: customerDetails['phone'] ?? '',
@@ -826,7 +823,7 @@ class PosController extends GetxController {
         amount: calculateGrandTotal(),
       );
 
-      print('✅ Order placed with ID: $orderId');
+      print('✅ Order placed with ID: $orderId (POS order_type=3)');
 
       // Clear cart and reset
       cartItems.clear();
@@ -841,7 +838,6 @@ class PosController extends GetxController {
       addressController.clear();
       regionController.clear();
 
-      // Use ScaffoldMessenger instead of Get.snackbar
       if (Get.context != null) {
         ScaffoldMessenger.of(Get.context!).showSnackBar(
           SnackBar(
@@ -862,7 +858,6 @@ class PosController extends GetxController {
     } catch (e) {
       print('❌ Error placing order: $e');
 
-      // Use ScaffoldMessenger for error
       if (Get.context != null) {
         ScaffoldMessenger.of(Get.context!).showSnackBar(
           SnackBar(

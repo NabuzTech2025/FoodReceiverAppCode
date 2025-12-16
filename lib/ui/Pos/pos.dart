@@ -508,7 +508,6 @@ class _PosLandscapeState extends State<PosLandscape> {
                   width: 25,
                 ),
               ),
-              SizedBox(width: 5,),
               Container(
                 margin: EdgeInsets.symmetric(horizontal: _responsive(context, 12)),
                 height: _responsive(context, 40),
@@ -583,7 +582,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                   ),
                 ],
               ), SizedBox(width: 50,),
-              SizedBox(width: _responsive(context, 30)),
+              SizedBox(width: _responsive(context, 10)),
               Row(
                 children: [
                   Image.asset(
@@ -604,8 +603,6 @@ class _PosLandscapeState extends State<PosLandscape> {
                   Icon(Icons.arrow_drop_down)
                 ],
               ),
-              SizedBox(width: _responsive(context, 3)),
-
             ]),
                   ),
             Obx(() => GestureDetector(
@@ -613,7 +610,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                   ? null
                   : controller.refreshData,
               child: Container(
-                height: 76,width: 60,
+                height: 60,
                 padding: EdgeInsets.all(_responsive(context, 10)),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -642,8 +639,8 @@ class _PosLandscapeState extends State<PosLandscape> {
                 Get.offAll(() => HomeScreen());
               },
               child: Container(
-                height: 76,width: 60,
-                padding: EdgeInsets.all(_responsive(context, 10)),
+                height: 60,
+                padding: EdgeInsets.all(_responsive(context, 12)),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(_responsive(context, 9)),
@@ -660,7 +657,7 @@ class _PosLandscapeState extends State<PosLandscape> {
           ],
         ),
         Positioned(
-          right:_responsive(context, 230),
+          right:_responsive(context, 210),
           top: 10,
           child: Container(
             height: _responsive(context, 71),

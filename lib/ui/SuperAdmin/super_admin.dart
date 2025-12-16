@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../Database/databse_helper.dart';
 import '../../api/repository/api_repository.dart';
 import '../../constants/constant.dart';
 import '../../models/all_admin_order_response_model.dart';
@@ -381,7 +382,7 @@ class _SuperAdminState extends State<SuperAdmin> {
                 // Search Box and Logout
                 Padding(
                   padding: const EdgeInsets.all(12.0),
-                  child: Row(
+                  child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
                         height: 45,
@@ -988,12 +989,22 @@ class _SuperAdminState extends State<SuperAdmin> {
         barrierDismissible: false,
       );
 
+      // ✅ Get bearer key and call logout API
       SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? bearerKey = prefs.getString(valueShared_BEARER_KEY);
 
+      if (bearerKey != null) {
+        print("🚪 Calling logout API...");
+        await ApiRepo().logoutAPi(bearerKey);
+        print("✅ Logout API successful");
+      }
+
+      // ✅ Clear SQLite database
+      await DatabaseHelper().clearAllStores();
+
+      // Clear SharedPreferences
       await prefs.remove(valueShared_BEARER_KEY);
       await prefs.remove(valueShared_STORE_KEY);
-      await prefs.remove(valueShared_USERNAME_KEY);
-      await prefs.remove(valueShared_PASSWORD_KEY);
       await prefs.remove(valueShared_ROLE_ID);
       await prefs.remove(valueShared_STORE_TYPE);
       await prefs.remove('auto_order_accept');
@@ -1006,7 +1017,6 @@ class _SuperAdminState extends State<SuperAdmin> {
       }
 
       await prefs.reload();
-
       await Future.delayed(const Duration(milliseconds: 500));
 
       if (Get.isDialogOpen ?? false) {

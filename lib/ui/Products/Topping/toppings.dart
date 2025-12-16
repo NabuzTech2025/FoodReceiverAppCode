@@ -37,6 +37,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
     _initializeSharedPreferences();
 
   }
+
   void _openTab(int index) {
     if (_pageController.hasClients &&
         _pageController.page == index.toDouble()) {
@@ -44,6 +45,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
       return;
     }
   }
+
   void _updatePagination() {
     totalPages = (toppingsList.length / itemsPerPage).ceil();
     if (totalPages == 0) totalPages = 1;
@@ -1309,6 +1311,5 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
       }
     }
   }
-
 
 }

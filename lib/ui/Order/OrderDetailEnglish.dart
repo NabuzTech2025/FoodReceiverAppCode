@@ -727,6 +727,11 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
   }
 
   Widget _buildActionButtons(BuildContext context, int approvalStatus) {
+    String paymentMethod = updatedOrder.payment?.paymentMethod?.toLowerCase() ?? '';
+    if (paymentMethod == 'stripe') {
+      return const SizedBox.shrink();
+    }
+
     if (orderType == 0) {
       if (approvalStatus == 1) {
         setState(() {
@@ -814,7 +819,13 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Center(
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: getStatusColor(approvalStatus).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: getStatusColor(approvalStatus)),
+              ),
               child: Text("status_accepted".tr,
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -830,7 +841,13 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Center(
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: getStatusColor(approvalStatus).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: getStatusColor(approvalStatus)),
+              ),
               child: Text("status_decline".tr,
                   style: TextStyle(
                       fontWeight: FontWeight.bold, color: Colors.red[400]!)),
@@ -872,6 +889,19 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
       }
     }
     return const SizedBox.shrink();
+  }
+
+  Color getStatusColor(int? status) {
+    switch (status) {
+      case 1:
+        return Colors.orange;
+      case 2:
+        return Colors.green;
+      case 3:
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 
   // Widget _orderItem(String title, String price, OrderItem item, {String? note}) {
@@ -954,6 +984,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
   //     ),
   //   );
   // }
+
   Widget _orderItem(String title, String price, OrderItem item, {String? note}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -968,7 +999,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                 child: Text(
                   '${item.quantity ?? 0}X $title'
                       '${((item.toppings?.isNotEmpty ?? false) && item.variant == null) ? ' [${formatAmount(item.unitPrice ?? 0)}]' : ''}',
-                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 3,
                 ),
@@ -986,14 +1017,14 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
               padding: const EdgeInsets.only(left: 10, top: 2),
               child: Text(
                   "${item.quantity} × ${item.variant!.name ?? ''} [${formatAmount(item.variant!.price ?? 0)} ${'currency'.tr}]",
-                  style: const TextStyle(fontWeight: FontWeight.w400, fontSize: 13)
+                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)
               ),
             ),
 
           // Toppings info (only if toppings exist and not empty)
           if (item.toppings != null && item.toppings!.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(left: 10, top: 2),
+              padding: const EdgeInsets.only(left: 20, top: 2),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: item.toppings!.map((topping) {
@@ -1254,7 +1285,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
   }
 
   void _showDeliveryTimeDialog() {
-    if (updatedOrder.approvalStatus != 2) return; // Only for accepted orders
+    if (updatedOrder.approvalStatus != 2) return;
 
     DateTime currentDeliveryTime;
     try {
@@ -1319,7 +1350,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                     await _updateDeliveryTime(updatedTime);
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  child: Text('save'.tr, style: const TextStyle(color: Colors.white)),
+                  child: Text('saved'.tr, style: const TextStyle(color: Colors.white)),
                 ),
               ],
             );
@@ -1459,5 +1490,6 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
       }
     }
   }
+
 
 }

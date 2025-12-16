@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:uuid/uuid.dart';
 import '../models/get_product_category_list_response_model.dart';
 import '../models/get_store_products_response_model.dart';
 import 'dart:io';
@@ -41,7 +42,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 8,
+      version: 10,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -98,11 +99,11 @@ class DatabaseHelper {
       FOREIGN KEY (product_id) REFERENCES products(id)
     )
   ''');
-    // Add in _onCreate method around line 90:
     await db.execute('''
   CREATE TABLE order_item_toppings(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_item_id INTEGER,
+    topping_id INTEGER,  -- ✅ Add topping_id column
     topping_name TEXT,
     topping_price REAL,
     topping_quantity INTEGER,
@@ -138,6 +139,7 @@ class DatabaseHelper {
     await db.execute('''
     CREATE TABLE orders(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_uuid TEXT,
       discount_id TEXT,
       note TEXT,
       order_type INTEGER,
@@ -230,8 +232,7 @@ class DatabaseHelper {
     if (oldVersion < 3) {
       try {
         var tables = await db.rawQuery(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='products'"
-        );
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='products'");
 
         if (tables.isNotEmpty) {
           await db.execute('''
@@ -284,10 +285,12 @@ class DatabaseHelper {
     if (oldVersion < 4) {
       try {
         var columns = await db.rawQuery('PRAGMA table_info(categories)');
-        bool hasDisplayOrder = columns.any((col) => col['name'] == 'displayOrder');
+        bool hasDisplayOrder =
+            columns.any((col) => col['name'] == 'displayOrder');
 
         if (!hasDisplayOrder) {
-          await db.execute('ALTER TABLE categories ADD COLUMN displayOrder INTEGER DEFAULT 0');
+          await db.execute(
+              'ALTER TABLE categories ADD COLUMN displayOrder INTEGER DEFAULT 0');
           print('✅ Added displayOrder column to categories table');
         }
       } catch (e) {
@@ -384,19 +387,6 @@ class DatabaseHelper {
       FOREIGN KEY (variant_id) REFERENCES product_variants(id)
     )
   ''');
-      if (oldVersion < 8) {
-        await db.execute('''
-    CREATE TABLE IF NOT EXISTS order_item_toppings(
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      order_item_id INTEGER,
-      topping_name TEXT,
-      topping_price REAL,
-      topping_quantity INTEGER,
-      FOREIGN KEY (order_item_id) REFERENCES order_items(id)
-    )
-  ''');
-        print('✅ Order item toppings table created');
-      }
 
       await db.execute('''
     CREATE TABLE IF NOT EXISTS variant_toppings(
@@ -411,6 +401,31 @@ class DatabaseHelper {
     )
   ''');
       print('✅ Variant topping tables created');
+    }
+
+    if (oldVersion < 8) {
+      await db.execute('''
+    CREATE TABLE IF NOT EXISTS order_item_toppings(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_item_id INTEGER,
+      topping_name TEXT,
+      topping_price REAL,
+      topping_quantity INTEGER,
+      FOREIGN KEY (order_item_id) REFERENCES order_items(id)
+    )
+  ''');
+      print('✅ Order item toppings table created');
+    }
+
+    if (oldVersion < 9) {
+      await db.execute('ALTER TABLE orders ADD COLUMN client_uuid TEXT');
+    }
+
+    if (oldVersion < 10) {
+      // Add topping_id column to order_item_toppings
+      await db.execute(
+          'ALTER TABLE order_item_toppings ADD COLUMN topping_id INTEGER DEFAULT 0');
+      print('✅ Added topping_id column to order_item_toppings');
     }
   }
 
@@ -454,8 +469,7 @@ class DatabaseHelper {
   // ==================== CATEGORY METHODS ====================
 
   Future<void> saveCategories(
-      List<GetProductCategoryList> categories, String storeId) async
-  {
+      List<GetProductCategoryList> categories, String storeId) async {
     final db = await database;
     final batch = db.batch();
 
@@ -500,9 +514,8 @@ class DatabaseHelper {
   }
 
   // ==================== PRODUCT METHODS ====================
-     Future<void> saveProducts(
-      List<GetStoreProducts> products, String storeId) async
-     {
+  Future<void> saveProducts(
+      List<GetStoreProducts> products, String storeId) async {
     final db = await database;
     final batch = db.batch();
 
@@ -549,7 +562,8 @@ class DatabaseHelper {
             }
           }
 
-          print('💾 Saving variant ${variant.id} (${variant.name}) - Price: $variantPrice');
+          print(
+              '💾 Saving variant ${variant.id} (${variant.name}) - Price: $variantPrice');
 
           batch.insert(
             'product_variants',
@@ -566,18 +580,20 @@ class DatabaseHelper {
 
           if (variant.enrichedToppingGroups != null &&
               variant.enrichedToppingGroups!.isNotEmpty) {
-            print('  📦 Variant ${variant.id} has ${variant.enrichedToppingGroups!.length} topping groups');
+            print(
+                '  📦 Variant ${variant.id} has ${variant.enrichedToppingGroups!.length} topping groups');
 
             for (var group in variant.enrichedToppingGroups!) {
               // ✅ CREATE UNIQUE KEY: variant_id + group_id
               String uniqueGroupId = '${variant.id}_${group.id}';
 
-              print('    🔹 Saving group $uniqueGroupId (${group.name}) with ${group.toppings?.length ?? 0} toppings');
+              print(
+                  '    🔹 Saving group $uniqueGroupId (${group.name}) with ${group.toppings?.length ?? 0} toppings');
 
               batch.insert(
                 'variant_topping_groups',
                 {
-                  'id': uniqueGroupId,  // ✅ Use unique key
+                  'id': uniqueGroupId, // ✅ Use unique key
                   'variant_id': variant.id.toString(),
                   'name': group.name ?? '',
                   'min_select': group.minSelect ?? 0,
@@ -590,15 +606,18 @@ class DatabaseHelper {
               if (group.toppings != null && group.toppings!.isNotEmpty) {
                 for (var topping in group.toppings!) {
                   // ✅ CREATE UNIQUE KEY: variant_id + group_id + topping_id
-                  String uniqueToppingId = '${variant.id}_${group.id}_${topping.id}';
+                  String uniqueToppingId =
+                      '${variant.id}_${group.id}_${topping.id}';
 
-                  print('      🍕 Saving topping $uniqueToppingId (${topping.name})');
+                  print(
+                      '      🍕 Saving topping $uniqueToppingId (${topping.name})');
 
                   batch.insert(
                     'variant_toppings',
                     {
-                      'id': uniqueToppingId,  // ✅ Use unique key
-                      'topping_group_id': uniqueGroupId,  // ✅ Reference unique group key
+                      'id': uniqueToppingId, // ✅ Use unique key
+                      'topping_group_id':
+                          uniqueGroupId, // ✅ Reference unique group key
                       'name': topping.name ?? '',
                       'description': topping.description ?? '',
                       'price': topping.price ?? 0.0,
@@ -618,64 +637,66 @@ class DatabaseHelper {
     print('✅ Saved ${products.length} products to database');
   }
 
-    Future<List<GetStoreProducts>> getProducts(String storeId) async {
-      final db = await database;
-      final List<Map<String, dynamic>> maps = await db.query(
-        'products',
-        where: 'storeId = ?',
-        whereArgs: [storeId],
-        orderBy: 'name ASC',
-      );
+  Future<List<GetStoreProducts>> getProducts(String storeId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'products',
+      where: 'storeId = ?',
+      whereArgs: [storeId],
+      orderBy: 'name ASC',
+    );
 
-      print('📦 Retrieved ${maps.length} products from database');
+    print('📦 Retrieved ${maps.length} products from database');
 
-      return maps.map((map) {
-        double? priceValue;
-        if (map['price'] != null) {
-          if (map['price'] is double) {
-            priceValue = map['price'] as double;
-          } else if (map['price'] is int) {
-            priceValue = (map['price'] as int).toDouble();
-          } else if (map['price'] is String) {
-            priceValue = double.tryParse(map['price'] as String);
-          }
+    return maps.map((map) {
+      double? priceValue;
+      if (map['price'] != null) {
+        if (map['price'] is double) {
+          priceValue = map['price'] as double;
+        } else if (map['price'] is int) {
+          priceValue = (map['price'] as int).toDouble();
+        } else if (map['price'] is String) {
+          priceValue = double.tryParse(map['price'] as String);
         }
+      }
 
-        return GetStoreProducts(
-          id: int.tryParse(map['id']?.toString() ?? '0'),
-          name: map['name'] as String?,
-          price: priceValue,
-          categoryId: int.tryParse(map['categoryId']?.toString() ?? '0'),
-          imageUrl: map['imageUrl'] as String?,
-          description: map['description'] as String?,
-          isActive: map['isActive'] == 1,
-        );
-      }).toList();
-    }
-
-    // ✅ NEW: Get variants for a specific product
-    Future<List<Variants>> getProductVariants(String productId) async {
-      final db = await database;
-      final List<Map<String, dynamic>> maps = await db.query(
-        'product_variants',
-        where: 'product_id = ?',
-        whereArgs: [productId],
+      return GetStoreProducts(
+        id: int.tryParse(map['id']?.toString() ?? '0'),
+        name: map['name'] as String?,
+        price: priceValue,
+        categoryId: int.tryParse(map['categoryId']?.toString() ?? '0'),
+        imageUrl: map['imageUrl'] as String?,
+        description: map['description'] as String?,
+        isActive: map['isActive'] == 1,
       );
+    }).toList();
+  }
 
-      print('📦 Retrieved ${maps.length} variants for product $productId');
+  // ✅ NEW: Get variants for a specific product
+  Future<List<Variants>> getProductVariants(String productId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'product_variants',
+      where: 'product_id = ?',
+      whereArgs: [productId],
+    );
 
-      return maps.map((map) {
-        return Variants(
-          id: int.tryParse(map['id']?.toString() ?? '0'),
-          name: map['name'] as String?,
-          price: (map['price'] as double?)?.toInt(),
-          itemCode: map['item_code'] as String?,
-          description: map['description'] as String?,
-        );
-      }).toList();
-    }
+    print('📦 Retrieved ${maps.length} variants for product $productId');
 
-    Future<List<EnrichedToppingGroups>> getVariantToppingGroups(String variantId) async {
+    return maps.map((map) {
+      return Variants(
+        id: int.tryParse(map['id']?.toString() ?? '0'),
+        name: map['name'] as String?,
+        price: (map['price'] as double?)?.toInt(),
+        itemCode: map['item_code'] as String?,
+        description: map['description'] as String?,
+      );
+    }).toList();
+  }
+
+  Future<List<EnrichedToppingGroups>> getVariantToppingGroups(
+      String variantId) async
+  {
     final db = await database;
 
     final groupMaps = await db.query(
@@ -684,7 +705,8 @@ class DatabaseHelper {
       whereArgs: [variantId],
     );
 
-    print('📦 Found ${groupMaps.length} topping groups for variant $variantId'); // ADD THIS
+    print(
+        '📦 Found ${groupMaps.length} topping groups for variant $variantId'); // ADD THIS
 
     List<EnrichedToppingGroups> groups = [];
 
@@ -695,7 +717,8 @@ class DatabaseHelper {
         whereArgs: [groupMap['id']],
       );
 
-      print('🔍 Found ${toppingMaps.length} toppings for group ${groupMap['id']}'); // ADD THIS
+      print(
+          '🔍 Found ${toppingMaps.length} toppings for group ${groupMap['id']}'); // ADD THIS
 
       List<Toppings> toppings = toppingMaps.map((map) {
         // Extract the actual topping ID from the composite key
@@ -738,7 +761,8 @@ class DatabaseHelper {
       ));
     }
 
-    print('✅ Returning ${groups.length} topping groups with toppings'); // ADD THIS
+    print(
+        '✅ Returning ${groups.length} topping groups with toppings'); // ADD THIS
     return groups;
   }
 
@@ -781,205 +805,246 @@ class DatabaseHelper {
     }
   }
 
-    // ==================== ORDER METHODS ====================
+  // ==================== ORDER METHODS ====================
+  Future<String> _generateSequentialClientUuid(String storeId) async {
+    final db = await database;
 
-    Future<int> saveOrder({
-      required String storeId,
-      required String orderType,
-      required String? note,
-      required String customerName,
-      required String phone,
-      required String email,
-      required String address,
-      required String region,
-      required List<Map<String, dynamic>> items,
-      required double amount,
-    }) async
-    {
-      final db = await database;
+    // Get count of orders for this store to determine sequence number
+    final result = await db.rawQuery(
+        'SELECT COUNT(*) as count FROM orders WHERE store_id = ?',
+        [storeId]
+    );
 
-      int orderTypeInt = orderType == 'Lieferzeit' ? 1 : 2;
+    int orderCount = Sqflite.firstIntValue(result) ?? 0;
+    int sequenceNumber = orderCount + 1;  // Next order number
 
-      int orderId = await db.insert('orders', {
-        'discount_id': null,
-        'note': note,
-        'order_type': orderTypeInt,
-        'order_status': 1,
-        'approval_status': 1,
-        'delivery_time': null,
-        'store_id': storeId,
-        'isActive': 1,
-        'email': email.isEmpty ? null : email,
-        'captcha_token': '',
-        'created_at': DateTime
-            .now()
-            .millisecondsSinceEpoch,
-        'synced': 0,
-      });
+    // Generate random last digit (0-9)
+    int randomDigit = DateTime.now().millisecond % 10;
 
-      await db.insert('order_shipping_address', {
+    // Create UUID pattern: sequence repeated + random digit at end
+    // Example: 11111111-1111-1111-1111-111111111119
+    String digit = sequenceNumber.toString();
+
+    String uuid = '${digit * 8}-${digit * 4}-${digit * 4}-${digit * 4}-${digit * 11}$randomDigit';
+
+    print('✅ Generated UUID: $uuid for order sequence: $sequenceNumber');
+
+    return uuid;
+  }
+
+
+  Future<int> saveOrder({
+    required String storeId,
+    required String orderType,
+    required String? note,
+    required String customerName,
+    required String phone,
+    required String email,
+    required String address,
+    required String region,
+    required List<Map<String, dynamic>> items,
+    required double amount,
+  }) async
+  {
+    final db = await database;
+    // Generate sequential UUID in format: XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+    int timestamp = DateTime.now().millisecondsSinceEpoch;
+    String clientUuid = await _generateSequentialClientUuid(storeId);
+    int orderTypeInt =
+        int.tryParse(orderType) ?? 3; // ✅ Parse to int, default to 3
+
+    int orderId = await db.insert('orders', {
+      'client_uuid': clientUuid,
+      'discount_id': null,
+      'note': note ?? '', // ✅ Ensure note is never null
+      'order_type': orderTypeInt,
+      'order_status': 1,
+      'approval_status': 1,
+      'delivery_time': null,
+      'store_id': storeId,
+      'isActive': 1,
+      'email': email.isEmpty ? null : email,
+      'captcha_token': '',
+      'created_at': DateTime.now().millisecondsSinceEpoch,
+      'synced': 0,
+    });
+
+    await db.insert('order_shipping_address', {
+      'order_id': orderId,
+      'type': 'shipping',
+      'line1': address,
+      'city': region,
+      'zip': region,
+      'country': 'Germany',
+      'phone': phone,
+      'customer_name': customerName,
+    });
+
+    for (var item in items) {
+      int itemId = await db.insert('order_items', {
         'order_id': orderId,
-        'type': 'shipping',
-        'line1': address,
-        'city': region,
-        'zip': region,
-        'country': 'Germany',
-        'phone': phone,
-        'customer_name': customerName,
+        'note': item['note'] ?? '', // ✅ Ensure note is never null
+        'product_id': item['product_id'],
+        'quantity': item['quantity'],
+        'unit_price': item['price'],
+        'variant_id': item['variant_id'] ?? 0,
       });
 
-      for (var item in items) {
-        int itemId = await db.insert('order_items', {
-          'order_id': orderId,
-          'note': item['note'],
-          'product_id': item['product_id'],
-          'quantity': item['quantity'],
-          'unit_price': item['price'],
-          'variant_id': item['variant_id'] ?? 0,
-        });
 
-        // ✅ Save toppings if present
-        if (item['toppings'] != null && item['toppings'] is List) {
-          for (var topping in item['toppings']) {
-            await db.insert('order_item_toppings', {
-              'order_item_id': itemId,
-              'topping_name': topping['name'],
-              'topping_price': topping['price'],
-              'topping_quantity': topping['quantity'] ?? 1,
-            });
-          }
+      if (item['toppings'] != null && item['toppings'] is List) {
+        for (var topping in item['toppings']) {
+          print('💾 Saving topping - ID: ${topping['topping_id']}, Name: ${topping['name']}');  // Debug
+
+          await db.insert('order_item_toppings', {
+            'order_item_id': itemId,
+            'topping_id': topping['topping_id'] ?? 0,
+            'topping_name': topping['name'] ?? '',
+            'topping_price': topping['price'] ?? 0.0,
+            'topping_quantity': topping['quantity'] ?? 1,
+          });
         }
       }
-
-      await db.insert('order_payment', {
-        'order_id': orderId,
-        'payment_method': 'stripe',
-        'status': 'pending',
-        'paid_at': DateTime.now().toIso8601String(),
-        'amount': amount,
-      });
-
-      print('✅ Order saved with ID: $orderId');
-      return orderId;
     }
 
-    Future<List<Map<String, dynamic>>> getAllOrders(String storeId) async {
-      final db = await database;
-      return await db.query(
-        'orders',
-        where: 'store_id = ?',
-        whereArgs: [storeId],
-        orderBy: 'created_at DESC',
+    await db.insert('order_payment', {
+      'order_id': orderId,
+      'payment_method': 'cash',
+      'status': 'paid', // ✅ Changed from 'pending' to 'paid'
+      'paid_at': DateTime.now().toIso8601String(),
+      'amount': amount,
+    });
+
+    print('✅ Order saved with ID: $orderId (order_type: $orderTypeInt)');
+    return orderId;
+  }
+
+  Future<List<Map<String, dynamic>>> getAllOrders(String storeId) async {
+    final db = await database;
+    return await db.query(
+      'orders',
+      where: 'store_id = ?',
+      whereArgs: [storeId],
+      orderBy: 'created_at DESC',
+    );
+  }
+
+  Future<Map<String, dynamic>?> getOrderDetails(int orderId) async {
+    final db = await database;
+
+    final order = await db.query(
+      'orders',
+      where: 'id = ?',
+      whereArgs: [orderId],
+    );
+
+    if (order.isEmpty) return null;
+
+    final address = await db.query(
+      'order_shipping_address',
+      where: 'order_id = ?',
+      whereArgs: [orderId],
+    );
+
+    final items = await db.query(
+      'order_items',
+      where: 'order_id = ?',
+      whereArgs: [orderId],
+    );
+
+    List<Map<String, dynamic>> itemsWithToppings = [];
+    for (var item in items) {
+      final toppings = await db.query(
+        'order_item_toppings',
+        where: 'order_item_id = ?',
+        whereArgs: [item['id']],
       );
+
+      // ✅ Extract actual topping_id from composite topping_id if stored
+      List<Map<String, dynamic>> processedToppings = toppings.map((t) {
+        int actualToppingId = t['topping_id'] as int? ?? 0;
+        return {
+          'id': actualToppingId,
+          'topping_id': actualToppingId,
+          'topping_name': t['topping_name'],
+          'topping_price': t['topping_price'],
+          'topping_quantity': t['topping_quantity'],
+        };
+      }).toList();
+
+      Map<String, dynamic> itemWithToppings = Map.from(item);
+      itemWithToppings['toppings'] = processedToppings;
+      itemsWithToppings.add(itemWithToppings);
     }
 
-    Future<Map<String, dynamic>?> getOrderDetails(int orderId) async {
-      final db = await database;
+    // ✅ Load payment data
+    final payment = await db.query(
+      'order_payment',
+      where: 'order_id = ?',
+      whereArgs: [orderId],
+    );
 
-      final order = await db.query(
-        'orders',
-        where: 'id = ?',
-        whereArgs: [orderId],
-      );
+    return {
+      'order': order.first,
+      'shipping_address': address.isNotEmpty ? address.first : null,
+      'items': itemsWithToppings,
+      'payment': payment.isNotEmpty ? payment.first : null,
+    };
+  }
 
-      if (order.isEmpty) return null;
+  Future<List<Map<String, dynamic>>> getUnsyncedOrders(String storeId) async {
+    final db = await database;
+    return await db.query(
+      'orders',
+      where: 'store_id = ? AND synced = 0',
+      whereArgs: [storeId],
+      orderBy: 'created_at ASC',
+    );
+  }
 
-      final address = await db.query(
-        'order_shipping_address',
-        where: 'order_id = ?',
-        whereArgs: [orderId],
-      );
+  Future<void> markOrderAsSynced(int orderId) async {
+    final db = await database;
+    await db.update(
+      'orders',
+      {'synced': 1},
+      where: 'id = ?',
+      whereArgs: [orderId],
+    );
+  }
 
-      final items = await db.query(
-        'order_items',
-        where: 'order_id = ?',
-        whereArgs: [orderId],
-      );
+  Future<void> deleteOrder(int orderId) async {
+    final db = await database;
+    await db.delete('order_shipping_address',
+        where: 'order_id = ?', whereArgs: [orderId]);
+    await db.delete('order_items', where: 'order_id = ?', whereArgs: [orderId]);
+    await db
+        .delete('order_payment', where: 'order_id = ?', whereArgs: [orderId]);
+    await db.delete('orders', where: 'id = ?', whereArgs: [orderId]);
+    print('🗑️ Deleted order: $orderId');
+  }
 
-      // ✅ Load toppings for each item
-      List<Map<String, dynamic>> itemsWithToppings = [];
-      for (var item in items) {
-        final toppings = await db.query(
-          'order_item_toppings',
-          where: 'order_item_id = ?',
-          whereArgs: [item['id']],
-        );
+  // ==================== UTILITY METHODS ====================
 
-        Map<String, dynamic> itemWithToppings = Map.from(item);
-        itemWithToppings['toppings'] = toppings;
-        itemsWithToppings.add(itemWithToppings);
-      }
+  Future<bool> hasStoredData(String storeId) async {
+    final db = await database;
+    final result = await db.query(
+      'categories',
+      where: 'storeId = ?',
+      whereArgs: [storeId],
+      limit: 1,
+    );
+    return result.isNotEmpty;
+  }
 
-      // ✅ Load payment data
-      final payment = await db.query(
-        'order_payment',
-        where: 'order_id = ?',
-        whereArgs: [orderId],
-      );
-
-      return {
-        'order': order.first,
-        'shipping_address': address.isNotEmpty ? address.first : null,
-        'items': itemsWithToppings,
-        'payment': payment.isNotEmpty ? payment.first : null,
-      };
-    }
-
-    Future<List<Map<String, dynamic>>> getUnsyncedOrders(String storeId) async {
-      final db = await database;
-      return await db.query(
-        'orders',
-        where: 'store_id = ? AND synced = 0',
-        whereArgs: [storeId],
-        orderBy: 'created_at ASC',
-      );
-    }
-
-    Future<void> markOrderAsSynced(int orderId) async {
-      final db = await database;
-      await db.update(
-        'orders',
-        {'synced': 1},
-        where: 'id = ?',
-        whereArgs: [orderId],
-      );
-    }
-
-    Future<void> deleteOrder(int orderId) async {
-      final db = await database;
-      await db.delete('order_shipping_address', where: 'order_id = ?',
-          whereArgs: [orderId]);
-      await db.delete(
-          'order_items', where: 'order_id = ?', whereArgs: [orderId]);
-      await db.delete(
-          'order_payment', where: 'order_id = ?', whereArgs: [orderId]);
-      await db.delete('orders', where: 'id = ?', whereArgs: [orderId]);
-      print('🗑️ Deleted order: $orderId');
-    }
-
-    // ==================== UTILITY METHODS ====================
-
-    Future<bool> hasStoredData(String storeId) async {
-      final db = await database;
-      final result = await db.query(
-        'categories',
-        where: 'storeId = ?',
-        whereArgs: [storeId],
-        limit: 1,
-      );
-      return result.isNotEmpty;
-    }
-
-    Future<void> clearStoreData(String storeId) async {
-      final db = await database;
-      await db.rawDelete('''
+  Future<void> clearStoreData(String storeId) async {
+    final db = await database;
+    await db.rawDelete('''
       DELETE FROM product_variants 
       WHERE product_id IN (
         SELECT id FROM products WHERE storeId = ?
       )
     ''', [storeId]);
 
-      await db.rawDelete('''
+    await db.rawDelete('''
   DELETE FROM variant_toppings 
   WHERE topping_group_id IN (
     SELECT id FROM variant_topping_groups 
@@ -990,10 +1055,9 @@ class DatabaseHelper {
       )
     )
   )
-''',
-          [storeId]);
+''', [storeId]);
 
-      await db.rawDelete('''
+    await db.rawDelete('''
   DELETE FROM variant_topping_groups 
   WHERE variant_id IN (
     SELECT id FROM product_variants 
@@ -1002,63 +1066,67 @@ class DatabaseHelper {
     )
   )
 ''', [storeId]);
-      await db.delete('categories', where: 'storeId = ?', whereArgs: [storeId]);
-      await db.delete('products', where: 'storeId = ?', whereArgs: [storeId]);
-      print('🗑️ Cleared all data for store: $storeId');
-    }
+    await db.delete('categories', where: 'storeId = ?', whereArgs: [storeId]);
+    await db.delete('products', where: 'storeId = ?', whereArgs: [storeId]);
+    print('🗑️ Cleared all data for store: $storeId');
+  }
 
-    Future<void> clearAllData() async {
-      final db = await database;
-      await db.delete('product_variants'); // ✅ ADDED
-      await db.delete('categories');
-      await db.delete('products');
-      await db.delete('stores');
-      await db.delete('orders');
-      await db.delete('order_shipping_address');
-      await db.delete('order_items');
-      await db.delete('order_payment');
-      print('🗑️ Cleared entire database');
-    }
+  Future<void> clearAllData() async {
+    final db = await database;
+    await db.delete('product_variants'); // ✅ ADDED
+    await db.delete('categories');
+    await db.delete('products');
+    await db.delete('stores');
+    await db.delete('orders');
+    await db.delete('order_shipping_address');
+    await db.delete('order_items');
+    await db.delete('order_payment');
+    print('🗑️ Cleared entire database');
+  }
 
-    Future<Map<String, int>> getDataCount(String storeId) async {
-      final db = await database;
+  Future<Map<String, int>> getDataCount(String storeId) async {
+    final db = await database;
 
-      final categoryCount = Sqflite.firstIntValue(
-        await db.rawQuery(
-          'SELECT COUNT(*) FROM categories WHERE storeId = ?',
-          [storeId],
-        ),
-      ) ?? 0;
+    final categoryCount = Sqflite.firstIntValue(
+          await db.rawQuery(
+            'SELECT COUNT(*) FROM categories WHERE storeId = ?',
+            [storeId],
+          ),
+        ) ??
+        0;
 
-      final productCount = Sqflite.firstIntValue(
-        await db.rawQuery(
-          'SELECT COUNT(*) FROM products WHERE storeId = ?',
-          [storeId],
-        ),
-      ) ?? 0;
+    final productCount = Sqflite.firstIntValue(
+          await db.rawQuery(
+            'SELECT COUNT(*) FROM products WHERE storeId = ?',
+            [storeId],
+          ),
+        ) ??
+        0;
 
-      final orderCount = Sqflite.firstIntValue(
-        await db.rawQuery(
-          'SELECT COUNT(*) FROM orders WHERE store_id = ?',
-          [storeId],
-        ),
-      ) ?? 0;
+    final orderCount = Sqflite.firstIntValue(
+          await db.rawQuery(
+            'SELECT COUNT(*) FROM orders WHERE store_id = ?',
+            [storeId],
+          ),
+        ) ??
+        0;
 
-      // ✅ NEW: Get variant count
-      final variantCount = Sqflite.firstIntValue(
-        await db.rawQuery('''
+    // ✅ NEW: Get variant count
+    final variantCount = Sqflite.firstIntValue(
+          await db.rawQuery('''
         SELECT COUNT(*) FROM product_variants 
         WHERE product_id IN (
           SELECT id FROM products WHERE storeId = ?
         )
       ''', [storeId]),
-      ) ?? 0;
+        ) ??
+        0;
 
-      return {
-        'categories': categoryCount,
-        'products': productCount,
-        'orders': orderCount,
-        'variants': variantCount,
-      };
-    }
+    return {
+      'categories': categoryCount,
+      'products': productCount,
+      'orders': orderCount,
+      'variants': variantCount,
+    };
   }
+}

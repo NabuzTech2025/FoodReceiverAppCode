@@ -9,6 +9,7 @@ import '../../api/api.dart';
 import '../../api/repository/api_repository.dart';
 import '../../constants/constant.dart';
 import '../../models/StoreSetting.dart';
+import '../../services/app_update_service.dart';
 import '../../utils/log_util.dart';
 import '../SuperAdmin/super_admin.dart';
 import '../home_screen.dart';
@@ -44,6 +45,16 @@ class LoginController extends GetxController {
     //   DeviceOrientation.landscapeRight,
     // ]);
     _initialize();
+  }
+
+  @override
+  void onReady() {
+    super.onReady();
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (Get.context != null) {
+        AppUpdateService.checkForUpdates(Get.context!);
+      }
+    });
   }
 
   @override
@@ -83,15 +94,27 @@ class LoginController extends GetxController {
   }
 
   void _loadSavedCredentials() {
+    // ✅ Try to load Super Admin credentials first
+    final savedSuperAdminUsername = prefs.getString('super_admin_username');
+    final savedSuperAdminPassword = prefs.getString('super_admin_password');
+
+    if (savedSuperAdminUsername != null && savedSuperAdminPassword != null) {
+      emailController.text = savedSuperAdminUsername;
+      passwordController.text = savedSuperAdminPassword;
+      print("✅ Loaded Super Admin credentials");
+      return;
+    }
+
+    // ✅ Otherwise load Store credentials
     final savedUsername = prefs.getString(valueShared_USERNAME_KEY);
     final savedPassword = prefs.getString(valueShared_PASSWORD_KEY);
 
     if (savedUsername != null && savedPassword != null) {
       emailController.text = savedUsername;
       passwordController.text = savedPassword;
+      print("✅ Loaded Store credentials");
     }
   }
-
   void _loadSavedLanguage() {
     final savedLang = prefs.getString(valueShared_LANGUAGE);
     if (savedLang != null && supportedLocales.contains(savedLang)) {
@@ -255,8 +278,18 @@ class LoginController extends GetxController {
   Future<void> _saveCredentials(dynamic result) async {
     await prefs.setString(valueShared_BEARER_KEY, result.access_token!);
     await prefs.setString(valueShared_STORE_TYPE, result.storeType?.toString() ?? '');
-    await prefs.setString(valueShared_USERNAME_KEY, emailController.text.trim());
-    await prefs.setString(valueShared_PASSWORD_KEY, passwordController.text.trim());
+
+    // ✅ Save credentials based on role
+    if (result.role_id == 1) {
+      // Super Admin credentials
+      await prefs.setString('super_admin_username', emailController.text.trim());
+      await prefs.setString('super_admin_password', passwordController.text.trim());
+    } else {
+      // Store credentials
+      await prefs.setString(valueShared_USERNAME_KEY, emailController.text.trim());
+      await prefs.setString(valueShared_PASSWORD_KEY, passwordController.text.trim());
+    }
+
     await prefs.setInt(valueShared_ROLE_ID, result.role_id ?? 0);
     await prefs.reload();
 

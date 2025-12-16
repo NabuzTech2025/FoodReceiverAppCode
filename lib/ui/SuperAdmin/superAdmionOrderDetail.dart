@@ -4,6 +4,7 @@ import 'package:food_app/models/all_admin_order_response_model.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:food_app/models/OrderItem.dart';
 
 class SuperAdminOrderDetail extends StatefulWidget {
   final AllOrderAdminResponseModel order;
@@ -86,14 +87,21 @@ class _SuperAdminOrderDetailState extends State<SuperAdminOrderDetail> {
     var deliveryFee = updatedOrder.invoice?.deliveryFee ?? 0.0;
 
     // Calculate subtotal from all items
+    // Calculate subtotal from all items
     final subtotal = updatedOrder.items?.fold<double>(0, (sum, item) {
+      // ✅ FIX: Convert topping price from int to double
       final toppingsTotal = item.toppings?.fold<double>(
-        0, (tSum, topping) => tSum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
-      ) ?? 0;
+        0,
+            (tSum, topping) {
+          final toppingPrice = (topping.price ?? 0).toDouble();
+          final toppingQty = (topping.quantity ?? 0).toDouble();
+          return tSum + (toppingPrice * toppingQty);
+        },
+      ) ?? 0.0;
 
       final itemTotal = ((item.unitPrice ?? 0) + toppingsTotal) * (item.quantity ?? 0);
       return sum + itemTotal;
-    }) ?? 0;
+    }) ?? 0.0;
 
     final grandTotal = subtotal - discountData + deliveryFee;
 
@@ -241,8 +249,6 @@ class _SuperAdminOrderDetailState extends State<SuperAdminOrderDetail> {
                     const SizedBox(height: 8),
                     Container(height: 0.5, color: Colors.grey),
                     const SizedBox(height: 8),
-
-                    // Order Items
                     ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -252,13 +258,22 @@ class _SuperAdminOrderDetailState extends State<SuperAdminOrderDetail> {
                         final item = updatedOrder.items?[index];
                         if (item == null) return const SizedBox.shrink();
 
-                        final toppingsTotal = item.toppings?.fold<double>(0,
-                              (sum, topping) => sum + ((topping.price ?? 0) * (topping.quantity ?? 0)),) ?? 0;
+                        // ✅ FIX: Calculate toppings total correctly
+                        final toppingsTotal = item.toppings?.fold<double>(
+                          0,
+                              (sum, topping) {
+                            // ✅ Convert int to double for calculation
+                            final toppingPrice = (topping.price ?? 0).toDouble();
+                            final toppingQty = (topping.quantity ?? 0).toDouble();
+                            return sum + (toppingPrice * toppingQty);
+                          },
+                        ) ?? 0.0;
+
                         final itemTotal = ((item.unitPrice ?? 0) + toppingsTotal) * (item.quantity ?? 0);
 
                         return _orderItem(
-                          item.productName ?? "Unknown",
-                          itemTotal.toString(),
+                          item.productName ?? "Product",
+                          itemTotal.toStringAsFixed(2),
                           item,
                         );
                       },
@@ -471,15 +486,15 @@ class _SuperAdminOrderDetailState extends State<SuperAdminOrderDetail> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Product title and price
+          // Product title and price row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Text(
                   '${item.quantity ?? 0}X $title'
-                      '${((item.toppings?.isNotEmpty ?? false) && item.variant == null) ? ' [${formatAmount(item.unitPrice)}]' : ''}',
-                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      '${((item.toppings?.isNotEmpty ?? false) && item.variant == null) ? ' [${formatAmount(item.unitPrice ?? 0)}]' : ''}',  // ✅ Check variant object
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 3,
                 ),
@@ -491,26 +506,26 @@ class _SuperAdminOrderDetailState extends State<SuperAdminOrderDetail> {
             ],
           ),
 
-          // Variant
+          // ✅ FIXED: Variant info - use variant object
           if (item.variant != null)
             Padding(
               padding: const EdgeInsets.only(left: 10, top: 2),
               child: Text(
-                "${item.quantity} × ${item.variant!.name ?? ''} [${formatAmount(item.variant!.price ?? 0)} ${'currency'.tr}]",
-                style: const TextStyle(fontWeight: FontWeight.w400, fontSize: 13),
+                  "${item.quantity} × ${item.variant!.name ?? ''} [${formatAmount(item.variant!.price ?? 0)} ${'currency'.tr}]",
+                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)
               ),
             ),
 
           // Toppings
-          if ((item.toppings?.isNotEmpty ?? false))
+          if (item.toppings != null && item.toppings!.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(left: 10, top: 2),
+              padding: const EdgeInsets.only(left: 20, top: 2),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: item.toppings!.map<Widget>((topping) {
                   final totalPrice = (topping.price ?? 0) * (topping.quantity ?? 0);
                   return Text(
-                    "${topping.quantity} × ${topping.name} [${formatAmount(totalPrice)}]",
+                    "${topping.quantity} × ${topping.name} [${formatAmount(totalPrice.toDouble())}]",
                     style: const TextStyle(color: Colors.black, fontSize: 12),
                   );
                 }).toList(),
@@ -519,32 +534,30 @@ class _SuperAdminOrderDetailState extends State<SuperAdminOrderDetail> {
 
           // Item Note
           if (item.note != null && item.note!.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(left: 10, top: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${'note'.tr}: ',
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${'note'.tr}: ',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Colors.green,
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    item.note!,
                     style: const TextStyle(
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w300,
                       fontSize: 13,
-                      color: Colors.green,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 3,
                   ),
-                  Expanded(
-                    child: Text(
-                      item.note!,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w300,
-                        fontSize: 13,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 3,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
         ],
       ),
