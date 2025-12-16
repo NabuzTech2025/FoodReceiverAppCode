@@ -165,12 +165,12 @@ class _OrderScreenState extends State<OrderScreenNew>
 
   @override
   void dispose() {
+    _socketService.disconnect();
     WidgetsBinding.instance.removeObserver(this);
     _initVarTimeoutTimer?.cancel();
     _internetCheckTimer?.cancel();
     _blinkController.dispose();
     _syncRotationController.dispose();
-    _socketService.disconnect();
     _noOrderTimer?.cancel();
     _syncTimer?.cancel();
     _autoSyncTimer?.cancel();
@@ -1138,8 +1138,9 @@ class _OrderScreenState extends State<OrderScreenNew>
       }
     }
 
+    // ✅ Add mounted check to onSalesUpdate
     _socketService.onSalesUpdate = (data) {
-      if (!mounted) return;
+      if (!mounted) return; // ✅ Critical: Check if widget is still mounted
 
       if (data['store_id'] != null &&
           data['store_id'].toString() != dynamicStoreId.toString()) {
@@ -1149,23 +1150,24 @@ class _OrderScreenState extends State<OrderScreenNew>
       _handleSalesUpdate(data, isFromSocket: true);
     };
 
+    // ✅ Add mounted check to onConnected
     _socketService.onConnected = () {
-      if (mounted) {
-        setState(() => _isLiveDataActive = true);
-      }
+      if (!mounted) return; // ✅ Critical: Check if widget is still mounted
+      setState(() => _isLiveDataActive = true);
     };
 
+    // ✅ Add mounted check to onDisconnected
     _socketService.onDisconnected = () {
-      if (mounted) {
-        setState(() {
-          _isLiveDataActive = false;
-          _hasSocketData = false;
-        });
-      }
+      if (!mounted) return; // ✅ Critical: Check if widget is still mounted
+      setState(() {
+        _isLiveDataActive = false;
+        _hasSocketData = false;
+      });
     };
 
+    // ✅ Add mounted check to onNewOrder
     _socketService.onNewOrder = (data) {
-      if (!mounted) return;
+      if (!mounted) return; // ✅ Critical: Check if widget is still mounted
 
       if (data['store_id'] != null &&
           data['store_id'].toString() != dynamicStoreId.toString()) {
@@ -1924,7 +1926,8 @@ class _OrderScreenState extends State<OrderScreenNew>
                                                     Column(crossAxisAlignment: CrossAxisAlignment.start,
                                                       children: [
                                                         SizedBox(width: MediaQuery.of(context).size.width * 0.6,
-                                                          child: Row(crossAxisAlignment: CrossAxisAlignment.start,
+                                                          child:
+                                                          Row(crossAxisAlignment: CrossAxisAlignment.start,
                                                             children: [
                                                               Container(
                                                                 width: MediaQuery.of(context).size.width *
@@ -1988,24 +1991,20 @@ class _OrderScreenState extends State<OrderScreenNew>
                                             ),
                                             const SizedBox(height: 8),
                                             Row(
-                                              mainAxisAlignment:
-                                              MainAxisAlignment
-                                                  .spaceBetween,
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                               children: [
-                                                SizedBox(
-                                                  width: MediaQuery.of(
-                                                      context)
-                                                      .size
-                                                      .width *
-                                                      0.5,
-                                                  child: Text(
-                                                    '${order.shipping_address?.customer_name ?? guestName ?? ""} / ${order.shipping_address?.phone ?? guestPhone}',
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                        FontWeight.w700,
-                                                        fontFamily:
-                                                        "Mulish",
-                                                        fontSize: 13),
+                                                // ✅ Wrap this SizedBox with Flexible
+                                                Flexible(
+                                                  child: SizedBox(
+                                                    width: MediaQuery.of(context).size.width * 0.5,
+                                                    child: Text(
+                                                      '${order.shipping_address?.customer_name ?? guestName ?? ""} / ${order.shipping_address?.phone ?? guestPhone}',
+                                                      style: const TextStyle(
+                                                          fontWeight: FontWeight.w700,
+                                                          fontFamily: "Mulish",
+                                                          fontSize: 13),
+                                                      overflow: TextOverflow.ellipsis, // ✅ Add this
+                                                    ),
                                                   ),
                                                 ),
                                                 Row(
@@ -2013,22 +2012,16 @@ class _OrderScreenState extends State<OrderScreenNew>
                                                     Text(
                                                       '${'order_number'.tr} : ',
                                                       style: const TextStyle(
-                                                          fontWeight:
-                                                          FontWeight
-                                                              .w700,
+                                                          fontWeight: FontWeight.w700,
                                                           fontSize: 11,
-                                                          fontFamily:
-                                                          "Mulish"),
+                                                          fontFamily: "Mulish"),
                                                     ),
                                                     Text(
                                                       '${order.orderNumber}',
                                                       style: const TextStyle(
-                                                          fontWeight:
-                                                          FontWeight
-                                                              .w500,
+                                                          fontWeight: FontWeight.w500,
                                                           fontSize: 11,
-                                                          fontFamily:
-                                                          "Mulish"),
+                                                          fontFamily: "Mulish"),
                                                     ),
                                                   ],
                                                 ),
@@ -2510,15 +2503,21 @@ class _OrderScreenState extends State<OrderScreenNew>
       final unsyncedOrders = await DatabaseHelper().getUnsyncedOrders(StoreId!);
 
       if (unsyncedOrders.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('No orders to sync'.tr),
-              backgroundColor: Colors.orange,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
+        // ✅ Check if widget is still mounted before showing SnackBar
+        if (!mounted) return false;
+
+        // ✅ Use addPostFrameCallback to ensure widget tree is stable
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('No orders to sync'.tr),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        });
         return false;
       }
 
@@ -2545,30 +2544,43 @@ class _OrderScreenState extends State<OrderScreenNew>
       // Reload local orders
       await _loadAndSyncLocalOrders();
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${ordersToSync.length} Order(s) Synced Successfully'.tr),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
+      // ✅ Check if widget is still mounted before showing SnackBar
+      if (!mounted) return true;
+
+      // ✅ Use addPostFrameCallback to ensure widget tree is stable
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${ordersToSync.length} Order(s) Synced Successfully'.tr),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      });
 
       return true;
 
     } catch (e) {
       print('❌ Syncing error: $e');
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${'Failed to sync order'.tr}: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
+      // ✅ Check if widget is still mounted before showing SnackBar
+      if (!mounted) return false;
+
+      // ✅ Use addPostFrameCallback to ensure widget tree is stable
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${'Failed to sync order'.tr}: ${e.toString()}'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      });
+
       return false;
     }
   }
@@ -2616,6 +2628,7 @@ class _OrderScreenState extends State<OrderScreenNew>
     final orderData = orderDetails['order'] as Map<String, dynamic>;
     final itemsData = orderDetails['items'] as List<dynamic>;
     final paymentData = orderDetails['payment'] as Map<String, dynamic>?;
+    final addressData = orderDetails['shipping_address'] as Map<String, dynamic>?;
 
     // ✅ Build items array
     List<Map<String, dynamic>> items = [];
@@ -2655,6 +2668,12 @@ class _OrderScreenState extends State<OrderScreenNew>
         'status': 'paid',
         'amount': (paymentData?['amount'] as num?)?.toInt() ?? 0,
         'order_id': 0,
+      },
+      'customer': {
+        'name': addressData?['customer_name'] ?? 'Walk-in Customer',
+        'phone': addressData?['phone'],
+        'email': orderData['email'],
+        'address': addressData?['line1'],
       },
     };
 
