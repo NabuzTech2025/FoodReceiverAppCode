@@ -1,3 +1,4 @@
+import 'package:food_app/models/get_discount_percentage_response_model.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
@@ -38,6 +39,12 @@ class PosController extends GetxController {
   final productList = <GetStoreProducts>[].obs;
   final filteredProducts = <GetStoreProducts>[].obs;
   final categories = <CategoryData>[].obs;
+  final discountPercentage = 0.0.obs;
+  final deliveryDiscount = 0.0.obs;
+  final pickupDiscount = 0.0.obs;
+  String? deliveryDiscountId;
+  String? pickupDiscountId;
+  List<GetDiscountPercentageResponseModel> currentDiscounts = [];
 
 // Controllers
   final noteController = TextEditingController();
@@ -46,7 +53,6 @@ class PosController extends GetxController {
   final phoneController = TextEditingController();
   final emailController = TextEditingController();
   final addressController = TextEditingController();
-  final regionController = TextEditingController();
 
 // Scroll controllers - Portrait
   final mainScrollController = ScrollController();
@@ -70,7 +76,7 @@ class PosController extends GetxController {
   final phoneFocusNode = FocusNode();
   final emailFocusNode = FocusNode();
   final addressFocusNode = FocusNode();
-  final regionFocusNode = FocusNode();
+
 // Other variables
   String? storeId;
   SharedPreferences? sharedPreferences;
@@ -106,20 +112,42 @@ class PosController extends GetxController {
     phoneController.dispose();
     emailController.dispose();
     addressController.dispose();
-    regionController.dispose();
     mainScrollController.dispose();
     sidebarScrollController.dispose();
     landscapeCategoryScrollController.dispose();
-    // landscapeProductScrollController is not disposable (ItemScrollController)
     nameFocusNode.dispose();
     phoneFocusNode.dispose();
     emailFocusNode.dispose();
     addressFocusNode.dispose();
-    regionFocusNode.dispose();
     super.onClose();
   }
 
+  Future<void> getDiscountPercentage() async {
+    if (storeId == null || storeId!.isEmpty) return;
 
+    try {
+      List<GetDiscountPercentageResponseModel> discounts =
+      await CallService().getDiscountPercentage(storeId!);
+
+      if (discounts.isNotEmpty) {
+        currentDiscounts = discounts;
+
+        for (var discount in discounts) {
+          if (discount.code?.toLowerCase().contains('delivery') == true) {
+            deliveryDiscount.value = (discount.value ?? 0).toDouble();
+            deliveryDiscountId = discount.id?.toString();
+            print('✅ Delivery discount: ${deliveryDiscount.value}%, ID: $deliveryDiscountId');
+          } else if (discount.code?.toLowerCase().contains('pickup') == true) {
+            pickupDiscount.value = (discount.value ?? 0).toDouble();
+            pickupDiscountId = discount.id?.toString();
+            print('✅ Pickup discount: ${pickupDiscount.value}%, ID: $pickupDiscountId');
+          }
+        }
+      }
+    } catch (e) {
+      print('❌ Error getting discount percentage: $e');
+    }
+  }
 
   void _setOrientation() {
     SystemChrome.setPreferredOrientations([
@@ -191,6 +219,7 @@ class PosController extends GetxController {
     try {
       sharedPreferences = await SharedPreferences.getInstance();
       await getProductCategory();
+      await getDiscountPercentage();
     } catch (e) {
       print('Error initializing SharedPreferences: $e');
       isLoading.value = false;
@@ -681,7 +710,17 @@ class PosController extends GetxController {
   }
 
   double calculateDiscount() {
-    return calculateSubtotal() * 0.10;
+    double subtotal = calculateSubtotal();
+    double discountPercent = 0.0;
+
+    // Apply discount based on selected order type
+    if (selectedOrderType.value == 'Lieferzeit') {
+      discountPercent = deliveryDiscount.value;
+    } else if (selectedOrderType.value == 'Abholzeit') {
+      discountPercent = pickupDiscount.value;
+    }
+
+    return subtotal * (discountPercent / 100);
   }
 
   double calculateGrandTotal() {
@@ -762,7 +801,7 @@ class PosController extends GetxController {
   }
 
   // Place Order - Landscape
-  void placeOrder() async {
+  Future<void> placeOrder() async {
     if (cartItems.isEmpty) {
       if (Get.context != null) {
         ScaffoldMessenger.of(Get.context!).showSnackBar(
@@ -785,15 +824,12 @@ class PosController extends GetxController {
     }
 
     try {
-      // Prepare items for database
       List<Map<String, dynamic>> orderItems = cartItems.map((item) {
         var product = productList.firstWhere(
               (p) => p.name == item['name'],
           orElse: () => GetStoreProducts(id: 0),
         );
 
-        // ✅ Parse toppings from cart item
-        // ✅ Use topping_data directly from cart item
         List<Map<String, dynamic>>? toppings;
         if (item['topping_data'] != null && item['topping_data'] is List) {
           toppings = List<Map<String, dynamic>>.from(item['topping_data']);
@@ -804,28 +840,36 @@ class PosController extends GetxController {
           'quantity': item['quantity'],
           'price': item['price'],
           'variant_id': item['variant_id'],
-          'note': item['item_note'] ?? '', // ✅ Ensure note is never null
+          'note': item['item_note'] ?? '',
           'toppings': toppings,
         };
       }).toList();
 
-      // Save order to database with order_type = 3 for POS
+      // ✅ Get discount ID based on order type
+      String? discountId;
+      if (selectedOrderType.value == 'Lieferzeit') {
+        discountId = deliveryDiscountId;
+      } else if (selectedOrderType.value == 'Abholzeit') {
+        discountId = pickupDiscountId;
+      }
+
       int orderId = await dbHelper.saveOrder(
         storeId: storeId!,
-        orderType: '3', // ✅ Changed to '3' for POS orders (was using selectedOrderType.value)
+        orderType: selectedOrderType.value == 'Lieferzeit' ? '1' : '2',
         note: orderNote.value.isEmpty ? null : orderNote.value,
         customerName: customerDetails['name'] ?? '',
         phone: customerDetails['phone'] ?? '',
         email: customerDetails['email'] ?? '',
-        address: customerDetails['address'] ?? '',
-        region: customerDetails['region'] ?? '',
+        address: customerDetails['address'] ?? '', // ✅ Single address field
+        region: '', // ✅ Empty string (not used anymore)
         items: orderItems,
         amount: calculateGrandTotal(),
+        discountId: discountId,
       );
 
       print('✅ Order placed with ID: $orderId (POS order_type=3)');
 
-      // Clear cart and reset
+      // Clear cart
       cartItems.clear();
       orderNote.value = '';
       noteController.clear();
@@ -836,7 +880,7 @@ class PosController extends GetxController {
       phoneController.clear();
       emailController.clear();
       addressController.clear();
-      regionController.clear();
+      // regionController.clear(); // ✅ REMOVE THIS LINE
 
       if (Get.context != null) {
         ScaffoldMessenger.of(Get.context!).showSnackBar(
@@ -879,20 +923,17 @@ class PosController extends GetxController {
   }
 
   void onWeiterPressed() {
-    // Remove all validation checks - user can proceed without items or customer details
-
     if (!showCustomerDetails.value) {
       isCartExpanded.value = false;
       showCustomerDetails.value = true;
       isCustomerFormVisible.value = true;
     } else if (isCustomerFormVisible.value) {
-      // Save customer details without validation
       customerDetails.value = {
         'name': nameController.text.trim(),
         'phone': phoneController.text.trim(),
         'email': emailController.text.trim(),
-        'address': addressController.text.trim(),
-        'region': regionController.text.trim(),
+        'address': addressController.text.trim(), // ✅ Single address
+        // 'region': regionController.text.trim(), // ✅ REMOVE THIS LINE
       };
       isCustomerFormVisible.value = false;
     } else {
@@ -904,7 +945,7 @@ class PosController extends GetxController {
       phoneController.clear();
       emailController.clear();
       addressController.clear();
-      regionController.clear();
+      // regionController.clear(); // ✅ REMOVE THIS LINE
     }
   }
 
@@ -925,9 +966,9 @@ class PosController extends GetxController {
     isCustomerFormVisible.value = true;
     nameController.text = customerDetails['name'] ?? '';
     phoneController.text = customerDetails['phone'] ?? '';
-    emailController.text = customerDetails['email'] ?? '';
     addressController.text = customerDetails['address'] ?? '';
-    regionController.text = customerDetails['region'] ?? '';
+    emailController.text = customerDetails['email'] ?? '';
+
   }
 
   // API Calls

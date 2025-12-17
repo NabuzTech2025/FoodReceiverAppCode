@@ -105,7 +105,8 @@ class _OrderScreenState extends State<OrderScreenNew>
   late AnimationController _syncRotationController;
   late Animation<double> _syncRotationAnimation;
   Timer? _autoSyncTimer;
-
+  int _autoSyncInterval = 60;
+  bool _syncTimeLoaded = false;
   @override
   void initState() {
     super.initState();
@@ -132,7 +133,6 @@ class _OrderScreenState extends State<OrderScreenNew>
       initVar();
       _loadAndSyncLocalOrders();
     });
-    _startAutoSync();
   }
 
   Future<void> _checkAndClearOldData() async {
@@ -219,8 +219,6 @@ class _OrderScreenState extends State<OrderScreenNew>
         _localOrders = localOrdersList;
       });
 
-      // Start periodic sync attempts
-      _startPeriodicSync();
 
     } catch (e) {
       print('Error loading local orders: $e');
@@ -230,12 +228,35 @@ class _OrderScreenState extends State<OrderScreenNew>
     }
   }
 
-  void _startAutoSync() {
-    _autoSyncTimer = Timer.periodic(const Duration(minutes: 30), (timer) async {
-      await _autoSyncLocalOrders();
-    });
-  }
+  Future<void> updateSyncInterval() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String? syncTime = prefs.getString('sync_time');
 
+      if (syncTime != null && syncTime.isNotEmpty) {
+        int? syncTimeValue = int.tryParse(syncTime);
+        if (syncTimeValue != null && syncTimeValue > 0) {
+          _autoSyncInterval = syncTimeValue;
+          print('✅ Updated sync interval to: $_autoSyncInterval seconds');
+
+          // Restart timer with new interval
+          _startAutoSync();
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Auto sync interval updated to $_autoSyncInterval seconds'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      print('❌ Error updating sync interval: $e');
+    }
+  }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -256,7 +277,7 @@ class _OrderScreenState extends State<OrderScreenNew>
           // Handle error
         }
       }
-
+      _reloadSyncTime();
       _silentRefresh();
     }
   }
@@ -278,6 +299,38 @@ class _OrderScreenState extends State<OrderScreenNew>
       // Handle error
     } finally {
       _isRefreshing = false;
+    }
+  }
+
+  Future<void> _reloadSyncTime() async {
+    try {
+      String? syncTime = sharedPreferences.getString('sync_time');
+
+      if (syncTime != null && syncTime.isNotEmpty) {
+        int? syncTimeSeconds = int.tryParse(syncTime);
+        if (syncTimeSeconds != null && syncTimeSeconds >= 60) { // ✅ Minimum 60 seconds
+          if (_autoSyncInterval != syncTimeSeconds) {
+            _autoSyncInterval = syncTimeSeconds;
+            int minutes = (syncTimeSeconds / 60).round();
+            print('🔄 Sync interval updated to: $minutes minutes ($syncTimeSeconds seconds)');
+
+            // Restart timer with new interval
+            _startAutoSync();
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Auto sync interval updated to $minutes minutes'),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('❌ Error reloading sync time: $e');
     }
   }
 
@@ -326,6 +379,10 @@ class _OrderScreenState extends State<OrderScreenNew>
       sharedPreferences = await SharedPreferences.getInstance();
       bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
       _storeType = sharedPreferences.getString(valueShared_STORE_TYPE);
+      if (!_syncTimeLoaded) {
+        await _loadSyncTimeAndStartAutoSync();
+        _syncTimeLoaded = true;
+      }
 
       _socketService.disconnect();
       setState(() {
@@ -379,6 +436,48 @@ class _OrderScreenState extends State<OrderScreenNew>
         });
       }
     }
+  }
+
+  Future<void> _loadSyncTimeAndStartAutoSync() async {
+    try {
+      String? syncTime = sharedPreferences.getString('sync_time');
+
+      if (syncTime != null && syncTime.isNotEmpty) {
+        int? syncTimeSeconds = int.tryParse(syncTime);
+        if (syncTimeSeconds != null && syncTimeSeconds >= 60) { // ✅ Minimum 60 seconds (1 minute)
+          _autoSyncInterval = syncTimeSeconds;
+          int minutes = (syncTimeSeconds / 60).round();
+          print('✅ Loaded sync interval: $minutes minutes ($syncTimeSeconds seconds)');
+        } else {
+          print('⚠️ Invalid sync time in preferences, using default');
+          _autoSyncInterval = 1800; // ✅ Default 30 minutes = 1800 seconds
+        }
+      } else {
+        print('📝 No sync time found, using default: 30 minutes');
+        _autoSyncInterval = 1800; // ✅ Default 30 minutes = 1800 seconds
+      }
+
+      // Start auto sync with loaded interval
+      _startAutoSync();
+    } catch (e) {
+      print('❌ Error loading sync time: $e');
+      _autoSyncInterval = 1800; // ✅ Default 30 minutes = 1800 seconds
+      _startAutoSync();
+    }
+  }
+
+  void _startAutoSync() {
+    _autoSyncTimer?.cancel(); // Cancel existing timer
+
+    int minutes = (_autoSyncInterval / 60).round();
+    print('🔄 Starting auto sync with interval: $minutes minutes ($_autoSyncInterval seconds)');
+    print('🕐 Next sync will occur at: ${DateTime.now().add(Duration(seconds: _autoSyncInterval))}');
+
+    _autoSyncTimer = Timer.periodic(Duration(seconds: _autoSyncInterval), (timer) async {
+      int mins = (_autoSyncInterval / 60).round();
+      print('⏰ Auto sync timer triggered at ${DateTime.now()} - Interval: $mins minutes');
+      await _autoSyncLocalOrders();
+    });
   }
 
   Future<Order> _convertDbOrderToOrderModel(Map<String, dynamic> orderDetails) async {
@@ -1040,6 +1139,8 @@ class _OrderScreenState extends State<OrderScreenNew>
 
       final result = await ApiRepo().orderGetApiFilter(bearerKey!, data);
 
+      if (!mounted) return; // ✅ Check before setState
+
       setState(() {
         hasInternet = true;
       });
@@ -1057,39 +1158,49 @@ class _OrderScreenState extends State<OrderScreenNew>
         final firstItem = result.first;
         if (firstItem.code != null) {
           if (firstItem.code == 500 || firstItem.code! >= 500) {
-            setState(() {
-              hasInternet = false;
-            });
+            if (mounted) {
+              setState(() {
+                hasInternet = false;
+              });
+            }
             Future.delayed(const Duration(milliseconds: 500), () {
-              _showLogoutDialog();
+              if (mounted) _showLogoutDialog();
             });
           }
           _startNoOrderTimer();
           return;
         }
 
-        setState(() {
-          app.appController.setOrders(result);
-        });
+        if (mounted) {
+          setState(() {
+            app.appController.setOrders(result);
+          });
+        }
         _stopNoOrderTimer();
       } else {
-        setState(() {
-          app.appController.setOrders([]);
-        });
+        if (mounted) {
+          setState(() {
+            app.appController.setOrders([]);
+          });
+        }
         _startNoOrderTimer();
       }
     } catch (e) {
       if (e.toString().contains('SocketException') ||
           e.toString().contains('Failed host lookup')) {
-        setState(() {
-          hasInternet = false;
-        });
+        if (mounted) {
+          setState(() {
+            hasInternet = false;
+          });
+        }
 
         Future.delayed(const Duration(milliseconds: 500), () {
-          _showLogoutDialog();
+          if (mounted) _showLogoutDialog();
         });
       } else {
-        showSnackbar("api_error".tr, "${'an_error'.tr}: $e");
+        if (mounted) {
+          showSnackbar("api_error".tr, "${'an_error'.tr}: $e");
+        }
       }
     }
   }
@@ -1910,13 +2021,17 @@ class _OrderScreenState extends State<OrderScreenNew>
                                                   crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
                                                     CircleAvatar(
-                                                      radius: 14,
+                                                      radius: 17,
                                                       backgroundColor: Colors.green,
                                                       child:
                                                       SvgPicture.asset(
                                                         order.orderType == 1
-                                                            ? 'assets/images/ic_delivery.svg' : order.orderType == 2
-                                                            ? 'assets/images/ic_pickup.svg' : 'assets/images/ic_pickup.svg',
+                                                            ? 'assets/images/ic_delivery.svg'
+                                                            : order.orderType == 2
+                                                            ? 'assets/images/ic_pickup.svg'
+                                                            : order.orderType == 3
+                                                            ? 'assets/images/table.svg'
+                                                            : 'assets/images/ic_pickup.svg',
                                                         height: 14,
                                                         width: 14,
                                                         color: Colors.white,
@@ -1930,13 +2045,13 @@ class _OrderScreenState extends State<OrderScreenNew>
                                                           Row(crossAxisAlignment: CrossAxisAlignment.start,
                                                             children: [
                                                               Container(
-                                                                width: MediaQuery.of(context).size.width *
-                                                                    (_storeType == '2' ? 0.35 : (order.orderType == 2 ? 0.18 : 0.18)),
+                                                                width: MediaQuery.of(context).size.width * (_storeType == '2' ? 0.35 :
+                                                                (order.orderType == 2 ? 0.18 : 0.18)),
                                                                 child: Text(order.orderType == 2 ? 'pickup'.tr : (_storeType == '2'
-                                                                      ? _getFullAddress(
-                                                                      order.shipping_address ?? order.guestShippingJson,
-                                                                      order.shipping_address == null)
-                                                                      : (order.shipping_address?.zip?.toString() ?? guestAddress)),
+                                                                    ? _getFullAddress(
+                                                                    order.shipping_address ?? order.guestShippingJson,
+                                                                    order.shipping_address == null)
+                                                                    : (order.shipping_address?.zip?.toString() ?? guestAddress)),
                                                                   style: const TextStyle(
                                                                       fontWeight: FontWeight.w700,
                                                                       fontSize: 13,
@@ -2010,14 +2125,14 @@ class _OrderScreenState extends State<OrderScreenNew>
                                                 Row(
                                                   children: [
                                                     Text(
-                                                      '${'order_number'.tr} : ',
+                                                      '${order.orderNumber != null ? 'order_number'.tr : 'Order ID'} : ',
                                                       style: const TextStyle(
                                                           fontWeight: FontWeight.w700,
                                                           fontSize: 11,
                                                           fontFamily: "Mulish"),
                                                     ),
                                                     Text(
-                                                      '${order.orderNumber}',
+                                                      '${order.orderNumber ?? order.id ?? 'N/A'}',
                                                       style: const TextStyle(
                                                           fontWeight: FontWeight.w500,
                                                           fontSize: 11,
@@ -2120,7 +2235,45 @@ class _OrderScreenState extends State<OrderScreenNew>
       }),
     );
   }
+  Future<void> getOrdersWithoutLoaderSilent(String? bearerKey, String? id) async {
+    try {
+      DateTime formatted = DateTime.now();
+      String date = DateFormat('yyyy-MM-dd').format(formatted);
 
+      final Map<String, dynamic> data = {
+        "store_id": id,
+        "target_date": date,
+        "limit": 0,
+        "offset": 0,
+      };
+
+      final result = await ApiRepo().orderGetApiFilter(bearerKey!, data);
+
+      if (!mounted) return;
+
+      if (result.isNotEmpty) {
+        final firstItem = result.first;
+        if (firstItem.code != null) {
+          return;
+        }
+
+        if (mounted) {
+          setState(() {
+            app.appController.setOrders(result);
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            app.appController.setOrders([]);
+          });
+        }
+      }
+    } catch (e) {
+      print('❌ Silent API error: $e');
+      // ✅ Don't show any errors during background sync
+    }
+  }
   String _getFullAddress(dynamic shippingAddress, bool isGuest) {
     if (shippingAddress == null) return '';
 
@@ -2419,94 +2572,15 @@ class _OrderScreenState extends State<OrderScreenNew>
     }
   }
 
-  void _startPeriodicSync() {
-    _syncTimer?.cancel();
-
-    _syncTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
-      if (_localOrders.isEmpty) {
-        timer.cancel();
-        setState(() {
-          _isSyncingLocalOrders = false;
-        });
-        return;
-      }
-
-      // Try to sync with server
-      await _attemptServerSync();
-    });
-  }
-
-  Future<void> _attemptServerSync() async {
-    if (!hasInternet || bearerKey == null || bearerKey!.isEmpty) {
-      return;
-    }
-
-    try {
-      final storeID = sharedPreferences.getString(valueShared_STORE_KEY);
-      if (storeID == null) return;
-
-      final unsyncedOrders = await DatabaseHelper().getUnsyncedOrders(storeID);
-
-      for (var dbOrder in unsyncedOrders) {
-        try {
-          final orderDetails = await DatabaseHelper().getOrderDetails(
-              dbOrder['id'] as int
-          );
-
-          // if (orderDetails != null) {
-          //   // Prepare API payload
-          //   Map<String, dynamic> apiPayload = _prepareOrderApiPayload(orderDetails);
-          //
-          //   // Call your API to create order on server
-          //  // final result = await ApiRepo().createOrder(bearerKey!, apiPayload);
-          //
-          //   if (result.code == null || result.code == 200) {
-          //     // Mark as synced
-          //     await DatabaseHelper().markOrderAsSynced(dbOrder['id'] as int);
-          //
-          //     // Remove from local list
-          //     setState(() {
-          //       _localOrders.removeWhere((order) =>
-          //       order.id == dbOrder['id']
-          //       );
-          //     });
-          //
-          //     // Refresh main order list
-          //     await getOrdersWithoutLoader(bearerKey, storeID);
-          //   }
-          // }
-        } catch (e) {
-          print('Error syncing order ${dbOrder['id']}: $e');
-          // Continue with next order
-        }
-      }
-
-      // If all synced, stop sync
-      if (_localOrders.isEmpty) {
-        _syncTimer?.cancel();
-        setState(() {
-          _isSyncingLocalOrders = false;
-        });
-      }
-
-    } catch (e) {
-      print('Error in sync attempt: $e');
-    }
-  }
-
   Future<bool> syncLocalPosOrder() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     var StoreId = prefs.getString(valueShared_STORE_KEY);
 
     try {
-      // Get unsynced orders from database
       final unsyncedOrders = await DatabaseHelper().getUnsyncedOrders(StoreId!);
 
       if (unsyncedOrders.isEmpty) {
-        // ✅ Check if widget is still mounted before showing SnackBar
         if (!mounted) return false;
-
-        // ✅ Use addPostFrameCallback to ensure widget tree is stable
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -2521,7 +2595,12 @@ class _OrderScreenState extends State<OrderScreenNew>
         return false;
       }
 
-      // Build order maps
+      print('📦 Found ${unsyncedOrders.length} unsynced orders');
+
+      // ✅ Store order IDs for later verification
+      List<int> localOrderIds = unsyncedOrders.map((o) => o['id'] as int).toList();
+      print('📋 Local Order IDs to sync: $localOrderIds');
+
       List<Map<String, dynamic>> ordersToSync = [];
       for (var dbOrder in unsyncedOrders) {
         final orderDetails = await DatabaseHelper().getOrderDetails(dbOrder['id'] as int);
@@ -2531,44 +2610,79 @@ class _OrderScreenState extends State<OrderScreenNew>
       }
 
       print('📤 Syncing ${ordersToSync.length} orders');
-      print('📦 Orders payload: ${jsonEncode(ordersToSync)}');
 
-      // Call API with list of orders
       SyncLocalOrder model = await CallService().syncLocalOrder(ordersToSync);
 
-      // Mark orders as synced
-      for (var dbOrder in unsyncedOrders) {
-        await DatabaseHelper().markOrderAsSynced(dbOrder['id'] as int);
-      }
+      print('📡 API Response - Status: ${model.status}');
+      print('📡 API Response - Synced IDs from server: ${model.syncedOrderIds}');
 
-      // Reload local orders
-      await _loadAndSyncLocalOrders();
+      if (model.status == 'ok' && model.syncedOrderIds != null && model.syncedOrderIds!.isNotEmpty) {
 
-      // ✅ Check if widget is still mounted before showing SnackBar
-      if (!mounted) return true;
-
-      // ✅ Use addPostFrameCallback to ensure widget tree is stable
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${ordersToSync.length} Order(s) Synced Successfully'.tr),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
-            ),
-          );
+        // ✅ Mark ALL local orders as synced (not just the ones from server response)
+        for (int localOrderId in localOrderIds) {
+          print('🔄 Marking order $localOrderId as synced...');
+          await DatabaseHelper().markOrderAsSynced(localOrderId);
         }
-      });
 
-      return true;
+        // ✅ Wait a moment for database to update
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        // ✅ Verify orders are marked as synced
+        final stillUnsynced = await DatabaseHelper().getUnsyncedOrders(StoreId);
+        print('🔍 After marking - Still unsynced orders: ${stillUnsynced.length}');
+
+        // ✅ Clear local orders list immediately
+        setState(() {
+          _localOrders.clear();
+          _isSyncingLocalOrders = false;
+        });
+
+        // ✅ Reload from database
+        await _loadAndSyncLocalOrders();
+
+        // ✅ Refresh server orders
+        await getOrdersWithoutLoader(bearerKey, StoreId);
+
+        if (!mounted) return true;
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${ordersToSync.length} Order(s) Synced Successfully'.tr),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        });
+
+        return true;
+      } else {
+        print('❌ Sync failed - Status: ${model.status}');
+
+        if (!mounted) return false;
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Sync failed. Please try again.'.tr),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        });
+
+        return false;
+      }
 
     } catch (e) {
       print('❌ Syncing error: $e');
 
-      // ✅ Check if widget is still mounted before showing SnackBar
       if (!mounted) return false;
 
-      // ✅ Use addPostFrameCallback to ensure widget tree is stable
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -2586,13 +2700,17 @@ class _OrderScreenState extends State<OrderScreenNew>
   }
 
   Future<void> _autoSyncLocalOrders() async {
+    if (!mounted) return; // ✅ Check if widget is mounted
+
     try {
       final storeId = sharedPreferences.getString(valueShared_STORE_KEY);
       if (storeId == null || storeId.isEmpty) return;
 
       final unsyncedOrders = await DatabaseHelper().getUnsyncedOrders(storeId);
+      print('📊 Checking unsynced orders: ${unsyncedOrders.length} found');
+
       if (unsyncedOrders.isEmpty) {
-        print('✅ No orders to sync');
+        print('✅ No orders to auto-sync');
         return;
       }
 
@@ -2608,16 +2726,33 @@ class _OrderScreenState extends State<OrderScreenNew>
       if (ordersToSync.isNotEmpty) {
         print('📤 Auto-syncing ${ordersToSync.length} orders');
 
-        // ✅ Call API
         var result = await CallService().syncLocalOrder(ordersToSync);
 
-        // ✅ Mark as synced
-        for (var dbOrder in unsyncedOrders) {
-          await DatabaseHelper().markOrderAsSynced(dbOrder['id'] as int);
-        }
+        if (result.status == 'ok' && result.syncedOrderIds != null && result.syncedOrderIds!.isNotEmpty) {
+          print('✅ Auto-sync success - Synced IDs: ${result.syncedOrderIds}');
 
-        await _loadAndSyncLocalOrders();
-        print('✅ Auto-sync completed: ${ordersToSync.length} orders synced');
+          for (var dbOrder in unsyncedOrders) {
+            await DatabaseHelper().markOrderAsSynced(dbOrder['id'] as int);
+          }
+
+          // ✅ Only call API, don't refresh UI
+          await getOrdersWithoutLoaderSilent(bearerKey, storeId);
+
+          // ✅ Update local orders list
+          if (mounted) {
+            final newUnsyncedOrders = await DatabaseHelper().getUnsyncedOrders(storeId);
+            setState(() {
+              if (newUnsyncedOrders.isEmpty) {
+                _localOrders.clear();
+                _isSyncingLocalOrders = false;
+              }
+            });
+          }
+
+          print('✅ Auto-sync completed: ${ordersToSync.length} orders synced');
+        } else {
+          print('❌ Auto-sync failed - Status: ${result.status}');
+        }
       }
     } catch (e) {
       print('❌ Auto-sync error: $e');
@@ -2640,7 +2775,7 @@ class _OrderScreenState extends State<OrderScreenNew>
       if (item['toppings'] != null && item['toppings'] is List && (item['toppings'] as List).isNotEmpty) {
         for (var t in item['toppings']) {
           toppings.add({
-            'topping_id': t['id'] ?? 0,  // ✅ Changed from 'name' to 'topping_id'
+            'topping_id': t['id'] ?? 0,
             'quantity': t['topping_quantity'] ?? 1,
           });
         }
@@ -2659,7 +2794,7 @@ class _OrderScreenState extends State<OrderScreenNew>
     final orderMap = {
       'client_uuid': orderData['client_uuid'],
       'store_id': int.tryParse(orderData['store_id'].toString()) ?? 0,
-      'order_type': 3, // ✅ Hardcoded to 3 for POS orders
+      'order_type': orderData['order_type'] ?? 3,
       'created_at': DateTime.fromMillisecondsSinceEpoch(orderData['created_at'] as int).toIso8601String(),
       'note': orderData['note'] ?? '',
       'items': items,
@@ -2670,10 +2805,13 @@ class _OrderScreenState extends State<OrderScreenNew>
         'order_id': 0,
       },
       'customer': {
-        'name': addressData?['customer_name'] ?? 'Walk-in Customer',
-        'phone': addressData?['phone'],
-        'email': orderData['email'],
-        'address': addressData?['line1'],
+        "customer_name": addressData?['customer_name'] ?? 'Walk-in Customer',
+        "phone": addressData?['phone'],
+        "email": orderData['email'],
+        "line1": addressData?['line1'],
+        "city": addressData?['city'],
+        "zip": addressData?['zip'],
+        "country": addressData?['country']
       },
     };
 

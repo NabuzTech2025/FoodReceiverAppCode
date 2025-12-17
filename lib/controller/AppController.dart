@@ -76,7 +76,8 @@ class AppController extends GetxController {
 // Also modify the existing setOrders method to be more explicit about merge vs replace:
 
   Future<void> setOrders(List<Order>? listOrders,
-      {bool forceReplace = false}) async {
+      {bool forceReplace = false}) async
+  {
     if (listOrders == null) {
       print("⚠️ setOrders called with null list");
       return;
@@ -445,7 +446,8 @@ class AppController extends GetxController {
       _reservationsList.value;
 
   void setReservations(
-      List<GetUserReservationDetailsResponseModel> reservations) {
+      List<GetUserReservationDetailsResponseModel> reservations)
+  {
     _reservationsList.clear();
     _reservationsList.assignAll(reservations);
 
@@ -555,7 +557,8 @@ class AppController extends GetxController {
 
 
   List<GetUserReservationDetailsResponseModel> getFilteredReservations(
-      String? selectedDate) {
+      String? selectedDate)
+  {
     DateTime today = DateTime.now();
     String todayString = DateFormat('yyyy-MM-dd').format(today);
 
@@ -617,4 +620,13 @@ class AppController extends GetxController {
     categoryFilterCallback = null;
     print("🧹 Filter callbacks cleared");
   }
+
+  final syncTimeUpdated = false.obs;
+
+  void updateSyncTime() {
+    syncTimeUpdated.value = !syncTimeUpdated.value;
+    print('🔔 Sync time update triggered');
+  }
+
+
 }

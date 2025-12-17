@@ -469,7 +469,8 @@ class DatabaseHelper {
   // ==================== CATEGORY METHODS ====================
 
   Future<void> saveCategories(
-      List<GetProductCategoryList> categories, String storeId) async {
+      List<GetProductCategoryList> categories, String storeId) async
+  {
     final db = await database;
     final batch = db.batch();
 
@@ -515,7 +516,8 @@ class DatabaseHelper {
 
   // ==================== PRODUCT METHODS ====================
   Future<void> saveProducts(
-      List<GetStoreProducts> products, String storeId) async {
+      List<GetStoreProducts> products, String storeId) async
+  {
     final db = await database;
     final batch = db.batch();
 
@@ -844,18 +846,19 @@ class DatabaseHelper {
     required String region,
     required List<Map<String, dynamic>> items,
     required double amount,
+    String? discountId,
   }) async
   {
     final db = await database;
-    // Generate sequential UUID in format: XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+
     int timestamp = DateTime.now().millisecondsSinceEpoch;
     String clientUuid = await _generateSequentialClientUuid(storeId);
     int orderTypeInt =
-        int.tryParse(orderType) ?? 3; // ✅ Parse to int, default to 3
+        int.tryParse(orderType) ?? 3;
 
     int orderId = await db.insert('orders', {
       'client_uuid': clientUuid,
-      'discount_id': null,
+      'discount_id': discountId,
       'note': note ?? '', // ✅ Ensure note is never null
       'order_type': orderTypeInt,
       'order_status': 1,
@@ -873,8 +876,8 @@ class DatabaseHelper {
       'order_id': orderId,
       'type': 'shipping',
       'line1': address,
-      'city': region,
-      'zip': region,
+      'city': '',
+      'zip': '',
       'country': 'Germany',
       'phone': phone,
       'customer_name': customerName,
@@ -993,22 +996,55 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> getUnsyncedOrders(String storeId) async {
     final db = await database;
-    return await db.query(
+
+    // ✅ Add debug log
+    final allOrders = await db.query(
       'orders',
-      where: 'store_id = ? AND synced = 0',
+      where: 'store_id = ?',
+      whereArgs: [storeId],
+    );
+    print('📊 Total orders in DB: ${allOrders.length}');
+
+    final unsyncedOrders = await db.query(
+      'orders',
+      where: 'store_id = ? AND synced = 0',  // ✅ Make sure synced column exists
       whereArgs: [storeId],
       orderBy: 'created_at ASC',
     );
+
+    print('📊 Unsynced orders: ${unsyncedOrders.length}');
+
+    return unsyncedOrders;
   }
 
   Future<void> markOrderAsSynced(int orderId) async {
     final db = await database;
-    await db.update(
+
+    // ✅ Check current status before update
+    final beforeUpdate = await db.query(
+      'orders',
+      where: 'id = ?',
+      whereArgs: [orderId],
+    );
+    print('🔍 Before update - Order $orderId synced status: ${beforeUpdate.first['synced']}');
+
+    // ✅ Update
+    int rowsAffected = await db.update(
       'orders',
       {'synced': 1},
       where: 'id = ?',
       whereArgs: [orderId],
     );
+
+    print('✅ Rows affected: $rowsAffected');
+
+    // ✅ Verify after update
+    final afterUpdate = await db.query(
+      'orders',
+      where: 'id = ?',
+      whereArgs: [orderId],
+    );
+    print('✅ After update - Order $orderId synced status: ${afterUpdate.first['synced']}');
   }
 
   Future<void> deleteOrder(int orderId) async {

@@ -360,9 +360,6 @@ class _DiscountState extends State<Discount> {
           print('Getting Discount Percentage Response - Found ${discounts.length} discounts');
           currentDiscounts = discounts;
 
-          // Populate text fields with API values
-          // Populate text fields with API values
-          // Populate text fields with API values
           for (var discount in discounts) {
             print('Discount type: ${discount.type}, value: ${discount.value}, code: ${discount.code}, ID: ${discount.id}');
 

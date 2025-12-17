@@ -247,8 +247,6 @@ class _PosLandscapeState extends State<PosLandscape> {
         SizedBox(height: 5),
         _buildHeader(controller, context),
         SizedBox(height: _responsive(context, 20)),
-
-        // Category tabs remain visible always
         _buildCategoryTabs(controller, context),
 
         Expanded(
@@ -796,6 +794,11 @@ class _PosLandscapeState extends State<PosLandscape> {
   }
 
   Widget _buildCartSection(PosController controller, BuildContext context) {
+    bool _shouldShowSaveButtons(PosController controller) {
+      // Show buttons only if cart has items OR customer details are filled
+      return controller.cartItems.isNotEmpty ||
+          controller.customerDetails.isNotEmpty;
+    }
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -803,6 +806,37 @@ class _PosLandscapeState extends State<PosLandscape> {
       ),
       child: Column(
         children: [
+          SizedBox(height: 5,),
+          const Padding(
+            padding: EdgeInsets.only(left: 8.0,right: 8),
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('OPEN ORDERS [10]',
+                  style: TextStyle(
+                  fontFamily: 'Mulish',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.underline
+                ),),
+                Row(
+                  children: [
+                    Text('Invoice no',
+                      style: TextStyle(
+                      fontFamily: 'Mulish',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400
+                    ),),
+                    Text('67676898',
+                      style: TextStyle(
+                      fontFamily: 'Mulish',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800
+                    ),),
+                  ],
+                ),
+              ],
+            ),
+          ),
           Padding(
             padding: EdgeInsets.all(_responsive(context, 8)),
             child: Container(
@@ -978,6 +1012,86 @@ class _PosLandscapeState extends State<PosLandscape> {
             }),
           ),
 
+          Obx(() {
+            if (!_shouldShowSaveButtons(controller)) {
+              return SizedBox.shrink();
+            }
+
+            bool showBothButtons = controller.cartItems.isNotEmpty;
+
+            return Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: _responsive(context, 8),
+                vertical: _responsive(context, 8),
+              ),
+              child: Row(
+                children: [
+                  // Save Button
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        // Your save logic here
+                        print('Save clicked');
+                      },
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          vertical: _responsive(context, 14),
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(_responsive(context, 8)),
+                          color: Color(0xffFBF9FF),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Save',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: _responsive(context, 15),
+                              fontFamily: 'Mulish',
+                              color: Color(0xff0B1928),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Show Save & Print only if cart has items
+                  if (showBothButtons) ...[
+                    SizedBox(width: _responsive(context, 8)),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          // Your save & print logic here
+                          print('Save & Print clicked');
+                        },
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            vertical: _responsive(context, 14),
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(_responsive(context, 8)),
+                            color: Color(0xff1A1F2E), // Dark blue-black color like in image
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Save & Print',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: _responsive(context, 15),
+                                fontFamily: 'Mulish',
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }),
           _buildWeiterButton(controller, context),
         ],
       ),
@@ -1594,6 +1708,13 @@ class _PosLandscapeState extends State<PosLandscape> {
   }
 
   Widget _buildSummarySection(PosController controller, BuildContext context) {
+    double discountPercent = 0.0;
+    if (controller.selectedOrderType.value == 'Lieferzeit') {
+      discountPercent = controller.deliveryDiscount.value;
+    } else if (controller.selectedOrderType.value == 'Abholzeit') {
+      discountPercent = controller.pickupDiscount.value;
+    }
+
     return Obx(() => Stack(
       clipBehavior: Clip.none,
       children: [
@@ -1631,7 +1752,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Total Discount (10%)',
+                    'Total Discount (${discountPercent.toStringAsFixed(0)}%)',
                     style: TextStyle(
                       fontSize: _responsive(context, 16),
                       fontWeight: FontWeight.w700,
@@ -1754,49 +1875,38 @@ class _PosLandscapeState extends State<PosLandscape> {
             controller.phoneController,
             context,
             focusNode: controller.phoneFocusNode,
-            nextFocusNode: controller.emailFocusNode,
+            nextFocusNode: controller.addressFocusNode,
             keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.next,
           ),
           SizedBox(height: _responsive(context, 8)),
-
+        // ✅ Single Address Field
+          _buildTextField(
+            'Adresse *',
+            controller.addressController,
+            context,
+            focusNode: controller.addressFocusNode,
+            nextFocusNode: controller.emailFocusNode,
+            keyboardType: TextInputType.streetAddress,
+            textInputAction: TextInputAction.done,
+          ),
+          SizedBox(height: _responsive(context, 8)),
           // Email Field
           _buildTextField(
             'Ihre E-Mail',
             controller.emailController,
             context,
             focusNode: controller.emailFocusNode,
-            nextFocusNode: controller.addressFocusNode,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
           ),
-          SizedBox(height: _responsive(context, 8)),
 
-          // Address Field
-          _buildTextField(
-            'Straße und Hausnummer *',
-            controller.addressController,
-            context,
-            focusNode: controller.addressFocusNode,
-            nextFocusNode: controller.regionFocusNode,
-            keyboardType: TextInputType.streetAddress,
-            textInputAction: TextInputAction.next,
-          ),
-          SizedBox(height: _responsive(context, 8)),
 
-          // Region Field
-          _buildTextField(
-            'Wählen Sie Ihre Region *',
-            controller.regionController,
-            context,
-            focusNode: controller.regionFocusNode,
-            keyboardType: TextInputType.text,
-            textInputAction: TextInputAction.done, // Last field
-          ),
         ],
       ),
     );
   }
+
   Widget _buildTextField(
       String label,
       TextEditingController controller,
@@ -1920,12 +2030,12 @@ class _PosLandscapeState extends State<PosLandscape> {
           SizedBox(height: _responsive(context, 4)),
           _buildDetailRow('Ihre Telefonnummer', controller.customerDetails['phone'] ?? '', context),
           SizedBox(height: _responsive(context, 4)),
-          if (controller.customerDetails['email']?.isNotEmpty ?? false)
-            _buildDetailRow('Ihre E-Mail', controller.customerDetails['email'] ?? '', context),
-          SizedBox(height: _responsive(context, 4)),
           _buildDetailRow('Address', controller.customerDetails['address'] ?? '', context),
           SizedBox(height: _responsive(context, 4)),
-          _buildDetailRow('Region', controller.customerDetails['region'] ?? '', context),
+          if (controller.customerDetails['email']?.isNotEmpty ?? false)
+            _buildDetailRow('Ihre E-Mail', controller.customerDetails['email'] ?? '', context),
+
+
         ],
       ),
     ));
