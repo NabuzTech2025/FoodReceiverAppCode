@@ -185,6 +185,9 @@ class _HomeScreenState extends State<HomeScreen> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.remove(valueShared_STORE_KEY);
 
+      // ✅ Give time for cleanup
+      await Future.delayed(const Duration(milliseconds: 100));
+
       // Navigate back to SuperAdmin screen
       Get.back();
       return false;

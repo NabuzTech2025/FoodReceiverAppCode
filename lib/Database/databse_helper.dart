@@ -843,23 +843,27 @@ class DatabaseHelper {
     required String phone,
     required String email,
     required String address,
-    required String region,
+    required String? zip,
     required List<Map<String, dynamic>> items,
     required double amount,
     String? discountId,
+    DateTime? createdAt,
   }) async
   {
+
     final db = await database;
 
-    int timestamp = DateTime.now().millisecondsSinceEpoch;
+    // ✅ ALWAYS UTC
+    DateTime orderTime = createdAt ?? DateTime.now().toUtc();
+    int timestamp = orderTime.millisecondsSinceEpoch;
+
     String clientUuid = await _generateSequentialClientUuid(storeId);
-    int orderTypeInt =
-        int.tryParse(orderType) ?? 3;
+    int orderTypeInt = int.tryParse(orderType) ?? 3;
 
     int orderId = await db.insert('orders', {
       'client_uuid': clientUuid,
       'discount_id': discountId,
-      'note': note ?? '', // ✅ Ensure note is never null
+      'note': note ?? '',
       'order_type': orderTypeInt,
       'order_status': 1,
       'approval_status': 1,
@@ -868,7 +872,7 @@ class DatabaseHelper {
       'isActive': 1,
       'email': email.isEmpty ? null : email,
       'captcha_token': '',
-      'created_at': DateTime.now().millisecondsSinceEpoch,
+      'created_at': timestamp, // ✅ UTC millis
       'synced': 0,
     });
 
@@ -877,7 +881,7 @@ class DatabaseHelper {
       'type': 'shipping',
       'line1': address,
       'city': '',
-      'zip': '',
+      'zip': zip ?? '',
       'country': 'Germany',
       'phone': phone,
       'customer_name': customerName,
@@ -886,18 +890,15 @@ class DatabaseHelper {
     for (var item in items) {
       int itemId = await db.insert('order_items', {
         'order_id': orderId,
-        'note': item['note'] ?? '', // ✅ Ensure note is never null
+        'note': item['note'] ?? '',
         'product_id': item['product_id'],
         'quantity': item['quantity'],
         'unit_price': item['price'],
         'variant_id': item['variant_id'] ?? 0,
       });
 
-
       if (item['toppings'] != null && item['toppings'] is List) {
         for (var topping in item['toppings']) {
-          print('💾 Saving topping - ID: ${topping['topping_id']}, Name: ${topping['name']}');  // Debug
-
           await db.insert('order_item_toppings', {
             'order_item_id': itemId,
             'topping_id': topping['topping_id'] ?? 0,
@@ -912,14 +913,15 @@ class DatabaseHelper {
     await db.insert('order_payment', {
       'order_id': orderId,
       'payment_method': 'cash',
-      'status': 'paid', // ✅ Changed from 'pending' to 'paid'
-      'paid_at': DateTime.now().toIso8601String(),
+      'status': 'paid',
+      'paid_at': DateTime.now().toUtc().toIso8601String(), // ✅ UTC
       'amount': amount,
     });
 
-    print('✅ Order saved with ID: $orderId (order_type: $orderTypeInt)');
+    print('✅ Order saved with ID: $orderId');
     return orderId;
   }
+
 
   Future<List<Map<String, dynamic>>> getAllOrders(String storeId) async {
     final db = await database;

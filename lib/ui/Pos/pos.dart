@@ -1,5 +1,6 @@
 
 import 'dart:async';
+import 'package:hive/hive.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -42,10 +43,16 @@ class _PosLandscapeState extends State<PosLandscape> {
 
   @override
   void dispose() {
-    super.dispose();
-    Get.delete<PosController>(tag: 'pos_controller');
-  }
 
+    try {
+      Get.delete<PosController>(tag: 'pos_controller', force: true);
+    } catch (e) {
+      print('⚠️ Error disposing PosController: $e');
+    }
+
+    // ✅ Call super.dispose() last
+    super.dispose();
+  }
   double _getScaleFactor(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
     // Base width: 1024px (standard iPad landscape)
@@ -89,41 +96,49 @@ class _PosLandscapeState extends State<PosLandscape> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
-    return Scaffold(
-        key: _scaffoldKey,
-      drawer: CustomDrawer(onSelectTab: _openTab),
-      backgroundColor: Color(0xffFBF9FF),
-      body: Stack(
-        children:[
-          Padding(
-          padding: EdgeInsets.only(top: _responsive(context, 12)),
-          child: Row(
-            children: [
-             // _buildSidebar(controller, context),
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.all(_responsive(context, 8)),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 5,
-                        child: _buildProductsSection(controller, context),
-                      ),
-                      SizedBox(width: _responsive(context, 10)),
-                      Expanded(
-                        flex: 3,
-                        child: _buildCartSection(controller, context),
-                      ),
-                    ],
+    return
+      WillPopScope(
+        onWillPop: () async {
+          await Future.delayed(const Duration(milliseconds: 150));
+          return true;
+        },
+        child: Scaffold(
+          key: _scaffoldKey,
+        drawer: CustomDrawer(onSelectTab: _openTab),
+        backgroundColor: Color(0xffFBF9FF),
+        body: Stack(
+          children:[
+            Padding(
+            padding: EdgeInsets.only(top: _responsive(context, 12)),
+            child: Row(
+              children: [
+               // _buildSidebar(controller, context),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.all(_responsive(context, 8)),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 5,
+                          child: _buildProductsSection(controller, context),
+                        ),
+                        SizedBox(width: _responsive(context, 10)),
+                        Expanded(
+                          flex: 3,
+                          child: _buildCartSection(controller, context),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-          _buildVariantDialog(controller, context),
-     ] ),
-    );
+            _buildVariantDialog(controller, context),
+            //_buildTimeBottomSheet(controller, context),
+          ] ),
+            ),
+      );
   }
 
   Widget _buildSidebar(PosController controller, BuildContext context) {
@@ -794,169 +809,213 @@ class _PosLandscapeState extends State<PosLandscape> {
   }
 
   Widget _buildCartSection(PosController controller, BuildContext context) {
-    bool _shouldShowSaveButtons(PosController controller) {
-      // Show buttons only if cart has items OR customer details are filled
-      return controller.cartItems.isNotEmpty ||
-          controller.customerDetails.isNotEmpty;
-    }
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(_responsive(context, 5)),
-      ),
-      child: Column(
-        children: [
-          SizedBox(height: 5,),
-          const Padding(
-            padding: EdgeInsets.only(left: 8.0,right: 8),
-            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('OPEN ORDERS [10]',
-                  style: TextStyle(
-                  fontFamily: 'Mulish',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    decoration: TextDecoration.underline
-                ),),
-                Row(
+    // bool _shouldShowSaveButtons(PosController controller) {
+    //   return controller.cartItems.isNotEmpty || controller.customerDetails.isNotEmpty;
+    // }
+    return Stack(
+      children: [
+        Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(_responsive(context, 5)),
+        ),
+        child: Column(
+          children: [
+            SizedBox(height: 5,),
+            //
+            // Padding(
+            //   padding: EdgeInsets.only(left: 8.0,right: 8),
+            //   child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            //     children: [
+            //       Text('OPEN ORDERS [10]',
+            //         style: TextStyle(
+            //         fontFamily: 'Mulish',
+            //           fontSize: 14,
+            //           fontWeight: FontWeight.w600,
+            //           decoration: TextDecoration.underline
+            //       ),),
+            //       Obx(() => Row(
+            //         children: [
+            //           Text('Invoice no : ',
+            //             style: TextStyle(
+            //                 fontFamily: 'Mulish',
+            //                 fontSize: 12,
+            //                 fontWeight: FontWeight.w400
+            //             ),),
+            //           Text('${controller.invoiceNumber.value}',
+            //             style: TextStyle(
+            //                 fontFamily: 'Mulish',
+            //                 fontSize: 13,
+            //                 fontWeight: FontWeight.w800
+            //             ),),
+            //         ],
+            //       )),
+            //     ],
+            //   ),
+            // ),
+            Padding(
+              padding: EdgeInsets.all(_responsive(context, 8)),
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: _responsive(context, 10),
+                  vertical: _responsive(context, 6),
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Color(0xffEDE4FF), width: 1),
+                  borderRadius: BorderRadius.circular(_responsive(context, 5)),
+                  color: Color(0xffFBF9FF),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Invoice no',
+                    Text(
+                      'Phone Number / Name',
                       style: TextStyle(
-                      fontFamily: 'Mulish',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400
-                    ),),
-                    Text('67676898',
-                      style: TextStyle(
-                      fontFamily: 'Mulish',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800
-                    ),),
+                        fontFamily: 'Mulish',
+                        fontWeight: FontWeight.w500,
+                        fontSize: _responsive(context, 14),
+                        color: Color(0xff797878),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => controller.onAddCustomerPressed(),
+                      child: Container(
+                        padding: EdgeInsets.all(_responsive(context, 8)),
+                        decoration: BoxDecoration(
+                          color: Color(0xffB8ABD1),
+                          borderRadius: BorderRadius.circular(_responsive(context, 6)),
+                        ),
+                        child: SvgPicture.asset(
+                          'assets/images/add-user.svg',
+                          height: _responsive(context, 18),
+                          width: _responsive(context, 18),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(_responsive(context, 8)),
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: _responsive(context, 10),
-                vertical: _responsive(context, 6),
-              ),
-              decoration: BoxDecoration(
-                border: Border.all(color: Color(0xffEDE4FF), width: 1),
-                borderRadius: BorderRadius.circular(_responsive(context, 5)),
-                color: Color(0xffFBF9FF),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+            Padding(
+              padding: EdgeInsets.all(_responsive(context, 4)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Phone Number / Name',
-                    style: TextStyle(
-                      fontFamily: 'Mulish',
-                      fontWeight: FontWeight.w500,
-                      fontSize: _responsive(context, 14),
-                      color: Color(0xff797878),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => controller.onAddCustomerPressed(),
-                    child: Container(
-                      padding: EdgeInsets.all(_responsive(context, 8)),
-                      decoration: BoxDecoration(
-                        color: Color(0xffB8ABD1),
-                        borderRadius: BorderRadius.circular(_responsive(context, 6)),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          _buildOrderTypeButton(controller, 'Lieferzeit',
+                              'assets/images/delivery-icon.svg', context),
+                          SizedBox(width: _responsive(context, 8)),
+                          _buildOrderTypeButton(controller, 'Abholzeit',
+                              'assets/images/pickup-icon.svg', context),
+                        ],
                       ),
-                      child: SvgPicture.asset(
-                        'assets/images/add-user.svg',
-                        height: _responsive(context, 18),
-                        width: _responsive(context, 18),
-                      ),
-                    ),
+                      SizedBox(height: _responsive(context, 8)),
+                      GestureDetector(
+                        onTap: () => controller.showAddNoteDialog(context),
+                        child: Row(
+                          children: [
+                            Image.asset(
+                              'assets/images/note.png',
+                              height: 14,
+                              width: 14,
+                            ),
+                            SizedBox(width: _responsive(context, 5)),
+                            Obx(
+                              () => Text(
+                                controller.orderNote.value.isEmpty
+                                    ? 'Note'
+                                    : 'Note: ${controller.orderNote.value}',
+                              ),
+                            )
+                          ],
+                        ),
+                      )
+                    ],
                   ),
                 ],
               ),
             ),
-          ),
 
-          Padding(
-            padding: EdgeInsets.all(_responsive(context, 4)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        _buildOrderTypeButton(controller, 'Lieferzeit',
-                            'assets/images/delivery-icon.svg', context),
-                        SizedBox(width: _responsive(context, 8)),
-                        _buildOrderTypeButton(controller, 'Abholzeit',
-                            'assets/images/pickup-icon.svg', context),
-                      ],
-                    ),
-                    SizedBox(height: _responsive(context, 8)),
-                    GestureDetector(
-                      onTap: () => controller.showAddNoteDialog(context),
-                      child: Row(
-                        children: [
-                          Image.asset(
-                            'assets/images/note.png',
-                            height: 14,
-                            width: 14,
-                          ),
-                          SizedBox(width: _responsive(context, 5)),
-                          Obx(
-                            () => Text(
-                              controller.orderNote.value.isEmpty
-                                  ? 'Note'
-                                  : 'Note: ${controller.orderNote.value}',
+            Expanded(
+              child: Obx(() {
+                if (controller.cartItems.isEmpty && !controller.showCustomerDetails.value) {
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            'No items in cart',
+                            style: TextStyle(
+                              fontFamily: 'Mulish',
+                              fontWeight: FontWeight.w500,
+                              fontSize: _responsive(context, 20),
+                              color: Color(0xff797878),
                             ),
-                          )
-                        ],
-                      ),
-                    )
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          Expanded(
-            child: Obx(() {
-              if (controller.cartItems.isEmpty && !controller.showCustomerDetails.value) {
-                return Column(
-                  children: [
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          'No items in cart',
-                          style: TextStyle(
-                            fontFamily: 'Mulish',
-                            fontWeight: FontWeight.w500,
-                            fontSize: _responsive(context, 20),
-                            color: Color(0xff797878),
                           ),
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: _responsive(context, 12),
-                        vertical: _responsive(context, 15),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: _responsive(context, 12),
+                          vertical: _responsive(context, 15),
+                        ),
+                        child: _buildSummarySection(controller, context),
                       ),
-                      child: _buildSummarySection(controller, context),
-                    ),
-                  ],
-                );
-              }
+                    ],
+                  );
+                }
 
-              if (controller.showCustomerDetails.value) {
+                if (controller.showCustomerDetails.value) {
+                  return Column(
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: _responsive(context, 8),
+                          vertical: _responsive(context, 12),
+                        ),
+                        child: _buildSummarySection(controller, context),
+                      ),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              if (controller.isCustomerFormVisible.value)
+                                _buildCustomerDetailsSection(controller, context),
+
+                              if (controller.customerDetails.isNotEmpty &&
+                                  !controller.isCustomerFormVisible.value)
+                                _buildCustomerDetailsDisplay(controller, context),
+
+                              if (controller.customerDetails.isNotEmpty &&
+                                  !controller.isCustomerFormVisible.value)
+                                _buildTodaySection(context),
+
+                              SizedBox(height: _responsive(context, 20)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }
+
                 return Column(
                   children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            _buildCartItems(controller, context),
+                            SizedBox(height: _responsive(context, 20)),
+                          ],
+                        ),
+                      ),
+                    ),
                     Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: _responsive(context, 8),
@@ -964,138 +1023,107 @@ class _PosLandscapeState extends State<PosLandscape> {
                       ),
                       child: _buildSummarySection(controller, context),
                     ),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            if (controller.isCustomerFormVisible.value)
-                              _buildCustomerDetailsSection(controller, context),
-
-                            if (controller.customerDetails.isNotEmpty &&
-                                !controller.isCustomerFormVisible.value)
-                              _buildCustomerDetailsDisplay(controller, context),
-
-                            if (controller.customerDetails.isNotEmpty &&
-                                !controller.isCustomerFormVisible.value)
-                              _buildTodaySection(context),
-
-                            SizedBox(height: _responsive(context, 20)),
-                          ],
-                        ),
-                      ),
-                    ),
                   ],
                 );
-              }
+              }),
+            ),
 
-              return Column(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          _buildCartItems(controller, context),
-                          SizedBox(height: _responsive(context, 20)),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: _responsive(context, 8),
-                      vertical: _responsive(context, 12),
-                    ),
-                    child: _buildSummarySection(controller, context),
-                  ),
-                ],
-              );
-            }),
-          ),
+            // Obx(() {
+            //   if (!_shouldShowSaveButtons(controller)) {
+            //     return SizedBox.shrink();
+            //   }
+            //
+            //   bool showBothButtons = controller.cartItems.isNotEmpty;
+            //
+            //   return Padding(
+            //     padding: EdgeInsets.symmetric(
+            //       horizontal: _responsive(context, 8),
+            //       vertical: _responsive(context, 8),
+            //     ),
+            //     child: Row(
+            //       children: [
+            //         // Save Button
+            //         Expanded(
+            //           child: GestureDetector(
+            //             onTap: () {
+            //               controller.selectedSaveOption.value = 'save';  // ✅ Set selection
+            //               print('Save clicked');
+            //             },
+            //             child: Container(
+            //               padding: EdgeInsets.symmetric(
+            //                 vertical: _responsive(context, 14),
+            //               ),
+            //               decoration: BoxDecoration(
+            //                 borderRadius: BorderRadius.circular(_responsive(context, 8)),
+            //                 color: controller.selectedSaveOption.value == 'save'  // ✅ Check selection
+            //                     ? Color(0xff1A1F2E)  // Dark color when selected
+            //                     : Color(0xffFBF9FF),
+            //               ),
+            //               child: Center(
+            //                 child: Text(
+            //                   'Save',
+            //                   style: TextStyle(
+            //                     fontWeight: FontWeight.w700,
+            //                     fontSize: _responsive(context, 15),
+            //                     fontFamily: 'Mulish',
+            //                     color: controller.selectedSaveOption.value == 'save'  // ✅ Text color change
+            //                         ? Colors.white
+            //                         : Color(0xff0B1928),
+            //                   ),
+            //                 ),
+            //               ),
+            //             ),
+            //           ),
+            //         ),
+            //
+            //         // Show Save & Print only if cart has items
+            //         if (showBothButtons) ...[
+            //           SizedBox(width: _responsive(context, 8)),
+            //           Expanded(
+            //             child: GestureDetector(
+            //               onTap: () {
+            //                 controller.selectedSaveOption.value = 'save_print';  // ✅ Set selection
+            //                 print('Save & Print clicked');
+            //               },
+            //               child: Container(
+            //                 padding: EdgeInsets.symmetric(
+            //                   vertical: _responsive(context, 14),
+            //                 ),
+            //                 decoration: BoxDecoration(
+            //                   borderRadius: BorderRadius.circular(_responsive(context, 8)),
+            //                   color: controller.selectedSaveOption.value == 'save_print'  // ✅ Check selection
+            //                       ? Color(0xff1A1F2E)  // Dark when selected
+            //                       : Color(0xffFBF9FF),   // Keep dark (default state)
+            //                 ),
+            //                 child: Center(
+            //                   child: Text(
+            //                     'Save & Print',
+            //                     style: TextStyle(
+            //                       fontWeight: FontWeight.w700,
+            //                       fontSize: _responsive(context, 15),
+            //                       fontFamily: 'Mulish',
+            //                       color: controller.selectedSaveOption.value == 'save_print'
+            //                           ? Colors.white
+            //                           : Color(0xff0B1928),
+            //                     ),
+            //                   ),
+            //                 ),
+            //               ),
+            //             ),
+            //           ),
+            //         ],
+            //       ],
+            //     ),
+            //   );
+            // }),
 
-          Obx(() {
-            if (!_shouldShowSaveButtons(controller)) {
-              return SizedBox.shrink();
-            }
-
-            bool showBothButtons = controller.cartItems.isNotEmpty;
-
-            return Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: _responsive(context, 8),
-                vertical: _responsive(context, 8),
-              ),
-              child: Row(
-                children: [
-                  // Save Button
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        // Your save logic here
-                        print('Save clicked');
-                      },
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          vertical: _responsive(context, 14),
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(_responsive(context, 8)),
-                          color: Color(0xffFBF9FF),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Save',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: _responsive(context, 15),
-                              fontFamily: 'Mulish',
-                              color: Color(0xff0B1928),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Show Save & Print only if cart has items
-                  if (showBothButtons) ...[
-                    SizedBox(width: _responsive(context, 8)),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          // Your save & print logic here
-                          print('Save & Print clicked');
-                        },
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            vertical: _responsive(context, 14),
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(_responsive(context, 8)),
-                            color: Color(0xff1A1F2E), // Dark blue-black color like in image
-                          ),
-                          child: Center(
-                            child: Text(
-                              'Save & Print',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: _responsive(context, 15),
-                                fontFamily: 'Mulish',
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            );
-          }),
-          _buildWeiterButton(controller, context),
-        ],
+            _buildWeiterButton(controller, context),
+          ],
+        ),
       ),
-    );
+        _buildTimeBottomSheet(controller, context),
+        _buildCalendarBottomSheet(controller, context),
+      ]);
   }
 
   Widget _buildVariantDialog(PosController controller, BuildContext context) {
@@ -1886,9 +1914,19 @@ class _PosLandscapeState extends State<PosLandscape> {
             controller.addressController,
             context,
             focusNode: controller.addressFocusNode,
+            nextFocusNode: controller.regionFocusNode,
+            keyboardType: TextInputType.streetAddress,
+            textInputAction: TextInputAction.next,
+          ),
+          SizedBox(height: _responsive(context, 8)),
+          _buildTextField(
+            'Wählen Sie Ihre Region *',
+            controller.regionController,
+            context,
+            focusNode: controller.regionFocusNode,
             nextFocusNode: controller.emailFocusNode,
             keyboardType: TextInputType.streetAddress,
-            textInputAction: TextInputAction.done,
+            textInputAction: TextInputAction.next,
           ),
           SizedBox(height: _responsive(context, 8)),
           // Email Field
@@ -1898,7 +1936,7 @@ class _PosLandscapeState extends State<PosLandscape> {
             context,
             focusNode: controller.emailFocusNode,
             keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
+            textInputAction: TextInputAction.done,
           ),
 
 
@@ -2032,6 +2070,8 @@ class _PosLandscapeState extends State<PosLandscape> {
           SizedBox(height: _responsive(context, 4)),
           _buildDetailRow('Address', controller.customerDetails['address'] ?? '', context),
           SizedBox(height: _responsive(context, 4)),
+          _buildDetailRow('Region', controller.customerDetails['region'] ?? '', context),
+          SizedBox(height: _responsive(context, 4)),
           if (controller.customerDetails['email']?.isNotEmpty ?? false)
             _buildDetailRow('Ihre E-Mail', controller.customerDetails['email'] ?? '', context),
 
@@ -2069,135 +2109,481 @@ class _PosLandscapeState extends State<PosLandscape> {
     );
   }
 
+  // Widget _buildTodaySection(BuildContext context) {
+  //   return Container(
+  //     margin: EdgeInsets.symmetric(
+  //       horizontal: _responsive(context, 8),
+  //       vertical: _responsive(context, 8),
+  //     ),
+  //     padding: EdgeInsets.all(_responsive(context, 12)),
+  //     decoration: BoxDecoration(
+  //       color: Colors.white,
+  //       borderRadius: BorderRadius.circular(_responsive(context, 8)),
+  //       border: Border.all(color: Color(0xffE6E1EE)),
+  //     ),
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         Row(
+  //           children: [
+  //             Container(
+  //               width: _responsive(context, 18),
+  //               height: _responsive(context, 18),
+  //               decoration: BoxDecoration(
+  //                 color: Color(0xffE31E24),
+  //                 borderRadius: BorderRadius.circular(_responsive(context, 3)),
+  //                 border: Border.all(color: Color(0xffE31E24), width: 2),
+  //               ),
+  //               child: Icon(
+  //                 Icons.check,
+  //                 color: Colors.white,
+  //                 size: _responsive(context, 12),
+  //               ),
+  //             ),
+  //             SizedBox(width: _responsive(context, 8)),
+  //             Text(
+  //               'Heute',
+  //               style: TextStyle(
+  //                 fontSize: _responsive(context, 13),
+  //                 fontWeight: FontWeight.w700,
+  //                 fontFamily: 'Mulish',
+  //                 color: Color(0xff0B1928),
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //         SizedBox(height: _responsive(context, 12)),
+  //
+  //         GestureDetector(
+  //           onTap: () => controller.openTimeBottomSheet(),
+  //           child: Container(
+  //             padding: EdgeInsets.symmetric(
+  //               horizontal: _responsive(context, 12),
+  //               vertical: _responsive(context, 10),
+  //             ),
+  //             decoration: BoxDecoration(
+  //               color: Color(0xffFBF9FF),
+  //               borderRadius: BorderRadius.circular(_responsive(context, 6)),
+  //               border: Border.all(color: Color(0xffE6E1EE)),
+  //             ),
+  //             child: Row(
+  //               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //               children: [
+  //                 Obx(() => Text(
+  //                   controller.selectedTimeSlot.value,
+  //                   style: TextStyle(
+  //                     fontSize: _responsive(context, 12),
+  //                     fontWeight: FontWeight.w500,
+  //                     fontFamily: 'Mulish',
+  //                     color: Color(0xff0B1928),
+  //                   ),
+  //                 )),
+  //                 Icon(
+  //                   Icons.access_time,
+  //                   size: _responsive(context, 16),
+  //                   color: Color(0xff0B1928),
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         ),
+  //
+  //         SizedBox(height: _responsive(context, 12)),
+  //         Row(
+  //           children: [
+  //             Container(
+  //               width: _responsive(context, 18),
+  //               height: _responsive(context, 18),
+  //               decoration: BoxDecoration(
+  //                 color: Colors.white,
+  //                 borderRadius: BorderRadius.circular(_responsive(context, 3)),
+  //                 border: Border.all(color: Color(0xffB8ABD1), width: 2),
+  //               ),
+  //             ),
+  //             SizedBox(width: _responsive(context, 8)),
+  //             Text(
+  //               'Vorbestellen',
+  //               style: TextStyle(
+  //                 fontSize: _responsive(context, 13),
+  //                 fontWeight: FontWeight.w700,
+  //                 fontFamily: 'Mulish',
+  //                 color: Color(0xff0B1928),
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //         SizedBox(height: _responsive(context, 12)),
+  //         Container(
+  //           padding: EdgeInsets.symmetric(
+  //             horizontal: _responsive(context, 12),
+  //             vertical: _responsive(context, 10),
+  //           ),
+  //           decoration: BoxDecoration(
+  //             color: Color(0xffFBF9FF),
+  //             borderRadius: BorderRadius.circular(_responsive(context, 6)),
+  //             border: Border.all(color: Color(0xffE6E1EE)),
+  //           ),
+  //           child: Row(
+  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //             children: [
+  //               Text(
+  //                 'Select Date',
+  //                 style: TextStyle(
+  //                   fontSize: _responsive(context, 12),
+  //                   fontWeight: FontWeight.w500,
+  //                   fontFamily: 'Mulish',
+  //                   color: Color(0xff797878),
+  //                 ),
+  //               ),
+  //               Container(
+  //                 padding: EdgeInsets.all(_responsive(context, 6)),
+  //                 decoration: BoxDecoration(
+  //                   color: Color(0xffE31E24),
+  //                   borderRadius: BorderRadius.circular(_responsive(context, 4)),
+  //                 ),
+  //                 child: Icon(
+  //                   Icons.calendar_today,
+  //                   color: Colors.white,
+  //                   size: _responsive(context, 12),
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //         SizedBox(height: _responsive(context, 16)),
+  //         Divider(color: Color(0xffE6E1EE), thickness: 1),
+  //         SizedBox(height: _responsive(context, 12)),
+  //         Text(
+  //           'Zahlungsmethode auswählen',
+  //           style: TextStyle(
+  //             fontSize: _responsive(context, 13),
+  //             fontWeight: FontWeight.w700,
+  //             fontFamily: 'Mulish',
+  //             color: Color(0xff0B1928),
+  //           ),
+  //         ),
+  //         SizedBox(height: _responsive(context, 12)),
+  //         Row(
+  //           children: [
+  //             Expanded(
+  //               child: Container(
+  //                 padding: EdgeInsets.symmetric(
+  //                   vertical: _responsive(context, 10),
+  //                   horizontal: _responsive(context, 4),
+  //                 ),
+  //                 decoration: BoxDecoration(
+  //                   color: Colors.white,
+  //                   borderRadius: BorderRadius.circular(_responsive(context, 6)),
+  //                   border: Border.all(color: Color(0xffE31E24), width: 2),
+  //                 ),
+  //                 child: Row(
+  //                   mainAxisAlignment: MainAxisAlignment.center,
+  //                   children: [
+  //                     Icon(
+  //                       Icons.credit_card,
+  //                       color: Color(0xffE31E24),
+  //                       size: _responsive(context, 16),
+  //                     ),
+  //                     SizedBox(width: _responsive(context, 3)),
+  //                     Text(
+  //                       'Online-Zahlung',
+  //                       style: TextStyle(
+  //                         fontSize: _responsive(context, 11),
+  //                         fontWeight: FontWeight.w700,
+  //                         fontFamily: 'Mulish',
+  //                         color: Color(0xffE31E24),
+  //                       ),
+  //                     ),
+  //                   ],
+  //                 ),
+  //               ),
+  //             ),
+  //             SizedBox(width: _responsive(context, 10)),
+  //             Expanded(
+  //               child: Container(
+  //                 padding: EdgeInsets.symmetric(
+  //                   vertical: _responsive(context, 10),
+  //                   horizontal: _responsive(context, 12),
+  //                 ),
+  //                 decoration: BoxDecoration(
+  //                   color: Color(0xff232D3F),
+  //                   borderRadius: BorderRadius.circular(_responsive(context, 6)),
+  //                 ),
+  //                 child: Row(
+  //                   mainAxisAlignment: MainAxisAlignment.center,
+  //                   children: [
+  //                     Icon(
+  //                       Icons.payments_outlined,
+  //                       color: Colors.white,
+  //                       size: _responsive(context, 16),
+  //                     ),
+  //                     SizedBox(width: _responsive(context, 6)),
+  //                     Text(
+  //                       'Bar',
+  //                       style: TextStyle(
+  //                         fontSize: _responsive(context, 11),
+  //                         fontWeight: FontWeight.w700,
+  //                         fontFamily: 'Mulish',
+  //                         color: Colors.white,
+  //                       ),
+  //                     ),
+  //                   ],
+  //                 ),
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
   Widget _buildTodaySection(BuildContext context) {
     return Container(
-      margin: EdgeInsets.symmetric(
-        horizontal: _responsive(context, 8),
-        vertical: _responsive(context, 8),
-      ),
-      padding: EdgeInsets.all(_responsive(context, 12)),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(_responsive(context, 8)),
-        border: Border.all(color: Color(0xffE6E1EE)),
-      ),
+        margin: EdgeInsets.symmetric(
+          horizontal: _responsive(context, 8),
+          vertical: _responsive(context, 8),
+        ),
+        padding: EdgeInsets.all(_responsive(context, 12)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(_responsive(context, 8)),
+          border: Border.all(color: Color(0xffE6E1EE)),
+        ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: _responsive(context, 18),
-                height: _responsive(context, 18),
-                decoration: BoxDecoration(
-                  color: Color(0xffE31E24),
-                  borderRadius: BorderRadius.circular(_responsive(context, 3)),
-                  border: Border.all(color: Color(0xffE31E24), width: 2),
-                ),
-                child: Icon(
-                  Icons.check,
-                  color: Colors.white,
-                  size: _responsive(context, 12),
-                ),
-              ),
-              SizedBox(width: _responsive(context, 8)),
-              Text(
-                'Heute',
-                style: TextStyle(
-                  fontSize: _responsive(context, 13),
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'Mulish',
-                  color: Color(0xff0B1928),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: _responsive(context, 12)),
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: _responsive(context, 12),
-              vertical: _responsive(context, 10),
-            ),
-            decoration: BoxDecoration(
-              color: Color(0xffFBF9FF),
-              borderRadius: BorderRadius.circular(_responsive(context, 6)),
-              border: Border.all(color: Color(0xffE6E1EE)),
-            ),
-            child: Text(
-              'sofort',
-              style: TextStyle(
-                fontSize: _responsive(context, 12),
-                fontWeight: FontWeight.w500,
-                fontFamily: 'Mulish',
-                color: Color(0xff0B1928),
-              ),
-            ),
-          ),
-          SizedBox(height: _responsive(context, 12)),
-          Row(
-            children: [
-              Container(
-                width: _responsive(context, 18),
-                height: _responsive(context, 18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(_responsive(context, 3)),
-                  border: Border.all(color: Color(0xffB8ABD1), width: 2),
-                ),
-              ),
-              SizedBox(width: _responsive(context, 8)),
-              Text(
-                'Vorbestellen',
-                style: TextStyle(
-                  fontSize: _responsive(context, 13),
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'Mulish',
-                  color: Color(0xff0B1928),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: _responsive(context, 12)),
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: _responsive(context, 12),
-              vertical: _responsive(context, 10),
-            ),
-            decoration: BoxDecoration(
-              color: Color(0xffFBF9FF),
-              borderRadius: BorderRadius.circular(_responsive(context, 6)),
-              border: Border.all(color: Color(0xffE6E1EE)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Select Date',
-                  style: TextStyle(
-                    fontSize: _responsive(context, 12),
-                    fontWeight: FontWeight.w500,
-                    fontFamily: 'Mulish',
-                    color: Color(0xff797878),
-                  ),
-                ),
-                Container(
-                  padding: EdgeInsets.all(_responsive(context, 6)),
+          Obx(() => GestureDetector(
+                onTap: () => controller.selectHeute(),
+                child: Container(
+                  padding: EdgeInsets.all(_responsive(context, 12)),
                   decoration: BoxDecoration(
-                    color: Color(0xffE31E24),
-                    borderRadius: BorderRadius.circular(_responsive(context, 4)),
+                    borderRadius:
+                        BorderRadius.circular(_responsive(context, 8)),
                   ),
-                  child: Icon(
-                    Icons.calendar_today,
-                    color: Colors.white,
-                    size: _responsive(context, 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: _responsive(context, 24),
+                        height: _responsive(context, 24),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Color(0xff0B1928),
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(_responsive(context, 4)),
+                        ),
+                        child: controller.isHeuteSelected.value?
+                            Container(
+                              margin: EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: controller.isHeuteSelected.value
+                                    ? Color(0xff0C831F)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(_responsive(context, 4)),
+                              ),
+                            )
+                            : null,
+                      ),
+                      SizedBox(width: _responsive(context, 12)),
+                      Text(
+                        'Heute',
+                        style: TextStyle(
+                          fontSize: _responsive(context, 14),
+                          fontWeight: FontWeight.w700,
+                          fontFamily: 'Mulish',
+                          color: Color(0xff0B1928),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
+              )),
+
+          SizedBox(height: _responsive(context, 12)),
+
+          Obx(() => controller.isHeuteSelected.value
+              ? GestureDetector(
+                  onTap: () => controller.openTimeBottomSheet(),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: _responsive(context, 12),
+                      vertical: _responsive(context, 10),
+                    ),
+                    decoration: BoxDecoration(
+                      color: Color(0xffFBF9FF),
+                      borderRadius:
+                          BorderRadius.circular(_responsive(context, 6)),
+                      border: Border.all(color: Color(0xffE6E1EE)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          controller.selectedTimeSlot.value,
+                          style: TextStyle(
+                            fontSize: _responsive(context, 12),
+                            fontWeight: FontWeight.w500,
+                            fontFamily: 'Mulish',
+                            color: Color(0xff0B1928),
+                          ),
+                        ),
+                        Icon(
+                          Icons.access_time,
+                          size: _responsive(context, 16),
+                          color: Color(0xff0B1928),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : SizedBox.shrink()),
+
+          SizedBox(height: _responsive(context, 12)),
+
+          Obx(() => GestureDetector(
+                onTap: () => controller.selectVorbestellen(),
+                child: Container(
+                  padding: EdgeInsets.all(_responsive(context, 12)),
+                  decoration: BoxDecoration(
+                    borderRadius:
+                        BorderRadius.circular(_responsive(context, 8)),
+
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: _responsive(context, 24),
+                        height: _responsive(context, 24),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Color(0xff0B1928),
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(_responsive(context, 4)),
+                        ),
+                        child: controller.isVorbestellenSelected.value
+                            ?  Container(
+                          margin: EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: controller.isVorbestellenSelected.value
+                                ? Color(0xff0C831F)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(_responsive(context, 4)),
+                          ),
+                        )
+                            : null,
+                      ),
+                      SizedBox(width: _responsive(context, 12)),
+                      Text(
+                        'Vorbestellen',
+                        style: TextStyle(
+                          fontSize: _responsive(context, 14),
+                          fontWeight: FontWeight.w700,
+                          fontFamily: 'Mulish',
+                          color: Color(0xff0B1928),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )),
+
+          SizedBox(height: _responsive(context, 12)),
+
+          Obx(() => controller.isVorbestellenSelected.value
+              ? Column(
+                  children: [
+                    GestureDetector(
+                      onTap: () => controller.openCalendar(),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: _responsive(context, 12),
+                          vertical: _responsive(context, 10),
+                        ),
+                        decoration: BoxDecoration(
+                          color: Color(0xffFBF9FF),
+                          borderRadius:
+                              BorderRadius.circular(_responsive(context, 6)),
+                          border: Border.all(color: Color(0xffE6E1EE)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              controller.getFormattedSelectedDateTime(),
+                              style: TextStyle(
+                                fontSize: _responsive(context, 12),
+                                fontWeight: FontWeight.w500,
+                                fontFamily: 'Mulish',
+                                color: Color(0xff797878),
+                              ),
+                            ),
+                            Container(
+                              padding: EdgeInsets.all(_responsive(context, 6)),
+                              decoration: BoxDecoration(
+                                color: Color(0xffE31E24),
+                                borderRadius: BorderRadius.circular(
+                                    _responsive(context, 4)),
+                              ),
+                              child: Icon(
+                                Icons.calendar_today,
+                                color: Colors.white,
+                                size: _responsive(context, 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Select Time (only visible after date is selected)
+                    if (controller.showTimeSelector.value &&
+                        controller.selectedDate.value != null)
+                      Padding(
+                        padding: EdgeInsets.only(top: _responsive(context, 12)),
+                        child: GestureDetector(
+                          onTap: () => controller.openTimeSelector(),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: _responsive(context, 12),
+                              vertical: _responsive(context, 10),
+                            ),
+                            decoration: BoxDecoration(
+                              color: Color(0xffFBF9FF),
+                              borderRadius: BorderRadius.circular(
+                                  _responsive(context, 6)),
+                              border: Border.all(color: Color(0xffE6E1EE)),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Select Time',
+                                  style: TextStyle(
+                                    fontSize: _responsive(context, 12),
+                                    fontWeight: FontWeight.w500,
+                                    fontFamily: 'Mulish',
+                                    color: Color(0xff797878),
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.access_time,
+                                  size: _responsive(context, 16),
+                                  color: Color(0xff0B1928),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                )
+              : SizedBox.shrink()),
+
           SizedBox(height: _responsive(context, 16)),
           Divider(color: Color(0xffE6E1EE), thickness: 1),
           SizedBox(height: _responsive(context, 12)),
+
           Text(
             'Zahlungsmethode auswählen',
             style: TextStyle(
@@ -2208,76 +2594,72 @@ class _PosLandscapeState extends State<PosLandscape> {
             ),
           ),
           SizedBox(height: _responsive(context, 12)),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    vertical: _responsive(context, 10),
-                    horizontal: _responsive(context, 4),
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(_responsive(context, 6)),
-                    border: Border.all(color: Color(0xffE31E24), width: 2),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.credit_card,
+          Row(children: [
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  vertical: _responsive(context, 10),
+                  horizontal: _responsive(context, 4),
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(_responsive(context, 6)),
+                  border: Border.all(color: Color(0xffE31E24), width: 2),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.credit_card,
+                      color: Color(0xffE31E24),
+                      size: _responsive(context, 16),
+                    ),
+                    SizedBox(width: _responsive(context, 3)),
+                    Text(
+                      'Online-Zahlung',
+                      style: TextStyle(
+                        fontSize: _responsive(context, 11),
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Mulish',
                         color: Color(0xffE31E24),
-                        size: _responsive(context, 16),
                       ),
-                      SizedBox(width: _responsive(context, 3)),
-                      Text(
-                        'Online-Zahlung',
-                        style: TextStyle(
-                          fontSize: _responsive(context, 11),
-                          fontWeight: FontWeight.w700,
-                          fontFamily: 'Mulish',
-                          color: Color(0xffE31E24),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-              SizedBox(width: _responsive(context, 10)),
-              Expanded(
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    vertical: _responsive(context, 10),
-                    horizontal: _responsive(context, 12),
-                  ),
-                  decoration: BoxDecoration(
-                    color: Color(0xff232D3F),
-                    borderRadius: BorderRadius.circular(_responsive(context, 6)),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.payments_outlined,
-                        color: Colors.white,
-                        size: _responsive(context, 16),
-                      ),
-                      SizedBox(width: _responsive(context, 6)),
-                      Text(
-                        'Bar',
-                        style: TextStyle(
-                          fontSize: _responsive(context, 11),
-                          fontWeight: FontWeight.w700,
-                          fontFamily: 'Mulish',
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
+            ),
+            SizedBox(width: _responsive(context, 10)),
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  vertical: _responsive(context, 10),
+                  horizontal: _responsive(context, 12),
                 ),
+                decoration: BoxDecoration(
+                  color: Color(0xff232D3F),
+                  borderRadius: BorderRadius.circular(_responsive(context, 6)),
+                ),
+                child:
+                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(
+                    Icons.payments_outlined,
+                    color: Colors.white,
+                    size: _responsive(context, 16),
+                  ),
+                  SizedBox(width: _responsive(context, 6)),
+                  Text(
+                    'Bar',
+                    style: TextStyle(
+                      fontSize: _responsive(context, 11),
+                      fontWeight: FontWeight.w700,
+                      fontFamily: 'Mulish',
+                      color: Colors.white,
+                    ),
+                  ),
+                ]),
               ),
-            ],
-          ),
+            ),
+          ]),
         ],
       ),
     );
@@ -2315,5 +2697,337 @@ class _PosLandscapeState extends State<PosLandscape> {
     ));
   }
 
+  Widget _buildTimeBottomSheet(PosController controller, BuildContext context) {
+    return Obx(() {
+      if (!controller.showTimeBottomSheet.value) {
+        return SizedBox.shrink();
+      }
+
+      return Positioned(
+        right: 0,
+        bottom: 0,
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.375,
+          height: MediaQuery.of(context).size.height * 0.65,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 10,
+                offset: Offset(-2, 0),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Header
+              Stack(clipBehavior: Clip.none,
+                children: [
+                  Container(
+                  padding: EdgeInsets.all(_responsive(context, 16)),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Color(0xffE6E1EE)),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: _responsive(context, 35),
+                        height: _responsive(context, 35),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Color(0xff0B1928),
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(_responsive(context, 6)),
+                        ),
+                        child: Container(
+                          margin: EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Color(0xff0C831F),
+                            borderRadius: BorderRadius.circular(_responsive(context, 4)),
+                          ),
+                        )
+                      ),
+                      SizedBox(width: _responsive(context, 12)),
+                      Text(
+                        'Heute',
+                        style: TextStyle(
+                          fontSize: _responsive(context, 18),
+                          fontWeight: FontWeight.w700,
+                          fontFamily: 'Mulish',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                  Positioned(
+                    top: -18,right: 15,
+                    child: GestureDetector(
+                    onTap: () => controller.closeTimeBottomSheet(),
+                    child: Container(
+                      width: _responsive(context, 45),
+                      height: _responsive(context, 45),
+                      decoration: BoxDecoration(
+                        color: Color(0xffE31E24),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: _responsive(context, 30),
+                      ),
+                    ),
+                  ),)
+              ]),
+
+              // sofort option
+              Padding(
+                padding: EdgeInsets.all(_responsive(context, 12)),
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(
+                    vertical: _responsive(context, 8),
+                  ),
+                  decoration: BoxDecoration(
+                    color:  Color(0xffFBF9FF),
+                    borderRadius: BorderRadius.circular(_responsive(context, 5)),
+                    border: Border.all(
+                      color: Color(0xff0C831F),
+                      width: 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'sofort',
+                      style: TextStyle(
+                        fontSize: _responsive(context, 18),
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Mulish',
+                        color:  Color(0xff0B1928),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Time slots grid
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(horizontal: _responsive(context, 16)),
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.zero,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 4,
+                      crossAxisSpacing: _responsive(context, 5),
+                      mainAxisSpacing: _responsive(context, 5),
+                      childAspectRatio: 2.3,
+                    ),
+                    itemCount: controller.getTimeSlots().length,
+                    itemBuilder: (context, index) {
+                      String timeSlot = controller.getTimeSlots()[index];
+                      bool isSelected = controller.selectedTimeSlot.value == timeSlot;
+
+                      return GestureDetector(
+                        onTap: () => controller.selectTimeSlot(timeSlot),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isSelected ? Color(0xff0C831F) : Color(0xffE9F6EF),
+                            borderRadius: BorderRadius.circular(_responsive(context, 4)),
+                            border: Border.all(
+                              color: isSelected ? Color(0xff0C831F) : Color(0xff0C831F),
+                              width: 1,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              timeSlot,
+                              style: TextStyle(
+                                fontSize: _responsive(context, 16),
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'Mulish',
+                                color: isSelected ? Colors.white : Color(0xff0B1928),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildCalendarBottomSheet(PosController controller, BuildContext context) {
+    return Obx(() {
+      if (!controller.showCalendar.value) {
+        return SizedBox.shrink();
+      }
+
+      return Positioned(
+        right: 0,
+        bottom: 0,
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.375,
+          height: MediaQuery.of(context).size.height * 0.8,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 15,
+                offset: Offset(-2, -2),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Header
+              Stack(clipBehavior: Clip.none,
+                children:[
+                  Container(
+                  padding: EdgeInsets.all(_responsive(context, 16)),
+                  decoration: BoxDecoration(
+                    border: Border(bottom: BorderSide(color: Color(0xffE6E1EE))),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'March,',
+                            style: TextStyle(
+                              fontSize: _responsive(context, 20),
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'Mulish',
+                            ),
+                          ),
+                          SizedBox(width: 5),
+                          Text(
+                            '2025',
+                            style: TextStyle(
+                              fontSize: _responsive(context, 18),
+                              fontWeight: FontWeight.w400,
+                              fontFamily: 'Mulish',
+                              color: Color(0xff0C831F),
+                            ),
+                          ),
+                          Icon(Icons.arrow_drop_down, color: Color(0xff0C831F)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                  Positioned(
+                    top: -18,right: 15,
+                    child:  GestureDetector(
+                    onTap: () => controller.closeCalendar(),
+                    child: Container(
+                      width: _responsive(context, 45),
+                      height: _responsive(context, 45),
+                      decoration: BoxDecoration(
+                        color: Color(0xffE31E24),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: _responsive(context, 30),
+                      ),
+                    ),
+                  ),)
+             ] ),
+
+              // Calendar Grid
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.all(_responsive(context, 16)),
+                  child: Column(
+                    children: [
+                      // Week days header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day) =>
+                            Container(
+                              padding: EdgeInsets.all(2),
+                          width: _responsive(context, 50),
+                          decoration: BoxDecoration(
+                            color: Color(0xff0B1928),
+                          ),
+                          child: Center(
+                            child: Text(
+                              day,
+                              style: TextStyle(
+                                fontSize: _responsive(context, 14),
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'Mulish',
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ))
+                            .toList(),
+                      ),
+                      SizedBox(height: _responsive(context, 10)),
+                      // Calendar dates (simplified - you'll need to implement full calendar logic)
+                      Expanded(
+                        child: GridView.builder(
+                          padding: EdgeInsets.zero,
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 7,
+                            mainAxisSpacing: _responsive(context, 4),
+                            crossAxisSpacing: _responsive(context, 4),
+                          ),
+                          itemCount: 35,
+                          itemBuilder: (context, index) {
+                            int day = index + 1;
+                            bool isSelected = controller.selectedDate.value?.day == day;
+
+                            return GestureDetector(
+                              onTap: () {
+                                DateTime now = DateTime.now();
+                                controller.selectDate(DateTime(now.year, now.month, day));
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: isSelected ? Color(0xff0C831F) : Colors.transparent,
+                                  border: Border.all(color: Color(0xffEEF5FF),width: 1)
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '$day',
+                                    style: TextStyle(
+                                      fontSize: _responsive(context, 14),
+                                      fontWeight: FontWeight.w600,
+                                      fontFamily: 'Mulish',
+                                      color: isSelected ? Colors.white : Color(0xff0B1928),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
 }
 

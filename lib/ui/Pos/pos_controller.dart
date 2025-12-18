@@ -53,6 +53,7 @@ class PosController extends GetxController {
   final phoneController = TextEditingController();
   final emailController = TextEditingController();
   final addressController = TextEditingController();
+  final regionController = TextEditingController();
 
 // Scroll controllers - Portrait
   final mainScrollController = ScrollController();
@@ -76,12 +77,22 @@ class PosController extends GetxController {
   final phoneFocusNode = FocusNode();
   final emailFocusNode = FocusNode();
   final addressFocusNode = FocusNode();
+  final regionFocusNode = FocusNode();
 
-// Other variables
+  final isHeuteSelected = true.obs;
+  final isVorbestellenSelected = false.obs;
+  final selectedDate = Rx<DateTime?>(null);
+  final showCalendar = false.obs;
+  final showTimeSelector = false.obs;
+
   String? storeId;
   SharedPreferences? sharedPreferences;
   final isScrollingProgrammatically = false.obs;
   List<GlobalKey> categoryKeys = [];
+  final invoiceNumber = 1.obs;
+  final selectedSaveOption = ''.obs;
+  final selectedTimeSlot = 'sofort'.obs;
+  final showTimeBottomSheet = false.obs;
 
   GlobalKey getCategoryKey(int index) {
     // grow the list with new GlobalKeys until index exists
@@ -112,6 +123,7 @@ class PosController extends GetxController {
     phoneController.dispose();
     emailController.dispose();
     addressController.dispose();
+    regionController.dispose();
     mainScrollController.dispose();
     sidebarScrollController.dispose();
     landscapeCategoryScrollController.dispose();
@@ -120,6 +132,13 @@ class PosController extends GetxController {
     emailFocusNode.dispose();
     addressFocusNode.dispose();
     super.onClose();
+  }
+
+  Future<void> _loadNextInvoiceNumber() async {
+    if (storeId == null) return;
+
+    final orderCount = await dbHelper.getDataCount(storeId!);
+    invoiceNumber.value = (orderCount['orders'] ?? 0) + 1;
   }
 
   Future<void> getDiscountPercentage() async {
@@ -220,12 +239,12 @@ class PosController extends GetxController {
       sharedPreferences = await SharedPreferences.getInstance();
       await getProductCategory();
       await getDiscountPercentage();
+      await _loadNextInvoiceNumber();
     } catch (e) {
       print('Error initializing SharedPreferences: $e');
       isLoading.value = false;
     }
   }
-
 
   void filterProducts(String query) {
     searchQuery.value = query;
@@ -246,7 +265,6 @@ class PosController extends GetxController {
     }
   }
 
-
   void onSearchChanged(String value) {
     searchQuery.value = value;
     isSearching.value = value.isNotEmpty;
@@ -256,7 +274,6 @@ class PosController extends GetxController {
     searchController.clear();
     onSearchChanged('');
   }
-
 
   void addToCart(GetStoreProducts product) {
     int existingIndex =
@@ -498,9 +515,15 @@ class PosController extends GetxController {
       final positions = landscapeProductPositionsListener.itemPositions.value;
       if (positions.isEmpty) return;
 
-      // Get the first visible item
-      final firstVisible = positions
+      // ✅ Filter positions and check if result is empty before reduce
+      final visiblePositions = positions
           .where((position) => position.itemLeadingEdge >= -0.3)
+          .toList();
+
+      // ✅ Check if we have any visible positions after filtering
+      if (visiblePositions.isEmpty) return;
+
+      final firstVisible = visiblePositions
           .reduce((a, b) => a.itemLeadingEdge < b.itemLeadingEdge ? a : b);
 
       int visibleIndex = firstVisible.index;
@@ -777,33 +800,36 @@ class PosController extends GetxController {
     selectedOrderType.value = type;
   }
 
-  // Save Note
   void saveNote(String note) {
     orderNote.value = note;
     Get.back();
-    Get.snackbar(
-      '',
-      'Note added successfully',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Color(0xff00B10E),
-      colorText: Colors.white,
-      duration: Duration(seconds: 2),
-      messageText: Text(
-        'Note added successfully',
-        style: TextStyle(
-          fontFamily: 'Mulish',
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
-      ),
-      titleText: SizedBox.shrink(),
-    );
+
+    if (Get.context != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (Get.context != null && Get.context!.mounted) {
+          ScaffoldMessenger.of(Get.context!).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Note added successfully',
+                style: TextStyle(
+                  fontFamily: 'Mulish',
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+              backgroundColor: Color(0xff00B10E),
+              duration: Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      });
+    }
   }
 
-  // Place Order - Landscape
   Future<void> placeOrder() async {
     if (cartItems.isEmpty) {
-      if (Get.context != null) {
+      if (Get.context != null && Get.context!.mounted) {
         ScaffoldMessenger.of(Get.context!).showSnackBar(
           SnackBar(
             content: Text(
@@ -845,13 +871,15 @@ class PosController extends GetxController {
         };
       }).toList();
 
-      // ✅ Get discount ID based on order type
       String? discountId;
       if (selectedOrderType.value == 'Lieferzeit') {
         discountId = deliveryDiscountId;
       } else if (selectedOrderType.value == 'Abholzeit') {
         discountId = pickupDiscountId;
       }
+
+      // ✅ JUST UTC
+      final utcNow = DateTime.now().toUtc();
 
       int orderId = await dbHelper.saveOrder(
         storeId: storeId!,
@@ -860,16 +888,17 @@ class PosController extends GetxController {
         customerName: customerDetails['name'] ?? '',
         phone: customerDetails['phone'] ?? '',
         email: customerDetails['email'] ?? '',
-        address: customerDetails['address'] ?? '', // ✅ Single address field
-        region: '', // ✅ Empty string (not used anymore)
+        address: customerDetails['address'] ?? '',
+        zip: customerDetails['region'] ?? '',
         items: orderItems,
         amount: calculateGrandTotal(),
         discountId: discountId,
+        createdAt: utcNow, // ✅ UTC passed
       );
 
-      print('✅ Order placed with ID: $orderId (POS order_type=3)');
+      print('✅ Order placed with ID: $orderId');
+      invoiceNumber.value++;
 
-      // Clear cart
       cartItems.clear();
       orderNote.value = '';
       noteController.clear();
@@ -880,47 +909,13 @@ class PosController extends GetxController {
       phoneController.clear();
       emailController.clear();
       addressController.clear();
-      // regionController.clear(); // ✅ REMOVE THIS LINE
+      regionController.clear();
 
-      if (Get.context != null) {
-        ScaffoldMessenger.of(Get.context!).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Order placed successfully! Order ID: #$orderId',
-              style: TextStyle(
-                fontFamily: 'Mulish',
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-            backgroundColor: Color(0xff00B10E),
-            duration: Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
     } catch (e) {
       print('❌ Error placing order: $e');
-
-      if (Get.context != null) {
-        ScaffoldMessenger.of(Get.context!).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Failed to place order. Please try again.',
-              style: TextStyle(
-                fontFamily: 'Mulish',
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-            backgroundColor: Color(0xffE31E24),
-            duration: Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
     }
   }
+
 
   void onWeiterPressed() {
     if (!showCustomerDetails.value) {
@@ -933,7 +928,7 @@ class PosController extends GetxController {
         'phone': phoneController.text.trim(),
         'email': emailController.text.trim(),
         'address': addressController.text.trim(), // ✅ Single address
-        // 'region': regionController.text.trim(), // ✅ REMOVE THIS LINE
+        'region': regionController.text.trim(), // ✅ REMOVE THIS LINE
       };
       isCustomerFormVisible.value = false;
     } else {
@@ -945,7 +940,7 @@ class PosController extends GetxController {
       phoneController.clear();
       emailController.clear();
       addressController.clear();
-      // regionController.clear(); // ✅ REMOVE THIS LINE
+      regionController.clear(); // ✅ REMOVE THIS LINE
     }
   }
 
@@ -968,8 +963,73 @@ class PosController extends GetxController {
     phoneController.text = customerDetails['phone'] ?? '';
     addressController.text = customerDetails['address'] ?? '';
     emailController.text = customerDetails['email'] ?? '';
-
+    regionController.text = customerDetails['region'] ?? '';
   }
+
+  List<String> getTimeSlots() {
+    List<String> slots = [];
+    for (int hour = 15; hour <= 23; hour++) {
+      slots.add('${hour.toString().padLeft(2, '0')}:00');
+    }
+    return slots;
+  }
+
+  void openTimeBottomSheet() {
+    showTimeBottomSheet.value = true;
+  }
+
+  void closeTimeBottomSheet() {
+    showTimeBottomSheet.value = false;
+  }
+
+  void selectTimeSlot(String time) {
+    selectedTimeSlot.value = time;
+    closeTimeBottomSheet();
+  }
+
+  void selectHeute() {
+    isHeuteSelected.value = true;
+    isVorbestellenSelected.value = false;
+    selectedDate.value = null;
+    showCalendar.value = false;
+    showTimeSelector.value = false;
+  }
+
+  void selectVorbestellen() {
+    isHeuteSelected.value = false;
+    isVorbestellenSelected.value = true;
+  }
+
+  void openCalendar() {
+    if (isVorbestellenSelected.value) {
+      showCalendar.value = true;
+    }
+  }
+
+  void closeCalendar() {
+    showCalendar.value = false;
+  }
+
+  void selectDate(DateTime date) {
+    selectedDate.value = date;
+    showTimeSelector.value = true;
+    closeCalendar();
+  }
+
+  void openTimeSelector() {
+    if (selectedDate.value != null) {
+      openTimeBottomSheet();
+    }
+  }
+
+  String getFormattedSelectedDateTime() {
+    if (selectedDate.value != null && selectedTimeSlot.value != 'sofort') {
+      String date = '${selectedDate.value!.day}.${selectedDate.value!.month}.${selectedDate.value!.year}';
+      return '$date - ${selectedTimeSlot.value}';
+    }
+    return 'Select Date';
+  }
+
 
   // API Calls
   Future<void> getProductCategory(
@@ -1135,31 +1195,31 @@ class PosController extends GetxController {
 
   Future<void> refreshData() async {
     print('🔄 Manual refresh triggered');
-
-    // Reset visible categories
     visibleCategories.clear();
-
     await getProductCategory(showLoader: true, forceRefresh: true);
 
     if (!isLoading.value && categories.isNotEmpty) {
-      Get.showSnackbar(
-        GetSnackBar(
-          message: 'Data refreshed successfully',
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Color(0xff00B10E),
-          messageText: Text(
-            'Data refreshed successfully',
-            style: TextStyle(
-              fontFamily: 'Mulish',
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-          duration: Duration(seconds: 2),
-          margin: EdgeInsets.all(10),
-          borderRadius: 8,
-        ),
-      );
+      if (Get.context != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (Get.context != null && Get.context!.mounted) {
+            ScaffoldMessenger.of(Get.context!).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Data refreshed successfully',
+                  style: TextStyle(
+                    fontFamily: 'Mulish',
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                backgroundColor: Color(0xff00B10E),
+                duration: Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        });
+      }
     }
   }
 

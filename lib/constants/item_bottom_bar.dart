@@ -33,7 +33,7 @@ class _ItemBottomBarState extends State<ItemBottomBar> {
   Widget build(BuildContext context) {
     double containerHeight = Platform.isIOS ? 90 : 50;
     EdgeInsets containerPadding = Platform.isIOS
-        ? const EdgeInsets.symmetric(horizontal: 12, vertical: 4)
+        ? const EdgeInsets.symmetric(horizontal: 12,)
         : const EdgeInsets.symmetric(horizontal: 11);
     return GestureDetector(
       onTapDown: (_) {
@@ -133,63 +133,3 @@ class _ItemBottomBarState extends State<ItemBottomBar> {
     );
   }
 }
-// @override
-// Widget build(BuildContext context) {
-//   return Container(
-//     color: Colors.transparent,
-//     child: InkWell(
-//       onTap: onPressed,
-//       borderRadius: BorderRadius.circular(8),
-//       child: Container(
-//         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 2),
-//         child: Stack(
-//           clipBehavior: Clip.none,
-//           children: [
-//             Column(
-//               mainAxisSize: MainAxisSize.min,
-//               children: [
-//                 Image.asset(icon,
-//                   width: iconWidth,
-//                   height: iconHeight,
-//                   color: selected ? Colors.green : Colors.black,
-//                 ),
-//                 const SizedBox(height: 4),
-//                 Text(
-//                   name,
-//                   style: TextStyle(
-//                     fontSize: 12,
-//                     fontWeight: FontWeight.w500,
-//                     color: selected ? Colors.green : Colors.black,
-//                   ),
-//                 ),
-//               ],
-//             ),
-//             if (showBadge && badgeValue > 0)
-//               Positioned(
-//                 top: -6,
-//                 right: -10,
-//                 child: Container(
-//                   padding: const EdgeInsets.all(4),
-//                   constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-//                   decoration: const BoxDecoration(
-//                     color: Colors.orange,
-//                     shape: BoxShape.circle,
-//                   ),
-//                   child: Center(
-//                     child: Text(
-//                       '$badgeValue',
-//                       style: const TextStyle(
-//                         fontSize: 10,
-//                         color: Colors.white,
-//                         fontWeight: FontWeight.bold,
-//                       ),
-//                     ),
-//                   ),
-//                 ),
-//               ),
-//           ],
-//         ),
-//       ),
-//     ),
-//   );
-// }

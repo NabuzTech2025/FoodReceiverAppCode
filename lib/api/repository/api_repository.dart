@@ -3198,7 +3198,9 @@ class CallService extends GetConnect {
 
       print("🔑 User Access Token: $accessToken");
       print("📦 Request Body Type: ${body.runtimeType}");
-      print("📦 Request Body: ${jsonEncode(body)}");
+
+      String prettyJson = JsonEncoder.withIndent('  ').convert(body);
+      print("📦 FULL Request Body:\n$prettyJson");
 
       var res = await post(
         'sync/orders',
