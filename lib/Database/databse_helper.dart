@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:uuid/uuid.dart';
 import '../models/get_product_category_list_response_model.dart';
+import '../models/get_store_postcode_response_model.dart';
 import '../models/get_store_products_response_model.dart';
 import 'dart:io';
 import 'package:sqflite/sqflite.dart';
@@ -42,7 +43,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 10,
+      version: 11,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -99,6 +100,7 @@ class DatabaseHelper {
       FOREIGN KEY (product_id) REFERENCES products(id)
     )
   ''');
+
     await db.execute('''
   CREATE TABLE order_item_toppings(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -197,6 +199,29 @@ class DatabaseHelper {
       FOREIGN KEY (order_id) REFERENCES orders(id)
     )
   ''');
+
+    await db.execute('''
+  CREATE TABLE postcodes(
+    id TEXT PRIMARY KEY,
+    postcode TEXT,
+    delivery_time INTEGER,
+    store_id TEXT,
+    last_updated INTEGER
+  )
+''');
+
+    await db.execute('''
+  CREATE TABLE store_timings(
+    id TEXT PRIMARY KEY,
+    day_of_week INTEGER,
+    opening_time TEXT,
+    closing_time TEXT,
+    store_id TEXT,
+    name TEXT,
+    last_updated INTEGER
+  )
+''');
+
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -427,6 +452,20 @@ class DatabaseHelper {
           'ALTER TABLE order_item_toppings ADD COLUMN topping_id INTEGER DEFAULT 0');
       print('✅ Added topping_id column to order_item_toppings');
     }
+
+    if (oldVersion < 11) {
+      await db.execute('''
+    CREATE TABLE IF NOT EXISTS store_timings(
+      id TEXT PRIMARY KEY,
+      day_of_week INTEGER,
+      opening_time TEXT,
+      closing_time TEXT,
+      store_id TEXT,
+      name TEXT,
+      last_updated INTEGER
+    )
+  ''');
+    }
   }
 
   // ==================== STORE METHODS ====================
@@ -465,6 +504,47 @@ class DatabaseHelper {
     final db = await database;
     await db.delete('stores');
   }
+
+  Future<void> savePostcodes(List<GetStorePostCodesResponseModel> postcodes, String storeId) async {
+    final db = await database;
+    final batch = db.batch();
+
+    for (var postcode in postcodes) {
+      batch.insert(
+        'postcodes',
+        {
+          'id': postcode.id.toString(),
+          'postcode': postcode.postcode ?? '',
+          'delivery_time': postcode.deliveryTime ?? 0,
+          'store_id': storeId,
+          'last_updated': DateTime.now().millisecondsSinceEpoch,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    await batch.commit(noResult: true);
+    print('✅ Saved ${postcodes.length} postcodes to database');
+  }
+
+  Future<List<GetStorePostCodesResponseModel>> getPostcodes(String storeId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'postcodes',
+      where: 'store_id = ?',
+      whereArgs: [storeId],
+      orderBy: 'postcode ASC',
+    );
+
+    return maps.map((map) {
+      return GetStorePostCodesResponseModel(
+        id: int.tryParse(map['id']?.toString() ?? '0'),
+        postcode: map['postcode'] as String?,
+        deliveryTime: map['delivery_time'] as int?,
+      );
+    }).toList();
+  }
+
 
   // ==================== CATEGORY METHODS ====================
 
@@ -811,29 +891,57 @@ class DatabaseHelper {
   Future<String> _generateSequentialClientUuid(String storeId) async {
     final db = await database;
 
-    // Get count of orders for this store to determine sequence number
+    // ✅ Get current count for this store
     final result = await db.rawQuery(
         'SELECT COUNT(*) as count FROM orders WHERE store_id = ?',
         [storeId]
     );
 
     int orderCount = Sqflite.firstIntValue(result) ?? 0;
-    int sequenceNumber = orderCount + 1;  // Next order number
+    int sequenceNumber = orderCount + 1;
 
-    // Generate random last digit (0-9)
-    int randomDigit = DateTime.now().millisecond % 10;
+    // ✅ SOLUTION: Use timestamp + store_id for true uniqueness
+    DateTime now = DateTime.now();
 
-    // Create UUID pattern: sequence repeated + random digit at end
-    // Example: 11111111-1111-1111-1111-111111111119
-    String digit = sequenceNumber.toString();
+    // Extract last 4 digits of store_id
+    String storeIdSuffix = storeId.length >= 4
+        ? storeId.substring(storeId.length - 4)
+        : storeId.padLeft(4, '0');
 
-    String uuid = '${digit * 8}-${digit * 4}-${digit * 4}-${digit * 4}-${digit * 11}$randomDigit';
+    // Get timestamp components
+    String year = now.year.toString().substring(2); // 24
+    String month = now.month.toString().padLeft(2, '0'); // 12
+    String day = now.day.toString().padLeft(2, '0'); // 19
+    String hour = now.hour.toString().padLeft(2, '0'); // 14
+    String minute = now.minute.toString().padLeft(2, '0'); // 30
+    String second = now.second.toString().padLeft(2, '0'); // 25
+    String milli = now.millisecond.toString().padLeft(3, '0'); // 456
 
-    print('✅ Generated UUID: $uuid for order sequence: $sequenceNumber');
+    // ✅ Format: 8-4-4-4-12 (total 36 characters with dashes)
+    // Part 1 (8): YYMMDD + Seq (2+2+2+2 = 8)
+    String part1 = '$year$month$day${sequenceNumber.toString().padLeft(2, '0')}';
+
+    // Part 2 (4): Store ID suffix
+    String part2 = storeIdSuffix;
+
+    // Part 3 (4): Hour + Minute
+    String part3 = '$hour$minute';
+
+    // Part 4 (4): Second + 2 digits of millisecond
+    String part4 = '$second${milli.substring(0, 2)}';
+
+    // Part 5 (12): Millisecond + timestamp micros for extra uniqueness
+    String microseconds = now.microsecondsSinceEpoch.toString();
+    String part5 = microseconds.substring(microseconds.length - 12);
+
+    String uuid = '$part1-$part2-$part3-$part4-$part5';
+
+    print('✅ Generated unique UUID: $uuid');
+    print('   Store ID: $storeId, Sequence: $sequenceNumber');
+    print('   Timestamp: ${now.toIso8601String()}');
 
     return uuid;
   }
-
 
   Future<int> saveOrder({
     required String storeId,
@@ -848,14 +956,28 @@ class DatabaseHelper {
     required double amount,
     String? discountId,
     DateTime? createdAt,
+    String? deliveryTime,
   }) async
   {
-
     final db = await database;
 
-    // ✅ ALWAYS UTC
-    DateTime orderTime = createdAt ?? DateTime.now().toUtc();
-    int timestamp = orderTime.millisecondsSinceEpoch;
+    // ✅ CHANGED: Use provided Germany time, fallback to Germany time if null
+    DateTime orderTime;
+    if (createdAt != null) {
+      orderTime = createdAt; // ✅ Already Germany time from POS controller
+    } else {
+      // ✅ Fallback: Calculate Germany time
+      DateTime utcNow = DateTime.now().toUtc();
+      bool isDST = _isDaylightSavingTimeDb(utcNow);
+      int germanyOffset = isDST ? 2 : 1;
+      orderTime = utcNow.add(Duration(hours: germanyOffset));
+    }
+
+    // ✅ BETTER: Store as UTC milliseconds instead of Germany time
+    int timestamp = createdAt!.toUtc().millisecondsSinceEpoch;  // Store UTC
+
+    print('🕐 Saving order as UTC timestamp: $timestamp');
+    print('🕐 Original Germany time: $createdAt');
 
     String clientUuid = await _generateSequentialClientUuid(storeId);
     int orderTypeInt = int.tryParse(orderType) ?? 3;
@@ -872,9 +994,10 @@ class DatabaseHelper {
       'isActive': 1,
       'email': email.isEmpty ? null : email,
       'captcha_token': '',
-      'created_at': timestamp, // ✅ UTC millis
+      'created_at': timestamp, // ✅ Germany time in milliseconds
       'synced': 0,
-    });
+    }
+    );
 
     await db.insert('order_shipping_address', {
       'order_id': orderId,
@@ -888,6 +1011,10 @@ class DatabaseHelper {
     });
 
     for (var item in items) {
+
+      print('💾 DB SAVE - Item: product_id=${item['product_id']},'
+          'variant_id=${item['variant_id']}, qty=${item['quantity']}');
+
       int itemId = await db.insert('order_items', {
         'order_id': orderId,
         'note': item['note'] ?? '',
@@ -898,7 +1025,11 @@ class DatabaseHelper {
       });
 
       if (item['toppings'] != null && item['toppings'] is List) {
+        print('   📝 Saving ${(item['toppings'] as List).length} toppings for item $itemId');
+
         for (var topping in item['toppings']) {
+          print('      🍕 Topping: ${topping['name']} | topping_id=${topping['topping_id']} | price=${topping['price']} | qty=${topping['quantity']}');
+
           await db.insert('order_item_toppings', {
             'order_item_id': itemId,
             'topping_id': topping['topping_id'] ?? 0,
@@ -907,6 +1038,7 @@ class DatabaseHelper {
             'topping_quantity': topping['quantity'] ?? 1,
           });
         }
+        print('   ✅ Toppings saved for item $itemId');
       }
     }
 
@@ -914,12 +1046,31 @@ class DatabaseHelper {
       'order_id': orderId,
       'payment_method': 'cash',
       'status': 'paid',
-      'paid_at': DateTime.now().toUtc().toIso8601String(), // ✅ UTC
+      'paid_at': orderTime.toIso8601String(), // ✅ Germany time ISO
       'amount': amount,
     });
 
-    print('✅ Order saved with ID: $orderId');
+    print('✅ Order saved with ID: $orderId (Germany time)');
     return orderId;
+  }
+
+  bool _isDaylightSavingTimeDb(DateTime dateTime) {
+    int year = dateTime.year;
+
+    DateTime marchEnd = DateTime.utc(year, 3, 31);
+    while (marchEnd.weekday != DateTime.sunday) {
+      marchEnd = marchEnd.subtract(Duration(days: 1));
+    }
+
+    DateTime octoberEnd = DateTime.utc(year, 10, 31);
+    while (octoberEnd.weekday != DateTime.sunday) {
+      octoberEnd = octoberEnd.subtract(Duration(days: 1));
+    }
+
+    DateTime dstStart = DateTime.utc(year, marchEnd.month, marchEnd.day, 2, 0);
+    DateTime dstEnd = DateTime.utc(year, octoberEnd.month, octoberEnd.day, 3, 0);
+
+    return dateTime.isAfter(dstStart) && dateTime.isBefore(dstEnd);
   }
 
 
@@ -964,20 +1115,41 @@ class DatabaseHelper {
         whereArgs: [item['id']],
       );
 
-      // ✅ Extract actual topping_id from composite topping_id if stored
       List<Map<String, dynamic>> processedToppings = toppings.map((t) {
         int actualToppingId = t['topping_id'] as int? ?? 0;
         return {
           'id': actualToppingId,
           'topping_id': actualToppingId,
-          'topping_name': t['topping_name'],
-          'topping_price': t['topping_price'],
-          'topping_quantity': t['topping_quantity'],
+          'topping_name': t['topping_name'],  // ✅ Keep original column name
+          'topping_price': t['topping_price'] as double? ?? 0.0,  // ✅ Keep original column name
+          'topping_quantity': t['topping_quantity'] as int? ?? 1,  // ✅ Keep original column name
         };
       }).toList();
-
+      print('📦 DB LOAD - Processed ${processedToppings.length} toppings for item ${item['id']}:');
+      processedToppings.forEach((t) {
+        print('   🍕 ${t['topping_name']} | id=${t['topping_id']} | price=${t['topping_price']} | qty=${t['topping_quantity']}');
+      });
       Map<String, dynamic> itemWithToppings = Map.from(item);
       itemWithToppings['toppings'] = processedToppings;
+      int? variantId = item['variant_id'] as int?;
+      if (variantId != null && variantId > 0) {
+        final variantData = await db.query(
+          'product_variants',
+          where: 'id = ?',
+          whereArgs: [variantId.toString()],
+        );
+
+        if (variantData.isNotEmpty) {
+          itemWithToppings['variant'] = {
+            'id': int.tryParse(variantData.first['id']?.toString() ?? '0'),
+            'name': variantData.first['name'] as String?,
+            'price': (variantData.first['price'] as num?)?.toDouble(),
+            'item_code': variantData.first['item_code'] as String?,
+            'description': variantData.first['description'] as String?,
+          };
+          print('✅ Loaded variant: ${variantData.first['name']} for item ${item['id']}');
+        }
+      }
       itemsWithToppings.add(itemWithToppings);
     }
 
@@ -1106,6 +1278,7 @@ class DatabaseHelper {
 ''', [storeId]);
     await db.delete('categories', where: 'storeId = ?', whereArgs: [storeId]);
     await db.delete('products', where: 'storeId = ?', whereArgs: [storeId]);
+    await db.delete('postcodes', where: 'store_id = ?', whereArgs: [storeId]);
     print('🗑️ Cleared all data for store: $storeId');
   }
 
@@ -1119,6 +1292,7 @@ class DatabaseHelper {
     await db.delete('order_shipping_address');
     await db.delete('order_items');
     await db.delete('order_payment');
+    await db.delete('postcodes');
     print('🗑️ Cleared entire database');
   }
 

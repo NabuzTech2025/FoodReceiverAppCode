@@ -46,6 +46,19 @@ class LoginController extends GetxController {
     // ]);
     _initialize();
   }
+  void _loadSavedEnvironment() {
+    final savedBaseUrl = prefs.getString(valueShared_BASEURL);
+
+    if (savedBaseUrl != null) {
+      // ✅ Determine environment from base URL
+      if (savedBaseUrl.contains('Magskr.site')) {
+        selectedEnvironment.value = 'Test';
+      } else {
+        selectedEnvironment.value = 'Prod';
+      }
+      print("✅ Loaded environment: ${selectedEnvironment.value}");
+    }
+  }
 
   @override
   void onReady() {
@@ -73,6 +86,7 @@ class LoginController extends GetxController {
     await _getDeviceToken();
     _loadSavedCredentials();
     _loadSavedLanguage();
+    _loadSavedEnvironment();
   }
 
   Future<void> _initSharedPreferences() async {
@@ -181,13 +195,25 @@ class LoginController extends GetxController {
       final storeId = prefs.getString(valueShared_STORE_KEY);
 
       if (storeId != null) {
-        // Clear database for this store
         await DatabaseHelper().clearStoreData(storeId);
         print('✅ Database cleared for store: $storeId');
       }
 
+      // ✅ Save environment and language before clearing
+      final savedEnvironment = prefs.getString(valueShared_BASEURL);
+      final savedLanguage = prefs.getString(valueShared_LANGUAGE);
+
       // Clear SharedPreferences
       await prefs.clear();
+
+      // ✅ Restore environment and language
+      if (savedEnvironment != null) {
+        await prefs.setString(valueShared_BASEURL, savedEnvironment);
+      }
+      if (savedLanguage != null) {
+        await prefs.setString(valueShared_LANGUAGE, savedLanguage);
+      }
+
       await prefs.reload();
 
       print('✅ Logout completed successfully');

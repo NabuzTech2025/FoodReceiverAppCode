@@ -51,6 +51,13 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     updatedOrder = widget.order;
     sharedPreferences = await SharedPreferences.getInstance();
     bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
+    print("📦 Order items count: ${updatedOrder.items?.length ?? 0}");
+    updatedOrder.items?.forEach((item) {
+      print("   - ${item.productName}: ${item.toppings?.length ?? 0} toppings");
+      item.toppings?.forEach((t) {
+        print("      * ${t.name} (${t.price} × ${t.quantity})");
+      });
+    });
 
     if (bearerKey != null) {
       // ✅ CRITICAL: Wait for store name to be loaded before proceeding
@@ -305,7 +312,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     print('guest name is $guestAddress');
     print('guest name is $guestPhone');
     print('Note IS $Note');
-
+    bool localOrder = updatedOrder.isLocalOrder==true;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -382,11 +389,16 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                     const SizedBox(height: 2),
                     Center(
                       child: Text(
-                        '${'invoice_number'.tr}: ${updatedOrder.invoice?.invoiceNumber ?? ''}',
+                        localOrder
+                            ? 'POS Order'
+                            : '${'invoice_number'.tr}: ${updatedOrder.invoice?.invoiceNumber ?? ''}',
                         style: const TextStyle(
-                            fontWeight: FontWeight.w500, fontSize: 13),
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
+
                     const SizedBox(height: 2),
                     Center(
                       child: Text(
@@ -727,11 +739,6 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
   }
 
   Widget _buildActionButtons(BuildContext context, int approvalStatus) {
-    String paymentMethod = updatedOrder.payment?.paymentMethod?.toLowerCase() ?? '';
-    if (paymentMethod == 'stripe') {
-      return const SizedBox.shrink();
-    }
-
     if (orderType == 0) {
       if (approvalStatus == 1) {
         setState(() {
@@ -748,6 +755,10 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
           currentDeliveryTime = DateTime.now().add(const Duration(minutes: 30));
         }
 
+        // ✅ Check Stripe payment method
+        String paymentMethod = updatedOrder.payment?.paymentMethod?.toLowerCase() ?? '';
+        bool isStripePayment = paymentMethod == 'stripe';
+        bool localOrder = updatedOrder.isLocalOrder==true;
         return Column(
           children: [
             // Delivery Time Container
@@ -802,14 +813,15 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                 ],
               ),
             ),
-            // Accept/Decline Buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _actionButton(context, Icons.close, "decline".tr, Colors.red),
-                _actionButton(context, Icons.check, "accept".tr, Colors.green),
-              ],
-            )
+
+            if (!isStripePayment && !localOrder)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _actionButton(context, Icons.close, "decline".tr, Colors.red),
+                  _actionButton(context, Icons.check, "accept".tr, Colors.green),
+                ],
+              )
           ],
         );
       } else if (approvalStatus == 2) {

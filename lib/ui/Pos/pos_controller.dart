@@ -5,11 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lottie/lottie.dart';
+import 'package:sqflite/sqflite.dart';
 import '../../Database/databse_helper.dart';
+import '../../api/Socket/reservation_socket_service.dart';
 import '../../api/repository/api_repository.dart';
 import '../../constants/constant.dart';
 import '../../models/get_product_category_list_response_model.dart';
+import '../../models/get_store_postcode_response_model.dart';
 import '../../models/get_store_products_response_model.dart';
+import '../../models/get_store_timing_response_model.dart';
 
 class PosController extends GetxController {
 // Observable variables - Landscape Mode
@@ -37,6 +41,7 @@ class PosController extends GetxController {
 // Lists
   final productCategoryList = <GetProductCategoryList>[].obs;
   final productList = <GetStoreProducts>[].obs;
+  final postcode = <GetStorePostCodesResponseModel>[].obs;
   final filteredProducts = <GetStoreProducts>[].obs;
   final categories = <CategoryData>[].obs;
   final discountPercentage = 0.0.obs;
@@ -72,6 +77,15 @@ class PosController extends GetxController {
   final showVariantDialog = false.obs;
   final expandedVariantId = Rx<int?>(null);
   final selectedToppingsMap = <int, List<int>>{}.obs;
+
+  final selectedPostcode = Rx<GetStorePostCodesResponseModel?>(null);
+  final showPostcodeDialog = false.obs;
+  final List<Map<String, String>> sofortTimeSlots = <Map<String, String>>[].obs;
+  final storeOpeningTime = Rx<DateTime?>(null);
+  final SocketService _socketService = SocketService();
+
+  List<GetStoreTimingResponseModel> storeTimingList = [];
+  final selectedVorbestellenDate = Rx<DateTime?>(null);
 
   final nameFocusNode = FocusNode();
   final phoneFocusNode = FocusNode();
@@ -110,6 +124,7 @@ class PosController extends GetxController {
     _setOrientation();
     _initializeSharedPreferences();
     _setupScrollListener();
+    _initializeSocketConnection();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setupLandscapeScrollListener();
     });
@@ -131,6 +146,7 @@ class PosController extends GetxController {
     phoneFocusNode.dispose();
     emailFocusNode.dispose();
     addressFocusNode.dispose();
+    _socketService.disconnect();
     super.onClose();
   }
 
@@ -240,10 +256,311 @@ class PosController extends GetxController {
       await getProductCategory();
       await getDiscountPercentage();
       await _loadNextInvoiceNumber();
+      await getStoreTiming();
     } catch (e) {
       print('Error initializing SharedPreferences: $e');
       isLoading.value = false;
     }
+  }
+
+  Future<void> _initializeSocketConnection() async {
+    try {
+      await _socketService.connect();
+      await Future.delayed(Duration(milliseconds: 2000));
+
+      if (storeId != null) {
+        _listenToStoreStatus();
+      }
+    } catch (e) {
+      print('❌ Error initializing socket: $e');
+    }
+  }
+
+  void _listenToStoreStatus() {
+    if (storeId == null) return;
+
+    _socketService.listenToStoreStatus(storeId!);
+
+    _socketService.storeStatusStream.listen((data) {
+      if (data != null) {
+        _parseStoreOpeningTime(data['today_hours']);
+        _generateSofortTimeSlots();
+      }
+    });
+  }
+
+  void _parseStoreOpeningTime(List<dynamic>? todayHours) {
+    if (todayHours == null || todayHours.isEmpty) return;
+
+    String? openTime = todayHours[0]['open_time'];
+    if (openTime != null) {
+      List<String> parts = openTime.split(':');
+      int hour = int.parse(parts[0]);
+      int minute = int.parse(parts[1]);
+
+      storeOpeningTime.value = DateTime(2023, 1, 1, hour, minute);
+      print('🕐 Store opening time: ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
+    }
+  }
+
+  void _generateSofortTimeSlots() {
+    sofortTimeSlots.clear();
+
+    if (storeOpeningTime.value == null) {
+      print('⚠️ Store opening time not available');
+      return;
+    }
+
+    // ✅ Get current Germany time
+    DateTime nowUtc = DateTime.now().toUtc();
+    bool isDST = _isDaylightSavingTime(nowUtc);
+    int germanyOffset = isDST ? 2 : 1;
+    DateTime nowGermany = nowUtc.add(Duration(hours: germanyOffset));
+
+    int currentHour = nowGermany.hour;
+    int currentMinute = nowGermany.minute;
+    int currentTotalMinutes = (currentHour * 60) + currentMinute;
+
+    print("⏰ Current Germany time: ${currentHour.toString().padLeft(2, '0')}:${currentMinute.toString().padLeft(2, '0')}");
+
+    DateTime startTime;
+    int intervalMinutes = 15;
+    int minimumPrepTime; // This will be used to calculate minimum available slot
+
+    if (selectedOrderType.value == 'Lieferzeit') {
+      // Delivery: delivery time + 15 min
+      int deliveryMinutes = selectedPostcode.value?.deliveryTime ?? 60;
+      startTime = storeOpeningTime.value!.add(Duration(minutes: deliveryMinutes + 15));
+      minimumPrepTime = deliveryMinutes + 15;
+    } else {
+      // Pickup: 30 min
+      startTime = storeOpeningTime.value!.add(Duration(minutes: 30));
+      minimumPrepTime = 30;
+    }
+
+    // ✅ Calculate minimum available time based on current Germany time
+    DateTime minAvailableTime = nowGermany.add(Duration(minutes: minimumPrepTime));
+
+    // ✅ Round up to next 15-minute interval
+    int minAvailableMinutes = (minAvailableTime.hour * 60) + minAvailableTime.minute;
+    int remainder = minAvailableMinutes % 15;
+    if (remainder != 0) {
+      minAvailableMinutes += (15 - remainder);
+    }
+
+    print("🎯 Minimum available time: ${minAvailableMinutes ~/ 60}:${(minAvailableMinutes % 60).toString().padLeft(2, '0')}");
+
+    // Generate slots till 10 PM
+    DateTime endTime = DateTime(2023, 1, 1, 22, 0);
+    DateTime currentSlot = startTime;
+
+    while (currentSlot.isBefore(endTime) || currentSlot.isAtSameMomentAs(endTime)) {
+      int slotTotalMinutes = (currentSlot.hour * 60) + currentSlot.minute;
+
+      // ✅ Only add slot if it's after minimum available time
+      if (slotTotalMinutes >= minAvailableMinutes) {
+        String time24 = '${currentSlot.hour.toString().padLeft(2, '0')}:${currentSlot.minute.toString().padLeft(2, '0')}';
+        sofortTimeSlots.add({'time24': time24});
+        print("✅ Added slot: $time24 (slot: $slotTotalMinutes >= min: $minAvailableMinutes)");
+      } else {
+        print("❌ Skipped slot: ${currentSlot.hour.toString().padLeft(2, '0')}:${currentSlot.minute.toString().padLeft(2, '0')} (too early)");
+      }
+
+      currentSlot = currentSlot.add(Duration(minutes: intervalMinutes));
+    }
+
+    print('✅ Generated ${sofortTimeSlots.length} available sofort time slots');
+  }
+
+  Future<void> getStoreTiming() async {
+    if (storeId == null) {
+      print('❌ Store ID not available');
+      return;
+    }
+
+    try {
+      List<GetStoreTimingResponseModel> storeTiming =
+      await CallService().getStoreTiming(storeId!);
+
+      storeTimingList = storeTiming;
+      print('✅ Store timing loaded: ${storeTiming.length} entries');
+
+      // Save to database
+      await _saveStoreTimingToDb(storeTiming);
+
+    } catch (e) {
+      print('❌ Error getting Store Timing: $e');
+    }
+  }
+
+  Future<void> _saveStoreTimingToDb(List<GetStoreTimingResponseModel> timings) async {
+    final db = await dbHelper.database;
+
+    for (var timing in timings) {
+      await db.insert(
+        'store_timings',
+        {
+          'id': timing.id.toString(),
+          'day_of_week': timing.dayOfWeek,
+          'opening_time': timing.openingTime,
+          'closing_time': timing.closingTime,
+          'store_id': timing.storeId.toString(),
+          'name': timing.name,
+          'last_updated': DateTime.now().millisecondsSinceEpoch,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    print('✅ Store timings saved to database');
+  }
+
+  Future<List<Map<String, String>>> generateVorbestellenTimeSlots(DateTime selectedDate) async {
+    List<Map<String, String>> slots = [];
+
+    // ✅ Get current Germany time
+    DateTime nowUtc = DateTime.now().toUtc();
+    bool isDST = _isDaylightSavingTime(nowUtc);
+    int germanyOffset = isDST ? 2 : 1;
+    DateTime nowGermany = nowUtc.add(Duration(hours: germanyOffset));
+
+    bool isToday = selectedDate.day == nowGermany.day &&
+        selectedDate.month == nowGermany.month &&
+        selectedDate.year == nowGermany.year;
+
+    // Check if selected date is Tuesday to Friday
+    int dayOfWeek = selectedDate.weekday; // Monday=1, Sunday=7
+    bool isWebSocketDay = (dayOfWeek >= 2 && dayOfWeek <= 5); // Tue-Fri
+
+    String? openTime;
+    String? closeTime;
+
+    if (isWebSocketDay && storeOpeningTime.value != null) {
+      // ✅ Use WebSocket data for Tuesday-Friday
+      openTime = '${storeOpeningTime.value!.hour.toString().padLeft(2, '0')}:${storeOpeningTime.value!.minute.toString().padLeft(2, '0')}';
+      closeTime = '22:00'; // Default closing time
+      print('📡 Using WebSocket timing for ${_getDayName(dayOfWeek)}');
+    } else {
+      // ✅ Use API data for other days
+      GetStoreTimingResponseModel? dayTiming = storeTimingList.firstWhere(
+            (timing) => timing.dayOfWeek == dayOfWeek,
+        orElse: () => GetStoreTimingResponseModel(),
+      );
+
+      if (dayTiming.openingTime != null && dayTiming.closingTime != null) {
+        openTime = dayTiming.openingTime;
+        closeTime = dayTiming.closingTime;
+        print('📅 Using API timing for ${_getDayName(dayOfWeek)}: $openTime - $closeTime');
+      } else {
+        print('⚠️ No timing data available for ${_getDayName(dayOfWeek)}');
+        return slots;
+      }
+    }
+
+    if (openTime == null || closeTime == null) {
+      return slots;
+    }
+
+    // Parse times
+    List<String> openParts = openTime.split(':');
+    List<String> closeParts = closeTime.split(':');
+
+    int openHour = int.parse(openParts[0]);
+    int openMinute = int.parse(openParts[1]);
+    int closeHour = int.parse(closeParts[0]);
+    int closeMinute = int.parse(closeParts[1]);
+
+    DateTime currentSlot;
+    int intervalMinutes = 15;
+    int minimumPrepTime;
+
+    if (selectedOrderType.value == 'Lieferzeit') {
+      int deliveryMinutes = selectedPostcode.value?.deliveryTime ?? 60;
+      minimumPrepTime = deliveryMinutes + 15;
+      currentSlot = DateTime(2023, 1, 1, openHour, openMinute).add(Duration(minutes: minimumPrepTime));
+    } else {
+      minimumPrepTime = 30;
+      currentSlot = DateTime(2023, 1, 1, openHour, openMinute).add(Duration(minutes: minimumPrepTime));
+    }
+
+    DateTime endTime = DateTime(2023, 1, 1, closeHour, closeMinute);
+
+    // ✅ If today, calculate minimum available time
+    int? minAvailableMinutes;
+    if (isToday) {
+      DateTime minAvailableTime = nowGermany.add(Duration(minutes: minimumPrepTime));
+      minAvailableMinutes = (minAvailableTime.hour * 60) + minAvailableTime.minute;
+
+      // Round up to next 15-min interval
+      int remainder = minAvailableMinutes % 15;
+      if (remainder != 0) {
+        minAvailableMinutes += (15 - remainder);
+      }
+
+      print('🎯 Today minimum available time: ${minAvailableMinutes ~/ 60}:${(minAvailableMinutes % 60).toString().padLeft(2, '0')}');
+    }
+
+    while (currentSlot.isBefore(endTime) || currentSlot.isAtSameMomentAs(endTime)) {
+      int slotTotalMinutes = (currentSlot.hour * 60) + currentSlot.minute;
+
+      // ✅ Filter based on current time if today
+      bool shouldAdd = true;
+      if (isToday && minAvailableMinutes != null) {
+        shouldAdd = slotTotalMinutes >= minAvailableMinutes;
+      }
+
+      if (shouldAdd) {
+        String time24 = '${currentSlot.hour.toString().padLeft(2, '0')}:${currentSlot.minute.toString().padLeft(2, '0')}';
+        slots.add({'time24': time24});
+      }
+
+      currentSlot = currentSlot.add(Duration(minutes: intervalMinutes));
+    }
+
+    print('✅ Generated ${slots.length} slots for ${_getDayName(dayOfWeek)}');
+    return slots;
+  }
+
+  String _getDayName(int dayOfWeek) {
+    const days = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    return days[dayOfWeek];
+  }
+
+
+  void showPostcodeSelector(BuildContext context) {
+    if (postcode.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Loading postcodes...'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    showPostcodeDialog.value = true;
+  }
+
+  void selectPostcode(GetStorePostCodesResponseModel selectedPostcodeItem) {
+    selectedPostcode.value = selectedPostcodeItem;
+    regionController.text = selectedPostcodeItem.postcode ?? '';
+    showPostcodeDialog.value = false;
+
+    // Regenerate sofort time slots based on new delivery time
+    _generateSofortTimeSlots();
+  }
+
+  // Update setOrderType method:
+  void setOrderType(String type) {
+    selectedOrderType.value = type;
+
+    if (type == 'Lieferzeit' && postcode.isNotEmpty) {
+      // Auto-select first postcode for delivery
+      selectedPostcode.value = postcode.first;
+      regionController.text = postcode.first.postcode ?? '';
+    } else if (type == 'Abholzeit') {
+      // Clear postcode for pickup
+      selectedPostcode.value = null;
+      regionController.text = '';
+    }
+
+    _generateSofortTimeSlots();
   }
 
   void filterProducts(String query) {
@@ -301,7 +618,7 @@ class PosController extends GetxController {
 
     double toppingPrice = 0.0;
     List<String> toppingDetails = [];
-    List<Map<String, dynamic>> toppingDataList = [];  // ✅ Add this line
+    List<Map<String, dynamic>> toppingDataList = [];  // ✅ This line should exist
 
     print('🔍 Checking toppings for variant ${selectedVariant.value!.id}');
     print('🔍 Selected topping IDs: ${selectedToppingsMap[selectedVariant.value!.id]}');
@@ -310,7 +627,7 @@ class PosController extends GetxController {
       var selectedToppingIds = selectedToppingsMap[selectedVariant.value!.id]!;
 
       print('🔍 Found ${selectedToppingIds.length} selected toppings');
-      List<Map<String, dynamic>> toppingDataList = [];  // ✅ Store full topping data
+      // List<Map<String, dynamic>> toppingDataList = [];  // ✅ REMOVE THIS LINE IF IT EXISTS HERE
 
       selectedVariant.value!.enrichedToppingGroups?.forEach((group) {
         group.toppings?.forEach((topping) {
@@ -318,21 +635,25 @@ class PosController extends GetxController {
             toppingPrice += topping.price ?? 0.0;
             toppingDetails.add('${topping.name} [€${(topping.price ?? 0.0).toStringAsFixed(2)}]');
 
+            // ✅ ADD DEBUG PRINT HERE
+            print('🍕 Adding topping to data: ${topping.name} with ID: ${topping.id}');
+
             // ✅ Store actual topping ID (not composite key)
             toppingDataList.add({
-              'topping_id': topping.id,  // ✅ This should be the actual topping ID from API
+              'topping_id': topping.id,  // ✅ Actual topping ID from API
               'name': topping.name,
               'price': topping.price ?? 0.0,
               'quantity': 1,
             });
 
-            print('✅ Added topping: ${topping.name} with ID: ${topping.id}');  // Debug log
+            print('✅ Added topping: ${topping.name} with ID: ${topping.id}');
           }
         });
       });
     }
 
     print('✅ Total toppings added: ${toppingDetails.length}');
+    print('✅ Total toppingDataList: ${toppingDataList.length}'); // ✅ ADD THIS
 
     double totalPrice = basePrice + variantPrice + toppingPrice;
     String variantName = selectedVariant.value!.name ?? '';
@@ -343,6 +664,9 @@ class PosController extends GetxController {
     if (existingIndex != -1) {
       cartItems[existingIndex]['quantity']++;
     } else {
+      // ✅ ADD DEBUG BEFORE ADDING TO CART
+      print('🛒 Adding to cart with ${toppingDataList.length} toppings');
+
       cartItems.add({
         'key': itemKey,
         'name': selectedProduct.value!.name ?? '',
@@ -353,9 +677,12 @@ class PosController extends GetxController {
         'variant_id': selectedVariant.value!.id,
         'product_id': selectedProduct.value!.id,
         'topping_details': toppingDetails,
-        'topping_data': toppingDataList,  // ✅ Add this line
+        'topping_data': toppingDataList,  // ✅ Make sure this is the list, not empty
         'item_note': '',
       });
+
+      // ✅ VERIFY AFTER ADDING
+      print('✅ Cart item added. Verifying topping_data: ${cartItems.last['topping_data']}');
     }
 
     print('✅ Cart item added with ${toppingDetails.length} toppings');
@@ -795,11 +1122,6 @@ class PosController extends GetxController {
     return filtered;
   }
 
-  // Set Order Type
-  void setOrderType(String type) {
-    selectedOrderType.value = type;
-  }
-
   void saveNote(String note) {
     orderNote.value = note;
     Get.back();
@@ -856,11 +1178,31 @@ class PosController extends GetxController {
           orElse: () => GetStoreProducts(id: 0),
         );
 
+        // ✅ FIX: Check both 'topping_data' AND 'toppings'
         List<Map<String, dynamic>>? toppings;
+
+        // First check topping_data
         if (item['topping_data'] != null && item['topping_data'] is List) {
           toppings = List<Map<String, dynamic>>.from(item['topping_data']);
+          print('✅ Found topping_data with ${toppings.length} items');
+        }
+        // Fallback to check 'toppings' key
+        else if (item['toppings'] != null && item['toppings'] is List) {
+          toppings = List<Map<String, dynamic>>.from(item['toppings']);
+          print('✅ Found toppings with ${toppings.length} items');
         }
 
+        // ✅ DEBUG: Print entire cart item to see structure
+        print('🔍 CART ITEM STRUCTURE: ${item.keys.toList()}');
+        print('🔍 Cart item name: ${item['name']}');
+        print('🔍 Has topping_data? ${item['topping_data'] != null}');
+        print('🔍 Has toppings? ${item['toppings'] != null}');
+        if (item['topping_data'] != null) {
+          print('🔍 topping_data content: ${item['topping_data']}');
+        }
+        if (item['toppings'] != null) {
+          print('🔍 toppings content: ${item['toppings']}');
+        }
         return {
           'product_id': product.id ?? 0,
           'quantity': item['quantity'],
@@ -878,8 +1220,29 @@ class PosController extends GetxController {
         discountId = pickupDiscountId;
       }
 
-      // ✅ JUST UTC
-      final utcNow = DateTime.now().toUtc();
+      // ✅ NEW: Get Germany time instead of UTC
+      final germanyTime = _getGermanyTime();
+
+      // Calculate delivery time based on selection
+      String? deliveryTime;
+      if (selectedDate.value != null && selectedTimeSlot.value != 'sofort') {
+        // Vorbestellen - use selected date & time
+        String timeString = selectedTimeSlot.value; // "15:00"
+        List<String> timeParts = timeString.split(':');
+        DateTime deliveryDateTime = DateTime(
+          selectedDate.value!.year,
+          selectedDate.value!.month,
+          selectedDate.value!.day,
+          int.parse(timeParts[0]),
+          int.parse(timeParts[1]),
+        );
+        deliveryTime = deliveryDateTime.toIso8601String();
+      } else if (selectedTimeSlot.value == 'sofort') {
+        // Sofort - use current time + delivery time from postcode
+        int deliveryMinutes = selectedPostcode.value?.deliveryTime ?? 30;
+        DateTime sofortTime = germanyTime.add(Duration(minutes: deliveryMinutes));
+        deliveryTime = sofortTime.toIso8601String();
+      }
 
       int orderId = await dbHelper.saveOrder(
         storeId: storeId!,
@@ -893,10 +1256,10 @@ class PosController extends GetxController {
         items: orderItems,
         amount: calculateGrandTotal(),
         discountId: discountId,
-        createdAt: utcNow, // ✅ UTC passed
+        createdAt: germanyTime,
+        deliveryTime: deliveryTime,
       );
-
-      print('✅ Order placed with ID: $orderId');
+      print('✅ Order placed with ID: $orderId at Germany time: $germanyTime');
       invoiceNumber.value++;
 
       cartItems.clear();
@@ -916,7 +1279,58 @@ class PosController extends GetxController {
     }
   }
 
+  DateTime _getGermanyTime() {
+    DateTime utcNow = DateTime.now().toUtc();
 
+    // Check if DST is active in Germany
+    bool isDST = _isDaylightSavingTime(utcNow);
+    int germanyOffset = isDST ? 2 : 1; // UTC+2 in summer, UTC+1 in winter
+
+    DateTime germanyTime = utcNow.add(Duration(hours: germanyOffset));
+
+    print('🕐 UTC: $utcNow');
+    print('🇩🇪 Germany time: $germanyTime (DST: $isDST, Offset: +$germanyOffset)');
+
+    return germanyTime;
+  }
+
+  bool _isDaylightSavingTime(DateTime dateTime) {
+    int year = dateTime.year;
+
+    // Find last Sunday of March
+    DateTime marchEnd = DateTime.utc(year, 3, 31);
+    while (marchEnd.weekday != DateTime.sunday) {
+      marchEnd = marchEnd.subtract(Duration(days: 1));
+    }
+
+    // Find last Sunday of October
+    DateTime octoberEnd = DateTime.utc(year, 10, 31);
+    while (octoberEnd.weekday != DateTime.sunday) {
+      octoberEnd = octoberEnd.subtract(Duration(days: 1));
+    }
+
+    // DST starts at 2:00 AM on last Sunday of March
+    DateTime dstStart = DateTime.utc(year, marchEnd.month, marchEnd.day, 2, 0);
+
+    // DST ends at 3:00 AM on last Sunday of October
+    DateTime dstEnd = DateTime.utc(year, octoberEnd.month, octoberEnd.day, 3, 0);
+
+    return dateTime.isAfter(dstStart) && dateTime.isBefore(dstEnd);
+  }
+
+
+  DateTime getCurrentGermanyDate() {
+    DateTime nowUtc = DateTime.now().toUtc();
+    bool isDST = _isDaylightSavingTime(nowUtc);
+    int germanyOffset = isDST ? 2 : 1;
+    DateTime nowGermany = nowUtc.add(Duration(hours: germanyOffset));
+    return DateTime(nowGermany.year, nowGermany.month, nowGermany.day);
+  }
+
+  bool isDateInPast(DateTime date) {
+    DateTime currentGermanyDate = getCurrentGermanyDate();
+    return date.isBefore(currentGermanyDate) || date.isAtSameMomentAs(currentGermanyDate);
+  }
   void onWeiterPressed() {
     if (!showCustomerDetails.value) {
       isCartExpanded.value = false;
@@ -1010,10 +1424,39 @@ class PosController extends GetxController {
     showCalendar.value = false;
   }
 
-  void selectDate(DateTime date) {
+  void showVorbestellenCalendar() {
+    showCalendar.value = true;
+  }
+
+  void selectVorbestellenDate(DateTime date) async {
+    selectedVorbestellenDate.value = date;
+
+    // Generate time slots for selected date
+    List<Map<String, String>> slots = await generateVorbestellenTimeSlots(date);
+    sofortTimeSlots.clear();
+    sofortTimeSlots.addAll(slots);
+
+    showCalendar.value = false;
+    showTimeSelector.value = true;
+
+    print('📅 Selected date: ${date.day}/${date.month}/${date.year} with ${slots.length} slots');
+  }
+
+  void selectDate(DateTime date) async {
     selectedDate.value = date;
+    selectedVorbestellenDate.value = date;
+
+    // ✅ Generate slots for selected date
+    List<Map<String, String>> slots = await generateVorbestellenTimeSlots(date);
+
+
+    sofortTimeSlots.clear();
+    sofortTimeSlots.addAll(slots);
+
     showTimeSelector.value = true;
     closeCalendar();
+
+    print('📅 Selected: ${date.day}/${date.month}/${date.year} with ${slots.length} slots');
   }
 
   void openTimeSelector() {
@@ -1029,7 +1472,6 @@ class PosController extends GetxController {
     }
     return 'Select Date';
   }
-
 
   // API Calls
   Future<void> getProductCategory(
@@ -1078,6 +1520,10 @@ class PosController extends GetxController {
 
       await dbHelper.saveCategories(categoryList, storeId!);
       await dbHelper.saveProducts(products, storeId!);
+
+      List<GetStorePostCodesResponseModel> postcodeList = await CallService().getPostCode(storeId!);
+      await dbHelper.savePostcodes(postcodeList, storeId!);
+      postcode.value = postcodeList;
 
       productCategoryList.value = categoryList;
       productList.value = products;
@@ -1135,6 +1581,36 @@ class PosController extends GetxController {
     }
   }
 
+  Future<void> getPostCode({bool showLoader = true}) async {
+    if (sharedPreferences == null) {
+      print('SharedPreferences not initialized yet');
+      return;
+    }
+
+    storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
+
+    if (storeId == null) {
+      isLoading.value = false;
+      return;
+    }
+
+    try {
+      List<GetStorePostCodesResponseModel> postcodeValue = await CallService().getPostCode(storeId!);
+      print('Postcode list length is ${postcodeValue.length}');
+
+      if (showLoader) {
+        Get.back();
+      }
+      postcode.value = postcodeValue;
+
+    } catch (e) {
+      if (showLoader) {
+        Get.back();
+      }
+      print('Error getting Postcode: $e');
+    }
+  }
+
   Future<void> _loadFromDatabase() async {
     try {
       print('📦 Loading from database...');
@@ -1142,6 +1618,9 @@ class PosController extends GetxController {
       List<GetProductCategoryList> categoryList =
       await dbHelper.getCategories(storeId!);
       List<GetStoreProducts> products = await dbHelper.getProducts(storeId!);
+
+      List<GetStorePostCodesResponseModel> postcodeList = await dbHelper.getPostcodes(storeId!);
+      postcode.value = postcodeList;
 
       if (categoryList.isEmpty || products.isEmpty) {
         print('⚠️ No data found in database');

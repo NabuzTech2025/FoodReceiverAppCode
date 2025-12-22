@@ -1,6 +1,7 @@
 
 import 'dart:async';
 import 'package:hive/hive.dart';
+import 'package:intl/intl.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -135,6 +136,7 @@ class _PosLandscapeState extends State<PosLandscape> {
             ),
           ),
             _buildVariantDialog(controller, context),
+            _buildPostcodeDialog(controller, context),
             //_buildTimeBottomSheet(controller, context),
           ] ),
             ),
@@ -1919,14 +1921,27 @@ class _PosLandscapeState extends State<PosLandscape> {
             textInputAction: TextInputAction.next,
           ),
           SizedBox(height: _responsive(context, 8)),
-          _buildTextField(
-            'Wählen Sie Ihre Region *',
-            controller.regionController,
-            context,
-            focusNode: controller.regionFocusNode,
-            nextFocusNode: controller.emailFocusNode,
-            keyboardType: TextInputType.streetAddress,
-            textInputAction: TextInputAction.next,
+          GestureDetector(
+            onTap: controller.selectedOrderType.value == 'Lieferzeit'
+                ? () => controller.showPostcodeSelector(context)
+                : null,
+            child: AbsorbPointer(
+              absorbing: controller.selectedOrderType.value == 'Lieferzeit',
+              child: _buildTextField(
+                controller.selectedOrderType.value == 'Lieferzeit'
+                    ? 'Wählen Sie Postleitzahl *'
+                    : 'Wählen Sie Ihre Region *',
+                controller.regionController,
+                context,
+                focusNode: controller.regionFocusNode,
+                nextFocusNode: controller.emailFocusNode,
+                keyboardType: TextInputType.text,
+                textInputAction: TextInputAction.next,
+                suffixIcon: controller.selectedOrderType.value == 'Lieferzeit'
+                    ? Icon(Icons.arrow_drop_down, color: Color(0xff0B1928))
+                    : null,
+              ),
+            ),
           ),
           SizedBox(height: _responsive(context, 8)),
           // Email Field
@@ -1952,7 +1967,8 @@ class _PosLandscapeState extends State<PosLandscape> {
       {FocusNode? focusNode,
         FocusNode? nextFocusNode,
         TextInputType? keyboardType,
-        TextInputAction? textInputAction}
+        TextInputAction? textInputAction,
+        Widget?suffixIcon}
       ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1990,6 +2006,7 @@ class _PosLandscapeState extends State<PosLandscape> {
               fontWeight: FontWeight.w500,
               color: Colors.grey.shade400,
             ),
+            suffixIcon: suffixIcon,
             contentPadding: EdgeInsets.symmetric(
               horizontal: _responsive(context, 8),
               vertical: _responsive(context, 8),
@@ -2441,7 +2458,7 @@ class _PosLandscapeState extends State<PosLandscape> {
           SizedBox(height: _responsive(context, 12)),
 
           Obx(() => GestureDetector(
-                onTap: () => controller.selectVorbestellen(),
+                //onTap: () => controller.selectVorbestellen(),
                 child: Container(
                   padding: EdgeInsets.all(_responsive(context, 12)),
                   decoration: BoxDecoration(
@@ -2488,97 +2505,97 @@ class _PosLandscapeState extends State<PosLandscape> {
                 ),
               )),
 
-          SizedBox(height: _responsive(context, 12)),
-
-          Obx(() => controller.isVorbestellenSelected.value
-              ? Column(
-                  children: [
-                    GestureDetector(
-                      onTap: () => controller.openCalendar(),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: _responsive(context, 12),
-                          vertical: _responsive(context, 10),
-                        ),
-                        decoration: BoxDecoration(
-                          color: Color(0xffFBF9FF),
-                          borderRadius:
-                              BorderRadius.circular(_responsive(context, 6)),
-                          border: Border.all(color: Color(0xffE6E1EE)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              controller.getFormattedSelectedDateTime(),
-                              style: TextStyle(
-                                fontSize: _responsive(context, 12),
-                                fontWeight: FontWeight.w500,
-                                fontFamily: 'Mulish',
-                                color: Color(0xff797878),
-                              ),
-                            ),
-                            Container(
-                              padding: EdgeInsets.all(_responsive(context, 6)),
-                              decoration: BoxDecoration(
-                                color: Color(0xffE31E24),
-                                borderRadius: BorderRadius.circular(
-                                    _responsive(context, 4)),
-                              ),
-                              child: Icon(
-                                Icons.calendar_today,
-                                color: Colors.white,
-                                size: _responsive(context, 12),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Select Time (only visible after date is selected)
-                    if (controller.showTimeSelector.value &&
-                        controller.selectedDate.value != null)
-                      Padding(
-                        padding: EdgeInsets.only(top: _responsive(context, 12)),
-                        child: GestureDetector(
-                          onTap: () => controller.openTimeSelector(),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: _responsive(context, 12),
-                              vertical: _responsive(context, 10),
-                            ),
-                            decoration: BoxDecoration(
-                              color: Color(0xffFBF9FF),
-                              borderRadius: BorderRadius.circular(
-                                  _responsive(context, 6)),
-                              border: Border.all(color: Color(0xffE6E1EE)),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Select Time',
-                                  style: TextStyle(
-                                    fontSize: _responsive(context, 12),
-                                    fontWeight: FontWeight.w500,
-                                    fontFamily: 'Mulish',
-                                    color: Color(0xff797878),
-                                  ),
-                                ),
-                                Icon(
-                                  Icons.access_time,
-                                  size: _responsive(context, 16),
-                                  color: Color(0xff0B1928),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                )
-              : SizedBox.shrink()),
+          // SizedBox(height: _responsive(context, 12)),
+          //
+          // Obx(() => controller.isVorbestellenSelected.value
+          //     ? Column(
+          //         children: [
+          //           GestureDetector(
+          //             onTap: () => controller.openCalendar(),
+          //             child: Container(
+          //               padding: EdgeInsets.symmetric(
+          //                 horizontal: _responsive(context, 12),
+          //                 vertical: _responsive(context, 10),
+          //               ),
+          //               decoration: BoxDecoration(
+          //                 color: Color(0xffFBF9FF),
+          //                 borderRadius:
+          //                     BorderRadius.circular(_responsive(context, 6)),
+          //                 border: Border.all(color: Color(0xffE6E1EE)),
+          //               ),
+          //               child: Row(
+          //                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //                 children: [
+          //                   Text(
+          //                     controller.getFormattedSelectedDateTime(),
+          //                     style: TextStyle(
+          //                       fontSize: _responsive(context, 12),
+          //                       fontWeight: FontWeight.w500,
+          //                       fontFamily: 'Mulish',
+          //                       color: Color(0xff797878),
+          //                     ),
+          //                   ),
+          //                   Container(
+          //                     padding: EdgeInsets.all(_responsive(context, 6)),
+          //                     decoration: BoxDecoration(
+          //                       color: Color(0xffE31E24),
+          //                       borderRadius: BorderRadius.circular(
+          //                           _responsive(context, 4)),
+          //                     ),
+          //                     child: Icon(
+          //                       Icons.calendar_today,
+          //                       color: Colors.white,
+          //                       size: _responsive(context, 12),
+          //                     ),
+          //                   ),
+          //                 ],
+          //               ),
+          //             ),
+          //           ),
+          //
+          //           // Select Time (only visible after date is selected)
+          //           if (controller.showTimeSelector.value &&
+          //               controller.selectedDate.value != null)
+          //             Padding(
+          //               padding: EdgeInsets.only(top: _responsive(context, 12)),
+          //               child: GestureDetector(
+          //                 onTap: () => controller.openTimeSelector(),
+          //                 child: Container(
+          //                   padding: EdgeInsets.symmetric(
+          //                     horizontal: _responsive(context, 12),
+          //                     vertical: _responsive(context, 10),
+          //                   ),
+          //                   decoration: BoxDecoration(
+          //                     color: Color(0xffFBF9FF),
+          //                     borderRadius: BorderRadius.circular(
+          //                         _responsive(context, 6)),
+          //                     border: Border.all(color: Color(0xffE6E1EE)),
+          //                   ),
+          //                   child: Row(
+          //                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //                     children: [
+          //                       Text(
+          //                         'Select Time',
+          //                         style: TextStyle(
+          //                           fontSize: _responsive(context, 12),
+          //                           fontWeight: FontWeight.w500,
+          //                           fontFamily: 'Mulish',
+          //                           color: Color(0xff797878),
+          //                         ),
+          //                       ),
+          //                       Icon(
+          //                         Icons.access_time,
+          //                         size: _responsive(context, 16),
+          //                         color: Color(0xff0B1928),
+          //                       ),
+          //                     ],
+          //                   ),
+          //                 ),
+          //               ),
+          //             ),
+          //         ],
+          //       )
+          //     : SizedBox.shrink()),
 
           SizedBox(height: _responsive(context, 16)),
           Divider(color: Color(0xffE6E1EE), thickness: 1),
@@ -2782,84 +2799,105 @@ class _PosLandscapeState extends State<PosLandscape> {
                     ),
                   ),)
               ]),
-
-              // sofort option
-              Padding(
-                padding: EdgeInsets.all(_responsive(context, 12)),
-                child: Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.symmetric(
-                    vertical: _responsive(context, 8),
-                  ),
-                  decoration: BoxDecoration(
-                    color:  Color(0xffFBF9FF),
-                    borderRadius: BorderRadius.circular(_responsive(context, 5)),
-                    border: Border.all(
-                      color: Color(0xff0C831F),
-                      width: 1,
-                    ),
-                  ),
-                  child: Center(
+              Obx(() {
+                if (controller.sofortTimeSlots.isEmpty) {
+                  return Padding(
+                    padding: EdgeInsets.all(_responsive(context, 12)),
                     child: Text(
-                      'sofort',
+                      'No time slots available',
                       style: TextStyle(
-                        fontSize: _responsive(context, 18),
-                        fontWeight: FontWeight.w700,
-                        fontFamily: 'Mulish',
-                        color:  Color(0xff0B1928),
+                        fontSize: _responsive(context, 16),
+                        color: Colors.grey,
                       ),
                     ),
-                  ),
-                ),
-              ),
+                  );
+                }
 
-              // Time slots grid
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(horizontal: _responsive(context, 16)),
-                  child: GridView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    padding: EdgeInsets.zero,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 4,
-                      crossAxisSpacing: _responsive(context, 5),
-                      mainAxisSpacing: _responsive(context, 5),
-                      childAspectRatio: 2.3,
-                    ),
-                    itemCount: controller.getTimeSlots().length,
-                    itemBuilder: (context, index) {
-                      String timeSlot = controller.getTimeSlots()[index];
-                      bool isSelected = controller.selectedTimeSlot.value == timeSlot;
-
-                      return GestureDetector(
-                        onTap: () => controller.selectTimeSlot(timeSlot),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: isSelected ? Color(0xff0C831F) : Color(0xffE9F6EF),
-                            borderRadius: BorderRadius.circular(_responsive(context, 4)),
-                            border: Border.all(
-                              color: isSelected ? Color(0xff0C831F) : Color(0xff0C831F),
-                              width: 1,
+                return Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(horizontal: _responsive(context, 16)),
+                    child: Column(
+                      children: [
+                        // First show 'sofort' option
+                        GestureDetector(
+                          onTap: () => controller.selectTimeSlot('sofort'),
+                          child: Container(
+                            width: double.infinity,
+                            margin: EdgeInsets.only(bottom: _responsive(context, 12)),
+                            padding: EdgeInsets.symmetric(vertical: _responsive(context, 8)),
+                            decoration: BoxDecoration(
+                              color: controller.selectedTimeSlot.value == 'sofort'
+                                  ? Color(0xff0C831F)
+                                  : Color(0xffFBF9FF),
+                              borderRadius: BorderRadius.circular(_responsive(context, 5)),
+                              border: Border.all(
+                                color: Color(0xff0C831F),
+                                width: 1,
+                              ),
                             ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              timeSlot,
-                              style: TextStyle(
-                                fontSize: _responsive(context, 16),
-                                fontWeight: FontWeight.w700,
-                                fontFamily: 'Mulish',
-                                color: isSelected ? Colors.white : Color(0xff0B1928),
+                            child: Center(
+                              child: Text(
+                                'sofort',
+                                style: TextStyle(
+                                  fontSize: _responsive(context, 18),
+                                  fontWeight: FontWeight.w700,
+                                  fontFamily: 'Mulish',
+                                  color: controller.selectedTimeSlot.value == 'sofort'
+                                      ? Colors.white
+                                      : Color(0xff0B1928),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      );
-                    },
+
+                        // Then show generated time slots
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          padding: EdgeInsets.zero,
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 4,
+                            crossAxisSpacing: _responsive(context, 5),
+                            mainAxisSpacing: _responsive(context, 5),
+                            childAspectRatio: 2.3,
+                          ),
+                          itemCount: controller.sofortTimeSlots.length,
+                          itemBuilder: (context, index) {
+                            String timeSlot = controller.sofortTimeSlots[index]['time24']!;
+                            bool isSelected = controller.selectedTimeSlot.value == timeSlot;
+
+                            return GestureDetector(
+                              onTap: () => controller.selectTimeSlot(timeSlot),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: isSelected ? Color(0xff0C831F) : Color(0xffE9F6EF),
+                                  borderRadius: BorderRadius.circular(_responsive(context, 4)),
+                                  border: Border.all(
+                                    color: isSelected ? Color(0xff0C831F) : Color(0xff0C831F),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    timeSlot,
+                                    style: TextStyle(
+                                      fontSize: _responsive(context, 16),
+                                      fontWeight: FontWeight.w700,
+                                      fontFamily: 'Mulish',
+                                      color: isSelected ? Colors.white : Color(0xff0B1928),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
+                );
+              }),
             ],
           ),
         ),
@@ -2899,34 +2937,34 @@ class _PosLandscapeState extends State<PosLandscape> {
                   decoration: BoxDecoration(
                     border: Border(bottom: BorderSide(color: Color(0xffE6E1EE))),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            'March,',
-                            style: TextStyle(
-                              fontSize: _responsive(context, 20),
-                              fontWeight: FontWeight.w700,
-                              fontFamily: 'Mulish',
-                            ),
+                  child:Obx(() {
+                    DateTime now = controller.getCurrentGermanyDate();
+                    String monthName = DateFormat('MMMM').format(now);
+
+                    return Row(
+                      children: [
+                        Text(
+                          '$monthName,',
+                          style: TextStyle(
+                            fontSize: _responsive(context, 20),
+                            fontWeight: FontWeight.w700,
+                            fontFamily: 'Mulish',
                           ),
-                          SizedBox(width: 5),
-                          Text(
-                            '2025',
-                            style: TextStyle(
-                              fontSize: _responsive(context, 18),
-                              fontWeight: FontWeight.w400,
-                              fontFamily: 'Mulish',
-                              color: Color(0xff0C831F),
-                            ),
+                        ),
+                        SizedBox(width: 5),
+                        Text(
+                          '${now.year}',
+                          style: TextStyle(
+                            fontSize: _responsive(context, 18),
+                            fontWeight: FontWeight.w400,
+                            fontFamily: 'Mulish',
+                            color: Color(0xff0C831F),
                           ),
-                          Icon(Icons.arrow_drop_down, color: Color(0xff0C831F)),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                        Icon(Icons.arrow_drop_down, color: Color(0xff0C831F)),
+                      ],
+                    );
+                  }),
                 ),
                   Positioned(
                     top: -18,right: 15,
@@ -2979,42 +3017,74 @@ class _PosLandscapeState extends State<PosLandscape> {
                             .toList(),
                       ),
                       SizedBox(height: _responsive(context, 10)),
-                      // Calendar dates (simplified - you'll need to implement full calendar logic)
-                      Expanded(
-                        child: GridView.builder(
-                          padding: EdgeInsets.zero,
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 7,
-                            mainAxisSpacing: _responsive(context, 4),
-                            crossAxisSpacing: _responsive(context, 4),
-                          ),
-                          itemCount: 35,
-                          itemBuilder: (context, index) {
-                            int day = index + 1;
-                            bool isSelected = controller.selectedDate.value?.day == day;
 
-                            return GestureDetector(
-                              onTap: () {
-                                DateTime now = DateTime.now();
-                                controller.selectDate(DateTime(now.year, now.month, day));
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: isSelected ? Color(0xff0C831F) : Colors.transparent,
-                                  border: Border.all(color: Color(0xffEEF5FF),width: 1)
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    '$day',
-                                    style: TextStyle(
-                                      fontSize: _responsive(context, 14),
-                                      fontWeight: FontWeight.w600,
-                                      fontFamily: 'Mulish',
-                                      color: isSelected ? Colors.white : Color(0xff0B1928),
+                      Expanded(
+                        child: Builder(
+                          builder: (context) {
+                            DateTime now = controller.getCurrentGermanyDate();
+                            int currentYear = now.year;
+                            int currentMonth = now.month;
+
+                            // Get first day of month (1-7, Monday=1, Sunday=7)
+                            DateTime firstDayOfMonth = DateTime(currentYear, currentMonth, 1);
+                            int firstWeekday = firstDayOfMonth.weekday; // 1=Mon, 7=Sun
+
+                            // Convert to calendar format (Sunday=0, Saturday=6)
+                            int startingOffset = firstWeekday == 7 ? 0 : firstWeekday;
+
+                            // Days in current month
+                            int daysInMonth = DateTime(currentYear, currentMonth + 1, 0).day;
+
+                            return GridView.builder(
+                              padding: EdgeInsets.zero,
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 7,
+                                mainAxisSpacing: _responsive(context, 4),
+                                crossAxisSpacing: _responsive(context, 4),
+                              ),
+                              itemCount: startingOffset + daysInMonth,
+                              itemBuilder: (context, index) {
+                                // Empty cells before first day
+                                if (index < startingOffset) {
+                                  return Container();
+                                }
+
+                                int day = index - startingOffset + 1;
+                                DateTime dateToCheck = DateTime(currentYear, currentMonth, day);
+
+                                bool isPastDate = controller.isDateInPast(dateToCheck);
+                                bool isSelected = controller.selectedDate.value?.day == day &&
+                                    controller.selectedDate.value?.month == currentMonth;
+
+                                return GestureDetector(
+                                  onTap: () {
+                                    if (!isPastDate) {
+                                      controller.selectDate(dateToCheck);
+                                    }
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: isPastDate
+                                          ? Colors.grey.shade300
+                                          : (isSelected ? Color(0xff0C831F) : Colors.transparent),
+                                      border: Border.all(color: Color(0xffEEF5FF), width: 1),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '$day',
+                                        style: TextStyle(
+                                          fontSize: _responsive(context, 14),
+                                          fontWeight: FontWeight.w600,
+                                          fontFamily: 'Mulish',
+                                          color: isPastDate
+                                              ? Colors.grey.shade500
+                                              : (isSelected ? Colors.white : Color(0xff0B1928)),
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             );
                           },
                         ),
@@ -3026,6 +3096,119 @@ class _PosLandscapeState extends State<PosLandscape> {
             ],
           ),
         ),
+      );
+    });
+  }
+
+
+  Widget _buildPostcodeDialog(PosController controller, BuildContext context) {
+    return Obx(() {
+      if (!controller.showPostcodeDialog.value) {
+        return SizedBox.shrink();
+      }
+
+      return Stack(
+        children: [
+          GestureDetector(
+            onTap: () => controller.showPostcodeDialog.value = false,
+            child: Container(color: Colors.black.withOpacity(0.5)),
+          ),
+          Center(
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.4,
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.6,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(_responsive(context, 12)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(_responsive(context, 16)),
+                    decoration: BoxDecoration(
+                      border: Border(bottom: BorderSide(color: Color(0xffEDE4FF))),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Select Postcode',
+                          style: TextStyle(
+                            fontFamily: 'Mulish',
+                            fontWeight: FontWeight.w700,
+                            fontSize: _responsive(context, 18),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close),
+                          onPressed: () => controller.showPostcodeDialog.value = false,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      padding: EdgeInsets.all(_responsive(context, 16)),
+                      itemCount: controller.postcode.length,
+                      itemBuilder: (context, index) {
+                        var postcodeItem = controller.postcode[index];
+                        bool isSelected = controller.selectedPostcode.value?.id == postcodeItem.id;
+
+                        return GestureDetector(
+                          onTap: () => controller.selectPostcode(postcodeItem),
+                          child: Container(
+                            margin: EdgeInsets.only(bottom: _responsive(context, 8)),
+                            padding: EdgeInsets.all(_responsive(context, 12)),
+                            decoration: BoxDecoration(
+                              color: isSelected ? Color(0xff0C831F).withOpacity(0.1) : Colors.white,
+                              borderRadius: BorderRadius.circular(_responsive(context, 8)),
+                              border: Border.all(
+                                color: isSelected ? Color(0xff0C831F) : Color(0xffEDE4FF),
+                                width: 2,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      postcodeItem.postcode ?? '',
+                                      style: TextStyle(
+                                        fontFamily: 'Mulish',
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: _responsive(context, 16),
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      'Delivery: ${postcodeItem.deliveryTime ?? 0} min',
+                                      style: TextStyle(
+                                        fontFamily: 'Mulish',
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: _responsive(context, 12),
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (isSelected)
+                                  Icon(Icons.check_circle, color: Color(0xff0C831F)),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       );
     });
   }

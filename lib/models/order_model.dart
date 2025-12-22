@@ -10,6 +10,9 @@ import 'ShippingAddress.dart';
 import 'TaxSummary.dart';
 
 class Order {
+  String? source;
+  String? couponId;
+  String? couponCode;
   int? userId;
   int? discountId;
   String? note;
@@ -38,6 +41,9 @@ class Order {
   bool? isLocalOrder;
 
   Order({
+    this.source,
+    this.couponId,
+    this.couponCode,
     this.userId,
     this.discountId,
     this.note,
@@ -73,6 +79,9 @@ class Order {
   factory Order.fromJson(Map<String, dynamic> json) {
     print("Tax Summary Raw: ${json["tax_summary"]}");
     return Order(
+      source: json["source"],
+      couponId: json["coupon_id"],
+      couponCode: json["coupon_code"],
       userId: json["user_id"],
       discountId: json["discount_id"],
       note: json["note"],
@@ -116,6 +125,9 @@ class Order {
   }
 
   Map<String, dynamic> toJson() => {
+        "source":source,
+        "coupon_id":couponId,
+        "coupon_code":source,
         "user_id": userId,
         "discount_id": discountId,
         "note": note,
