@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:food_app/ui/SuperAdmin/super_admin.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
@@ -221,7 +222,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
                 onTap: () {
                   Scaffold.of(context).openDrawer();
                 },
-                child: const Icon(Icons.menu, color: Colors.black,)
+                child: SvgPicture.asset('assets/images/drawer.svg')
             ),
             const SizedBox(width: 8),
             Obx(() {

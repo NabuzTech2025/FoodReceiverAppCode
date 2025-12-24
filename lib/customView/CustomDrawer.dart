@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:food_app/models/Store.dart';
 import 'package:food_app/ui/Allergy/item_allergy.dart';
 import 'package:food_app/ui/Category%20Availability/category_management.dart';
+import 'package:food_app/ui/Coupon/coupons.dart';
 import 'package:food_app/ui/Pos/pos.dart';
 import 'package:food_app/ui/PostCode/postcode.dart';
+import 'package:food_app/ui/PrinterSettingsScreen.dart';
 import 'package:food_app/ui/home_screen.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
@@ -120,6 +123,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
       showSnackbar("Api Error", "An error occurred: $e");
     }
   }
+
   bool _isOnHomeScreen() {
     // ✅ More reliable check for HomeScreen
     return Get.currentRoute == '/HomeScreen' ||
@@ -193,49 +197,60 @@ class _CustomDrawerState extends State<CustomDrawer> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _drawerItem('order'.tr,'assets/images/order.png', onTap: () {
+                  _drawerItem('order'.tr,'assets/images/order.svg', onTap: () {
                     _navigateToHomeScreenTab(0);
                   }),
                   if (_roleId == 1 || _storeType == '0')
-                    _drawerItem('reserv'.tr,'assets/images/reserv.png', onTap: () {
+                    _drawerItem('reserv'.tr,'assets/images/reserv.svg',
+                        iconHeight: 14,
+                        iconWidth: 20,
+                        onTap: () {
                     _navigateToHomeScreenTab(1);
                   }),
 
-                  _drawerItem('reports'.tr,'assets/images/report.png', onTap: () {
+                  _drawerItem('reports'.tr,'assets/images/report.svg', onTap: () {
                     _navigateToHomeScreenTab(2);
                   }),
-                  _drawerItem('setting'.tr,'assets/images/settings.png', onTap: () {
-                    _navigateToHomeScreenTab(3);
+                  _drawerItem('setting'.tr,'assets/images/settings.svg', onTap: () {
+                    //_navigateToHomeScreenTab(3);
+                    Get.to(()=>PrinterSettingsScreen());
                   }),
 
                   _expandableProductItem(),
 
-                  _drawerItem('discount'.tr,'assets/images/discount.png', onTap: () {
+                  _drawerItem('discount'.tr,'assets/images/discount.svg', onTap: () {
                     Navigator.of(context).pop();
                     Get.to(() => const Discount());
                   }),
                   if (_roleId == 1 || _storeType == '0')
-                    _drawerItem('availability'.tr,'assets/images/discount.png', onTap: () {
+                    _drawerItem('availability'.tr,'assets/images/discount.svg', onTap: () {
                     Navigator.of(context).pop();
                     Get.to(() => const CategoryManagement());
                   }),
                   if (_storeType != '2')
-                _drawerItem('store'.tr,'assets/images/store.png', onTap: () {
+                _drawerItem('store'.tr,'assets/images/store.svg', onTap: () {
                     Navigator.of(context).pop();
                     Get.to(() => const StoreTiming());
                   }),
-                  _drawerItem('manage'.tr,'assets/images/tax.png', onTap: () {
+                  _drawerItem('manage'.tr,'assets/images/tax.svg', onTap: () {
                     Navigator.of(context).pop();
                     Get.to(() => const Taxmanagement());
                   }),
-                  _drawerItem('postcode'.tr,'assets/images/postcode.png', onTap: () {
+                  _drawerItem('postcode'.tr,'assets/images/postcode.svg', onTap: () {
                     Navigator.of(context).pop();
                     Get.to(() => const Postcode());
                   }),
-                  _drawerItem('POS'.tr,'assets/images/postcode.png', onTap: () {
+                  // _drawerItem('POS'.tr,'assets/images/pos.svg', onTap: () {
+                  //   Navigator.of(context).pop();
+                  //   Get.delete<PosController>(tag: 'pos_controller', force: true);
+                  //   Get.to(() => const ResponsivePos());
+                  // }),
+                  _drawerItem('Coupons'.tr,'assets/images/coupon.svg',
+                      iconHeight: 30,
+                      iconWidth: 20,
+                      onTap: () {
                     Navigator.of(context).pop();
-                    Get.delete<PosController>(tag: 'pos_controller', force: true);
-                    Get.to(() => const ResponsivePos());
+                    Get.to(() => const Coupon());
                   }),
                 ],
               ),
@@ -248,14 +263,14 @@ class _CustomDrawerState extends State<CustomDrawer> {
               children: [
                 if (_roleId != 1)
                   Container(
-                    child: _drawerItem('logout'.tr,'assets/images/logout.png', onTap: () async {
+                    child: _drawerItem('logout'.tr,'assets/images/logout.svg', onTap: () async {
                       var bearerKey = sharedPreferences.getString(valueShared_BEARER_KEY);
                       logutAPi(bearerKey);
                     }),
                   ),
                 Padding(
                   padding: const EdgeInsets.only(left: 15.0),
-                  child: Text('${'version'.tr}:2.2.2', style: const TextStyle(
+                  child: Text('${'version'.tr}:2.3.1', style: const TextStyle(
                       fontWeight: FontWeight.w300,
                       fontSize: 15
                   ),),
@@ -271,13 +286,22 @@ class _CustomDrawerState extends State<CustomDrawer> {
     );
   }
 
-  Widget _drawerItem(String title,String imagePath, {required VoidCallback onTap}) {
+  Widget _drawerItem(String title, String svgPath, {
+    required VoidCallback onTap,
+    double? iconHeight,
+    double? iconWidth,
+  }) {
     return ListTile(
-      title: Text(title, style: const TextStyle(fontSize: 16)),
-      onTap: onTap,
+        title: Text(title, style: const TextStyle(fontSize: 16)),
+        onTap: onTap,
         dense: true,
-        leading: Image.asset(imagePath,color: const Color(0xff757B8F),height: 20,width: 25,),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0), // Add this line
+        leading: SvgPicture.asset(
+          svgPath,
+          color: const Color(0xff757B8F),
+          height: iconHeight ?? 20,
+          width: iconWidth ?? 20,
+        ),
+        //contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0),
         visualDensity: VisualDensity.compact
     );
   }
@@ -412,27 +436,28 @@ class _CustomDrawerState extends State<CustomDrawer> {
   Future<void> _forceCompleteLogoutCleanup() async {
     try {
       print("🧹 Starting complete logout cleanup...");
-
-      // ✅ Multiple cleanup attempts to ensure complete removal
       for (int attempt = 0; attempt < 3; attempt++) {
         print("🔄 Cleanup attempt ${attempt + 1}/3");
         await DatabaseHelper().clearAllStores();
         SharedPreferences prefs = await SharedPreferences.getInstance();
 
-        // Clear only authentication-related data (NOT IP data)
         List<String> keysToRemove = [
           valueShared_BEARER_KEY,
           valueShared_STORE_KEY,
-          // ✅ NEW: Clear backup IP keys that are created by PrinterSettingsScreen
+
+          'super_admin_username',
+          'super_admin_password',
+
+
           'printer_ip_backup',
           'printer_ip_0_backup',
           'last_save_timestamp',
-          // ✅ Clear current session IP data (will be restored from user-prefixed data on next login)
+
           'printer_ip_0',
           'printer_ip_remote_0',
           'selected_ip_index',
           'selected_ip_remote_index',
-          // ✅ Clear current session auto settings (will be restored from user-prefixed data)
+
           'auto_order_accept',
           'auto_order_print',
           'auto_order_remote_accept',
@@ -511,7 +536,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
     return Column(
       children: [
         ListTile(
-          leading: Image.asset('assets/images/product.png',color: const Color(0xff757B8F),height: 20,width: 25,),
+          leading: SvgPicture.asset('assets/images/product.svg',color: const Color(0xff757B8F),height: 20,width: 25,),
           title: Row(
             children: [
               Text('product'.tr, style: const TextStyle(fontSize: 16)),
@@ -578,7 +603,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
           }),
         ],
         ListTile(
-          leading: Image.asset('assets/images/product.png',color: const Color(0xff757B8F),height: 20,width: 25,),
+          leading: SvgPicture.asset('assets/images/allergy.svg',color: const Color(0xff757B8F),height: 20,width: 25,),
           title: Row(
             children: [
               Text('allergy'.tr, style: const TextStyle(fontSize: 16)),

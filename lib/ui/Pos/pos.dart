@@ -10,30 +10,35 @@ import 'package:food_app/constants/app_color.dart';
 import 'package:get/get.dart';
 import '../../customView/CustomDrawer.dart';
 import '../../models/get_store_products_response_model.dart';
+import '../../utils/my_application.dart';
 import '../home_screen.dart';
 import 'pos_controller.dart';
-
 class ResponsivePos extends StatelessWidget {
-  const ResponsivePos({super.key});
+  final Function(int)? onNavigateToTab;
+
+  const ResponsivePos({super.key, this.onNavigateToTab});
 
   @override
   Widget build(BuildContext context) {
     return OrientationBuilder(
         builder: (context, orientation) {
-          return const PosLandscape();
+          return PosLandscape(onNavigateToTab: onNavigateToTab);
         }
     );
   }
 }
 
 class PosLandscape extends StatefulWidget {
-  const PosLandscape({super.key});
+  final Function(int)? onNavigateToTab;
+
+  const PosLandscape({super.key, this.onNavigateToTab});
 
   @override
   State<PosLandscape> createState() => _PosLandscapeState();
 }
 
 class _PosLandscapeState extends State<PosLandscape> {
+  // ... existing code ...
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late PosController controller;
   @override
@@ -78,6 +83,7 @@ class _PosLandscapeState extends State<PosLandscape> {
     if (width < 1700) return 6;
     return 7;
   }
+
   void _openTab(int index) {
 
     if (Navigator.of(context).canPop()) {
@@ -93,6 +99,7 @@ class _PosLandscapeState extends State<PosLandscape> {
       );
     });
   }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -288,6 +295,9 @@ class _PosLandscapeState extends State<PosLandscape> {
             return ScrollablePositionedList.builder(
               itemScrollController: controller.landscapeProductScrollController,
               itemPositionsListener: controller.landscapeProductPositionsListener,
+              addAutomaticKeepAlives: true,
+              addRepaintBoundaries: true,
+              addSemanticIndexes: false,
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).size.height * 0.1,
                 top: _responsive(context, 8),
@@ -330,6 +340,8 @@ class _PosLandscapeState extends State<PosLandscape> {
                         shrinkWrap: true,
                         physics: NeverScrollableScrollPhysics(),
                         padding: EdgeInsets.zero,
+                        cacheExtent: 500,
+                        addAutomaticKeepAlives: true,
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: _getCrossAxisCount(context),
                           crossAxisSpacing: _responsive(context, 5),
@@ -502,177 +514,192 @@ class _PosLandscapeState extends State<PosLandscape> {
   Widget _buildHeader(PosController controller, BuildContext context) {
     return Stack(
       children:[
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-            padding: EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(9)
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-              GestureDetector(
-                onTap: () {
-                  _scaffoldKey.currentState?.openDrawer();
-                },
-                child: Image.asset(
-                  'assets/images/mirch.png',
-                  height: 25,
-                  width: 25,
-                ),
-              ),
-              Container(
-                margin: EdgeInsets.symmetric(horizontal: _responsive(context, 12)),
-                height: _responsive(context, 40),
-                width: _responsive(context, 300),
-                padding: EdgeInsets.symmetric(horizontal: _responsive(context, 8)),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(_responsive(context, 5)),
-                  color: Color(0xffFBF9FF),
-                ),
-                child: TextField(
-                  controller: controller.searchController,
-                  onChanged: controller.filterProducts,
-                  decoration: InputDecoration(
-                    contentPadding: EdgeInsets.only(bottom: 5),
-                    hintText: 'Search Item name or ID',
-                    hintStyle: TextStyle(
-                      fontFamily: 'Mulish',
-                      fontWeight: FontWeight.w300,
-                      fontSize: _responsive(context, 14),
-                      fontStyle: FontStyle.italic,
-                    ),
-                    border: InputBorder.none,
-                    suffixIcon: Padding(
-                      padding: EdgeInsets.all(_responsive(context, 8)),
-                      child: Image.asset(
-                        'assets/images/search.png',
-                        height: _responsive(context, 8),
-                        width: _responsive(context, 8),
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                  style: TextStyle(
-                    fontFamily: 'Mulish',
-                    fontSize: _responsive(context, 14),
-                  ),
-                ),
-              ), SizedBox(width: 5,),
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  SvgPicture.asset(
-                    'assets/images/order-icon.svg',
-                    height: 20,
-                    width: 20,
-                  ),
-                  Positioned(
-                    top: -8,
-                    right: -8,
-                    child: Obx(() => Container(
-                          padding: EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Color(0xffE31E24),
-                            shape: BoxShape.circle,
-                          ),
-                          constraints: BoxConstraints(
-                            minWidth: 18,
-                            minHeight: 18,
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${controller.cartItems.length}',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                fontFamily: 'Mulish',
-                              ),
-                            ),
-                          ),
-                        )),
-                  ),
-                ],
-              ), SizedBox(width: 50,),
-              SizedBox(width: _responsive(context, 10)),
-              Row(
-                children: [
-                  Image.asset(
-                    'assets/images/german.png',
-                    height: _responsive(context, 25),
-                    width: _responsive(context, 25),
-                  ),
-                  SizedBox(width: _responsive(context, 5)),
-                  Text(
-                    'GER',
-                    style: TextStyle(
-                      fontSize: _responsive(context, 12),
-                      fontWeight: FontWeight.w700,
-                      fontFamily: 'Mulish',
-                      color: Color(0xff232121),
-                    ),
-                  ),
-                  Icon(Icons.arrow_drop_down)
-                ],
-              ),
-            ]),
-                  ),
-            Obx(() => GestureDetector(
-              onTap: controller.isRefreshing.value
-                  ? null
-                  : controller.refreshData,
-              child: Container(
-                height: 60,
-                padding: EdgeInsets.all(_responsive(context, 10)),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius:
-                  BorderRadius.circular(_responsive(context, 5)),
-                ),
-                child: controller.isRefreshing.value
-                    ? SizedBox(
-                  width: _responsive(context, 20),
-                  height: _responsive(context, 20),
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                        Color(0xffE31E24)),
-                  ),
-                )
-                    : Icon(
-                  Icons.refresh,
-                  color: Color(0xffE31E24),
-                  size: _responsive(context, 30),
-                ),
-              ),
-            )),
-            GestureDetector(
-              onTap: () {
-                Get.offAll(() => HomeScreen());
-              },
-              child: Container(
-                height: 60,
-                padding: EdgeInsets.all(_responsive(context, 12)),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(_responsive(context, 9)),
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.arrow_back_ios,
-                    color: Colors.black,
-                    size: _responsive(context, 20),
-                  ),
-                ),
-              ),
-            )
-          ],
-        ),
+       Container(
+         color: Colors.white,
+         child:  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+           children: [
+             Container(
+               padding: EdgeInsets.all(15),
+               decoration: BoxDecoration(
+                   color: Colors.white,
+                   borderRadius: BorderRadius.circular(9)
+               ),
+               child: Row(
+                   children: [
+                     GestureDetector(
+                       onTap: () {
+                         _scaffoldKey.currentState?.openDrawer();
+                       },
+                       child: Image.asset(
+                         'assets/images/mirch.png',
+                         height: 25,
+                         width: 25,
+                       ),
+                     ),
+                     Container(
+                       margin: EdgeInsets.symmetric(
+                           horizontal: _responsive(context, 12)),
+                       height: _responsive(context, 40),
+                       width: _responsive(context, 300),
+                       padding: EdgeInsets.symmetric(
+                           horizontal: _responsive(context, 8)),
+                       decoration: BoxDecoration(
+                         borderRadius: BorderRadius.circular(
+                             _responsive(context, 5)),
+                         color: Color(0xffFBF9FF),
+                       ),
+                       child: TextField(
+                         controller: controller.searchController,
+                         onChanged: controller.filterProducts,
+                         decoration: InputDecoration(
+                           contentPadding: EdgeInsets.only(bottom: 5),
+                           hintText: 'Search Item name or ID',
+                           hintStyle: TextStyle(
+                             fontFamily: 'Mulish',
+                             fontWeight: FontWeight.w300,
+                             fontSize: _responsive(context, 14),
+                             fontStyle: FontStyle.italic,
+                           ),
+                           border: InputBorder.none,
+                           suffixIcon: Padding(
+                             padding: EdgeInsets.all(_responsive(context, 8)),
+                             child: Image.asset(
+                               'assets/images/search.png',
+                               height: _responsive(context, 8),
+                               width: _responsive(context, 8),
+                               color: Colors.black,
+                             ),
+                           ),
+                         ),
+                         style: TextStyle(
+                           fontFamily: 'Mulish',
+                           fontSize: _responsive(context, 14),
+                         ),
+                       ),
+                     ),
+                     SizedBox(width: 5,),
+                     GestureDetector(
+                       onTap: () {
+                         if (widget.onNavigateToTab != null) {
+                           widget.onNavigateToTab!(0);
+                         }
+                       },
+                       child: Stack(
+                         clipBehavior: Clip.none,
+                         children: [
+                           SvgPicture.asset(
+                             'assets/images/order-icon.svg',
+                             height: 20,
+                             width: 20,
+                           ),
+                           Positioned(
+                             top: -8,
+                             right: -8,
+                             child: Obx(() =>
+                                 Container(
+                                   padding: EdgeInsets.all(4),
+                                   decoration: BoxDecoration(
+                                     color: Color(0xffE31E24),
+                                     shape: BoxShape.circle,
+                                   ),
+                                   constraints: BoxConstraints(
+                                     minWidth: 18,
+                                     minHeight: 18,
+                                   ),
+                                   child: Center(
+                                     child: Text(
+                                       '${controller.cartItems.length}',
+                                       style: TextStyle(
+                                         color: Colors.white,
+                                         fontSize: 10,
+                                         fontWeight: FontWeight.w700,
+                                         fontFamily: 'Mulish',
+                                       ),
+                                     ),
+                                   ),
+                                 )),
+                           ),
+                         ],
+                       ),
+                     ),
+                     SizedBox(width: MediaQuery.of(context).size.width*0.07,),
+                     Row(
+                       children: [
+                         Image.asset(
+                           'assets/images/german.png',
+                           height: _responsive(context, 25),
+                           width: _responsive(context, 25),
+                         ),
+                         SizedBox(width: _responsive(context, 5)),
+                         Text(
+                           'GER',
+                           style: TextStyle(
+                             fontSize: _responsive(context, 12),
+                             fontWeight: FontWeight.w700,
+                             fontFamily: 'Mulish',
+                             color: Color(0xff232121),
+                           ),
+                         ),
+                         Icon(Icons.arrow_drop_down)
+                       ],
+                     ),
+                   ]
+               ),
+             ),
+             Obx(() => GestureDetector(
+               onTap: controller.isRefreshing.value
+                   ? null
+                   : controller.refreshData,
+               child: Container(
+                 height: 60,
+                 padding: EdgeInsets.all(_responsive(context, 10)),
+                 decoration: BoxDecoration(
+                   color: Colors.white,
+                   borderRadius:
+                   BorderRadius.circular(_responsive(context, 5)),
+                 ),
+                 child: controller.isRefreshing.value
+                     ? SizedBox(
+                   width: _responsive(context, 20),
+                   height: _responsive(context, 20),
+                   child: CircularProgressIndicator(
+                     strokeWidth: 2,
+                     valueColor: AlwaysStoppedAnimation<Color>(
+                         Color(0xffE31E24)),
+                   ),
+                 )
+                     : Icon(
+                   Icons.refresh,
+                   color: Color(0xffE31E24),
+                   size: _responsive(context, 30),
+                 ),
+               ),
+             )),
+             GestureDetector(
+               onTap: () {
+                 Get.offAll(() => HomeScreen());
+               },
+               child: Container(
+                 height: 60,
+                 padding: EdgeInsets.all(_responsive(context, 12)),
+                 decoration: BoxDecoration(
+                   color: Colors.white,
+                   borderRadius: BorderRadius.circular(_responsive(context, 9)),
+                 ),
+                 child: Center(
+                   child: Icon(
+                     Icons.arrow_back_ios,
+                     color: Colors.black,
+                     size: _responsive(context, 20),
+                   ),
+                 ),
+               ),
+             )
+           ],
+         ),
+       ),
         Positioned(
-          right:_responsive(context, 210),
+          right:MediaQuery.of(context).size.width*0.18,
           top: 10,
           child: Container(
             height: _responsive(context, 71),
@@ -698,52 +725,7 @@ class _PosLandscapeState extends State<PosLandscape> {
         )
     ]);
   }
-  // children: [
-  //   Image.asset(
-  //     'assets/images/mirch.png',
-  //     height: _responsive(context, 20),
-  //     width: _responsive(context, 30),
-  //   ),
-  //   Expanded(
-  //     child: Container(
-  //       margin: EdgeInsets.symmetric(horizontal: _responsive(context, 12)),
-  //       height: _responsive(context, 40),
-  //       padding: EdgeInsets.symmetric(horizontal: _responsive(context, 8)),
-  //       decoration: BoxDecoration(
-  //         borderRadius: BorderRadius.circular(_responsive(context, 5)),
-  //         color: Colors.white,
-  //       ),
-  //       child: TextField(
-  //         controller: controller.searchController,
-  //         onChanged: controller.filterProducts,
-  //         decoration: InputDecoration(
-  //           hintText: 'Search Item name or ID',
-  //           hintStyle: TextStyle(
-  //             fontFamily: 'Mulish',
-  //             fontWeight: FontWeight.w300,
-  //             fontSize: _responsive(context, 14),
-  //             fontStyle: FontStyle.italic,
-  //           ),
-  //           border: InputBorder.none,
-  //           suffixIcon: Padding(
-  //             padding: EdgeInsets.all(_responsive(context, 8)),
-  //             child: Image.asset(
-  //               'assets/images/search.png',
-  //               height: _responsive(context, 10),
-  //               width: _responsive(context, 10),
-  //               color: Colors.black,
-  //             ),
-  //           ),
-  //         ),
-  //         style: TextStyle(
-  //           fontFamily: 'Mulish',
-  //           fontSize: _responsive(context, 14),
-  //         ),
-  //       ),
-  //     ),
-  //   ),
 
-  // ],
   Widget _buildCategoryTabs(PosController controller, BuildContext context) {
     return Container(
       height: _responsive(context, 115),
@@ -2126,234 +2108,6 @@ class _PosLandscapeState extends State<PosLandscape> {
     );
   }
 
-  // Widget _buildTodaySection(BuildContext context) {
-  //   return Container(
-  //     margin: EdgeInsets.symmetric(
-  //       horizontal: _responsive(context, 8),
-  //       vertical: _responsive(context, 8),
-  //     ),
-  //     padding: EdgeInsets.all(_responsive(context, 12)),
-  //     decoration: BoxDecoration(
-  //       color: Colors.white,
-  //       borderRadius: BorderRadius.circular(_responsive(context, 8)),
-  //       border: Border.all(color: Color(0xffE6E1EE)),
-  //     ),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         Row(
-  //           children: [
-  //             Container(
-  //               width: _responsive(context, 18),
-  //               height: _responsive(context, 18),
-  //               decoration: BoxDecoration(
-  //                 color: Color(0xffE31E24),
-  //                 borderRadius: BorderRadius.circular(_responsive(context, 3)),
-  //                 border: Border.all(color: Color(0xffE31E24), width: 2),
-  //               ),
-  //               child: Icon(
-  //                 Icons.check,
-  //                 color: Colors.white,
-  //                 size: _responsive(context, 12),
-  //               ),
-  //             ),
-  //             SizedBox(width: _responsive(context, 8)),
-  //             Text(
-  //               'Heute',
-  //               style: TextStyle(
-  //                 fontSize: _responsive(context, 13),
-  //                 fontWeight: FontWeight.w700,
-  //                 fontFamily: 'Mulish',
-  //                 color: Color(0xff0B1928),
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //         SizedBox(height: _responsive(context, 12)),
-  //
-  //         GestureDetector(
-  //           onTap: () => controller.openTimeBottomSheet(),
-  //           child: Container(
-  //             padding: EdgeInsets.symmetric(
-  //               horizontal: _responsive(context, 12),
-  //               vertical: _responsive(context, 10),
-  //             ),
-  //             decoration: BoxDecoration(
-  //               color: Color(0xffFBF9FF),
-  //               borderRadius: BorderRadius.circular(_responsive(context, 6)),
-  //               border: Border.all(color: Color(0xffE6E1EE)),
-  //             ),
-  //             child: Row(
-  //               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //               children: [
-  //                 Obx(() => Text(
-  //                   controller.selectedTimeSlot.value,
-  //                   style: TextStyle(
-  //                     fontSize: _responsive(context, 12),
-  //                     fontWeight: FontWeight.w500,
-  //                     fontFamily: 'Mulish',
-  //                     color: Color(0xff0B1928),
-  //                   ),
-  //                 )),
-  //                 Icon(
-  //                   Icons.access_time,
-  //                   size: _responsive(context, 16),
-  //                   color: Color(0xff0B1928),
-  //                 ),
-  //               ],
-  //             ),
-  //           ),
-  //         ),
-  //
-  //         SizedBox(height: _responsive(context, 12)),
-  //         Row(
-  //           children: [
-  //             Container(
-  //               width: _responsive(context, 18),
-  //               height: _responsive(context, 18),
-  //               decoration: BoxDecoration(
-  //                 color: Colors.white,
-  //                 borderRadius: BorderRadius.circular(_responsive(context, 3)),
-  //                 border: Border.all(color: Color(0xffB8ABD1), width: 2),
-  //               ),
-  //             ),
-  //             SizedBox(width: _responsive(context, 8)),
-  //             Text(
-  //               'Vorbestellen',
-  //               style: TextStyle(
-  //                 fontSize: _responsive(context, 13),
-  //                 fontWeight: FontWeight.w700,
-  //                 fontFamily: 'Mulish',
-  //                 color: Color(0xff0B1928),
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //         SizedBox(height: _responsive(context, 12)),
-  //         Container(
-  //           padding: EdgeInsets.symmetric(
-  //             horizontal: _responsive(context, 12),
-  //             vertical: _responsive(context, 10),
-  //           ),
-  //           decoration: BoxDecoration(
-  //             color: Color(0xffFBF9FF),
-  //             borderRadius: BorderRadius.circular(_responsive(context, 6)),
-  //             border: Border.all(color: Color(0xffE6E1EE)),
-  //           ),
-  //           child: Row(
-  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //             children: [
-  //               Text(
-  //                 'Select Date',
-  //                 style: TextStyle(
-  //                   fontSize: _responsive(context, 12),
-  //                   fontWeight: FontWeight.w500,
-  //                   fontFamily: 'Mulish',
-  //                   color: Color(0xff797878),
-  //                 ),
-  //               ),
-  //               Container(
-  //                 padding: EdgeInsets.all(_responsive(context, 6)),
-  //                 decoration: BoxDecoration(
-  //                   color: Color(0xffE31E24),
-  //                   borderRadius: BorderRadius.circular(_responsive(context, 4)),
-  //                 ),
-  //                 child: Icon(
-  //                   Icons.calendar_today,
-  //                   color: Colors.white,
-  //                   size: _responsive(context, 12),
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //         SizedBox(height: _responsive(context, 16)),
-  //         Divider(color: Color(0xffE6E1EE), thickness: 1),
-  //         SizedBox(height: _responsive(context, 12)),
-  //         Text(
-  //           'Zahlungsmethode auswählen',
-  //           style: TextStyle(
-  //             fontSize: _responsive(context, 13),
-  //             fontWeight: FontWeight.w700,
-  //             fontFamily: 'Mulish',
-  //             color: Color(0xff0B1928),
-  //           ),
-  //         ),
-  //         SizedBox(height: _responsive(context, 12)),
-  //         Row(
-  //           children: [
-  //             Expanded(
-  //               child: Container(
-  //                 padding: EdgeInsets.symmetric(
-  //                   vertical: _responsive(context, 10),
-  //                   horizontal: _responsive(context, 4),
-  //                 ),
-  //                 decoration: BoxDecoration(
-  //                   color: Colors.white,
-  //                   borderRadius: BorderRadius.circular(_responsive(context, 6)),
-  //                   border: Border.all(color: Color(0xffE31E24), width: 2),
-  //                 ),
-  //                 child: Row(
-  //                   mainAxisAlignment: MainAxisAlignment.center,
-  //                   children: [
-  //                     Icon(
-  //                       Icons.credit_card,
-  //                       color: Color(0xffE31E24),
-  //                       size: _responsive(context, 16),
-  //                     ),
-  //                     SizedBox(width: _responsive(context, 3)),
-  //                     Text(
-  //                       'Online-Zahlung',
-  //                       style: TextStyle(
-  //                         fontSize: _responsive(context, 11),
-  //                         fontWeight: FontWeight.w700,
-  //                         fontFamily: 'Mulish',
-  //                         color: Color(0xffE31E24),
-  //                       ),
-  //                     ),
-  //                   ],
-  //                 ),
-  //               ),
-  //             ),
-  //             SizedBox(width: _responsive(context, 10)),
-  //             Expanded(
-  //               child: Container(
-  //                 padding: EdgeInsets.symmetric(
-  //                   vertical: _responsive(context, 10),
-  //                   horizontal: _responsive(context, 12),
-  //                 ),
-  //                 decoration: BoxDecoration(
-  //                   color: Color(0xff232D3F),
-  //                   borderRadius: BorderRadius.circular(_responsive(context, 6)),
-  //                 ),
-  //                 child: Row(
-  //                   mainAxisAlignment: MainAxisAlignment.center,
-  //                   children: [
-  //                     Icon(
-  //                       Icons.payments_outlined,
-  //                       color: Colors.white,
-  //                       size: _responsive(context, 16),
-  //                     ),
-  //                     SizedBox(width: _responsive(context, 6)),
-  //                     Text(
-  //                       'Bar',
-  //                       style: TextStyle(
-  //                         fontSize: _responsive(context, 11),
-  //                         fontWeight: FontWeight.w700,
-  //                         fontFamily: 'Mulish',
-  //                         color: Colors.white,
-  //                       ),
-  //                     ),
-  //                   ],
-  //                 ),
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
   Widget _buildTodaySection(BuildContext context) {
     return Container(
         margin: EdgeInsets.symmetric(
@@ -2458,7 +2212,7 @@ class _PosLandscapeState extends State<PosLandscape> {
           SizedBox(height: _responsive(context, 12)),
 
           Obx(() => GestureDetector(
-                //onTap: () => controller.selectVorbestellen(),
+                onTap: () => controller.selectVorbestellen(),
                 child: Container(
                   padding: EdgeInsets.all(_responsive(context, 12)),
                   decoration: BoxDecoration(
@@ -2505,97 +2259,95 @@ class _PosLandscapeState extends State<PosLandscape> {
                 ),
               )),
 
-          // SizedBox(height: _responsive(context, 12)),
-          //
-          // Obx(() => controller.isVorbestellenSelected.value
-          //     ? Column(
-          //         children: [
-          //           GestureDetector(
-          //             onTap: () => controller.openCalendar(),
-          //             child: Container(
-          //               padding: EdgeInsets.symmetric(
-          //                 horizontal: _responsive(context, 12),
-          //                 vertical: _responsive(context, 10),
-          //               ),
-          //               decoration: BoxDecoration(
-          //                 color: Color(0xffFBF9FF),
-          //                 borderRadius:
-          //                     BorderRadius.circular(_responsive(context, 6)),
-          //                 border: Border.all(color: Color(0xffE6E1EE)),
-          //               ),
-          //               child: Row(
-          //                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          //                 children: [
-          //                   Text(
-          //                     controller.getFormattedSelectedDateTime(),
-          //                     style: TextStyle(
-          //                       fontSize: _responsive(context, 12),
-          //                       fontWeight: FontWeight.w500,
-          //                       fontFamily: 'Mulish',
-          //                       color: Color(0xff797878),
-          //                     ),
-          //                   ),
-          //                   Container(
-          //                     padding: EdgeInsets.all(_responsive(context, 6)),
-          //                     decoration: BoxDecoration(
-          //                       color: Color(0xffE31E24),
-          //                       borderRadius: BorderRadius.circular(
-          //                           _responsive(context, 4)),
-          //                     ),
-          //                     child: Icon(
-          //                       Icons.calendar_today,
-          //                       color: Colors.white,
-          //                       size: _responsive(context, 12),
-          //                     ),
-          //                   ),
-          //                 ],
-          //               ),
-          //             ),
-          //           ),
-          //
-          //           // Select Time (only visible after date is selected)
-          //           if (controller.showTimeSelector.value &&
-          //               controller.selectedDate.value != null)
-          //             Padding(
-          //               padding: EdgeInsets.only(top: _responsive(context, 12)),
-          //               child: GestureDetector(
-          //                 onTap: () => controller.openTimeSelector(),
-          //                 child: Container(
-          //                   padding: EdgeInsets.symmetric(
-          //                     horizontal: _responsive(context, 12),
-          //                     vertical: _responsive(context, 10),
-          //                   ),
-          //                   decoration: BoxDecoration(
-          //                     color: Color(0xffFBF9FF),
-          //                     borderRadius: BorderRadius.circular(
-          //                         _responsive(context, 6)),
-          //                     border: Border.all(color: Color(0xffE6E1EE)),
-          //                   ),
-          //                   child: Row(
-          //                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          //                     children: [
-          //                       Text(
-          //                         'Select Time',
-          //                         style: TextStyle(
-          //                           fontSize: _responsive(context, 12),
-          //                           fontWeight: FontWeight.w500,
-          //                           fontFamily: 'Mulish',
-          //                           color: Color(0xff797878),
-          //                         ),
-          //                       ),
-          //                       Icon(
-          //                         Icons.access_time,
-          //                         size: _responsive(context, 16),
-          //                         color: Color(0xff0B1928),
-          //                       ),
-          //                     ],
-          //                   ),
-          //                 ),
-          //               ),
-          //             ),
-          //         ],
-          //       )
-          //     : SizedBox.shrink()),
+          SizedBox(height: _responsive(context, 12)),
+
+          Obx(() => controller.isVorbestellenSelected.value
+              ? Column(
+                  children: [
+                    GestureDetector(
+                      onTap: () => controller.openCalendar(),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: _responsive(context, 12),
+                          vertical: _responsive(context, 10),
+                        ),
+                        decoration: BoxDecoration(
+                          color: Color(0xffFBF9FF),
+                          borderRadius:
+                              BorderRadius.circular(_responsive(context, 6)),
+                          border: Border.all(color: Color(0xffE6E1EE)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              controller.getFormattedSelectedDateTime(),
+                              style: TextStyle(
+                                fontSize: _responsive(context, 12),
+                                fontWeight: FontWeight.w500,
+                                fontFamily: 'Mulish',
+                                color: Color(0xff797878),
+                              ),
+                            ),
+                            Container(
+                              padding: EdgeInsets.all(_responsive(context, 6)),
+                              decoration: BoxDecoration(
+                                color: Color(0xffE31E24),
+                                borderRadius: BorderRadius.circular(
+                                    _responsive(context, 4)),
+                              ),
+                              child: Icon(
+                                Icons.calendar_today,
+                                color: Colors.white,
+                                size: _responsive(context, 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (controller.showTimeSelector.value &&
+                        controller.selectedDate.value != null)
+                      Padding(
+                        padding: EdgeInsets.only(top: _responsive(context, 12)),
+                        child: GestureDetector(
+                          onTap: () => controller.openTimeSelector(),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: _responsive(context, 12),
+                              vertical: _responsive(context, 10),
+                            ),
+                            decoration: BoxDecoration(
+                              color: Color(0xffFBF9FF),
+                              borderRadius: BorderRadius.circular(
+                                  _responsive(context, 6)),
+                              border: Border.all(color: Color(0xffE6E1EE)),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Select Time',
+                                  style: TextStyle(
+                                    fontSize: _responsive(context, 12),
+                                    fontWeight: FontWeight.w500,
+                                    fontFamily: 'Mulish',
+                                    color: Color(0xff797878),
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.access_time,
+                                  size: _responsive(context, 16),
+                                  color: Color(0xff0B1928),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                )
+              : SizedBox.shrink()),
 
           SizedBox(height: _responsive(context, 16)),
           Divider(color: Color(0xffE6E1EE), thickness: 1),
@@ -2937,14 +2689,10 @@ class _PosLandscapeState extends State<PosLandscape> {
                   decoration: BoxDecoration(
                     border: Border(bottom: BorderSide(color: Color(0xffE6E1EE))),
                   ),
-                  child:Obx(() {
-                    DateTime now = controller.getCurrentGermanyDate();
-                    String monthName = DateFormat('MMMM').format(now);
-
-                    return Row(
+                    child: Row(
                       children: [
                         Text(
-                          '$monthName,',
+                          '${DateFormat('MMMM').format(controller.getCurrentGermanyDate())},',
                           style: TextStyle(
                             fontSize: _responsive(context, 20),
                             fontWeight: FontWeight.w700,
@@ -2953,7 +2701,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                         ),
                         SizedBox(width: 5),
                         Text(
-                          '${now.year}',
+                          '${controller.getCurrentGermanyDate().year}',
                           style: TextStyle(
                             fontSize: _responsive(context, 18),
                             fontWeight: FontWeight.w400,
@@ -2963,8 +2711,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                         ),
                         Icon(Icons.arrow_drop_down, color: Color(0xff0C831F)),
                       ],
-                    );
-                  }),
+                    ),
                 ),
                   Positioned(
                     top: -18,right: 15,
@@ -3149,7 +2896,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                     ),
                   ),
                   Expanded(
-                    child: ListView.builder(
+                    child: Obx(() => ListView.builder(
                       padding: EdgeInsets.all(_responsive(context, 16)),
                       itemCount: controller.postcode.length,
                       itemBuilder: (context, index) {
@@ -3202,7 +2949,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                           ),
                         );
                       },
-                    ),
+                    )),
                   ),
                 ],
               ),

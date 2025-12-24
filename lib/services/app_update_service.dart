@@ -143,12 +143,12 @@ class AppUpdateService {
               ],
             ),
             actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('Later'),
-              ),
+              // TextButton(
+              //   onPressed: () {
+              //     Navigator.of(context).pop();
+              //   },
+              //   child: const Text('Later'),
+              // ),
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).pop();

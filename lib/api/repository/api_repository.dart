@@ -25,6 +25,7 @@ import '../../models/UserMe.dart';
 import '../../models/add-store_postcode_response_model.dart';
 import '../../models/add_aleergy_link_response_model.dart';
 import '../../models/add_allergy_response_model.dart';
+import '../../models/add_coupon_response_model.dart';
 import '../../models/add_new_category_availability_response_model.dart';
 import '../../models/add_new_group_item_response_model.dart';
 import '../../models/add_new_product_category_response_model.dart';
@@ -53,6 +54,7 @@ import '../../models/get_added_tax_response_model.dart';
 import '../../models/get_admin_report_response_model.dart' hide TaxBreakdown, PaymentMethods, OrderTypes, ApprovalStatuses;
 import '../../models/get_all_store_response_model.dart';
 import '../../models/get_allergy_response_model.dart';
+import '../../models/get_coupons_response_model.dart';
 import '../../models/get_discount_percentage_response_model.dart';
 import '../../models/get_group_item_response_model.dart';
 import '../../models/get_item_allergy_link_response_model.dart';
@@ -3224,6 +3226,138 @@ class CallService extends GetConnect {
     } catch (e) {
       print("❌ Syncing error: $e");
       rethrow;
+    }
+  }
+
+  //For Getting the Coupons
+  Future<List<GetCouponsResponseModel>> getCoupons(String storeId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+    print("User Access Token Value is : $accessToken");
+
+    httpClient.baseUrl = Api.baseUrl;
+    var res = await get('coupons/$storeId?include_inactive=true', headers: {
+      'accept': 'application/json',
+      'Authorization': "Bearer $accessToken",
+    });
+
+    if (res.statusCode == 200) {
+      print("Getting Coupons response is :${res.statusCode.toString()}");
+      List<dynamic> jsonList = res.body;
+      return jsonList.map((json) => GetCouponsResponseModel.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load Coupons: ${res.statusCode}');
+    }
+  }
+
+  //For Add New Coupon
+  Future<AddCouponResponseModel> addNewCoupon(dynamic body) async {
+    try {
+      httpClient.baseUrl = Api.baseUrl;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception('Access token is null or empty');
+      }
+
+      var res = await post('coupons/', body, headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      },
+      );
+
+      print("Add  New Coupons is ${res.statusCode}");
+      print("Add   New Coupons Body is : ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        print("Add  New Coupons is : ${res.statusCode.toString()}");
+        return AddCouponResponseModel.fromJson(res.body);
+      } else {
+        print("Unexpected error: ${res.statusCode} - ${res.body}");
+        throw Exception('Request failed with status code: ${res.statusCode}');
+      }
+    } catch (e) {
+      print("Adding error: $e");
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('An unexpected error occurred: $e');
+      }
+    }
+  }
+
+  //For Delete Coupon
+  Future<bool> deleteExistingCoupon(String couponId) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      httpClient.baseUrl = Api.baseUrl;
+
+      var res = await delete(
+        "coupons/$couponId",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer $accessToken",
+        },
+      );
+
+      print("Delete Coupon Status: ${res.statusCode}");
+
+      // 204 means success but no content returned
+      if (res.statusCode == 200 || res.statusCode == 204) {
+        print("Coupon deleted successfully");
+        return true;
+      } else {
+        print('Delete API Error: ${res.statusCode} - ${res.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Delete API Exception: $e');
+      // Even if GetX throws error on 204, check if it's actually successful
+      if (e.toString().contains('Cannot decode')) {
+        print("Delete successful but response was empty (204)");
+        return true;
+      }
+      return false;
+    }
+  }
+
+  //For Reactivate Coupon
+  Future<bool> activateCoupon(String couponId,dynamic body) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString(valueShared_BEARER_KEY);
+      print("User Access Token Value is : $accessToken");
+      httpClient.baseUrl = Api.baseUrl;
+
+      var res = await patch(
+        "coupons/$couponId/activate",body, headers: {
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer $accessToken",
+        },
+      );
+
+      print("Activate Coupon Status: ${res.statusCode}");
+
+      // 204 means success but no content returned
+      if (res.statusCode == 200 || res.statusCode == 204) {
+        print("Coupon Activate successfully");
+        return true;
+      } else {
+        print('activate API Error: ${res.statusCode} - ${res.body}');
+        return false;
+      }
+    } catch (e) {
+      print('activate API Exception: $e');
+      // Even if GetX throws error on 204, check if it's actually successful
+      if (e.toString().contains('Cannot decode')) {
+        print("activate successful but response was empty (204)");
+        return true;
+      }
+      return false;
     }
   }
 

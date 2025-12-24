@@ -304,6 +304,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
     final deliveryFee = updatedOrder.invoice?.delivery_fee ?? 0.0;
     final grandTotal = subtotal - discountData + deliveryFee;
     var Note=updatedOrder.note.toString();
+    var couponCode= updatedOrder.couponCode.toString();
     String guestAddress=updatedOrder.guestShippingJson?.line1?.toString()??'';
     String guestName=updatedOrder.guestShippingJson?.customerName?.toString()??'';
     String guestPhone=updatedOrder.guestShippingJson?.phone?.toString()??'';
@@ -491,10 +492,11 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                         final itemTotal = ((item.unitPrice ?? 0) + toppingsTotal) * (item.quantity ?? 0);
 
                         return _orderItem(
-                          item.productName ?? "Product", // ✅ Use default name if null
+                          item.productName ?? "Product",
                           itemTotal.toStringAsFixed(2),
+                          couponCode,
                           item,
-                          note: item.note ?? "", // ✅ Ensure note is never null
+                          note: item.note ?? "",
                         );
                       },
                     ),
@@ -563,7 +565,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                                       fontWeight: FontWeight.w500,
                                       fontSize: 13),
                                 ),
-                                Text(formatAmount(discountData),
+                                Text('-${formatAmount(discountData)}',
                                  // discountData.toString(),
                                   style: const TextStyle(
                                       fontWeight: FontWeight.w500,
@@ -635,6 +637,9 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                       style:
                           const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
+                    Text('Coupon Applied : ${couponCode}',style: TextStyle(
+                        fontFamily: 'Mulish',fontSize: 15,fontWeight: FontWeight.w600
+                    ),),
                     const SizedBox(height: 2),
                     Container(height: 0.5, color: Colors.grey),
                     const SizedBox(height: 2),
@@ -997,7 +1002,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
   //   );
   // }
 
-  Widget _orderItem(String title, String price, OrderItem item, {String? note}) {
+  Widget _orderItem(String title, String price,String coupon,OrderItem item, {String? note}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -1008,12 +1013,19 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Text(
-                  '${item.quantity ?? 0}X $title'
-                      '${((item.toppings?.isNotEmpty ?? false) && item.variant == null) ? ' [${formatAmount(item.unitPrice ?? 0)}]' : ''}',
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 3,
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Text('Coupon Applied : ${coupon}',style: TextStyle(
+                    //   fontFamily: 'Mulish',fontSize: 15,fontWeight: FontWeight.w600
+                    // ),),
+                    Text(
+                      '${item.quantity ?? 0}X $title'
+                          '${((item.toppings?.isNotEmpty ?? false) && item.variant == null) ? ' [${formatAmount(item.unitPrice ?? 0)}]' : ''}',
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 3,
+                    ),
+                  ],
                 ),
               ),
               Text(

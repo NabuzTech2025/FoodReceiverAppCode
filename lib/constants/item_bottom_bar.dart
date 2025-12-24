@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
+
+import 'package:flutter_svg/flutter_svg.dart';
 class ItemBottomBar extends StatefulWidget {
   final String icon;          // asset path
   final String name;          // tab label
@@ -80,7 +82,7 @@ class _ItemBottomBarState extends State<ItemBottomBar> {
                 AnimatedScale(
                   scale: _isTapped ? 0.95 : 1.0,
                   duration: const Duration(milliseconds: 150),
-                  child: Image.asset(
+                  child: SvgPicture.asset(
                     widget.icon,
                     width: widget.iconWidth,
                     height: widget.iconHeight,

@@ -512,91 +512,93 @@ class _SuperAdminState extends State<SuperAdmin> {
                     ],
                   ),
                 )
-                    : SizedBox(
-                  height: 150,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
-                    itemCount: filteredStoreList.length,
-                    itemBuilder: (context, index) {
-                      var store = filteredStoreList[index];
-                      return InkWell(
-                        onTap: () async {
-                          if (Get.isDialogOpen ?? false) {
-                            Get.back();
-                          }
-                          SharedPreferences prefs = await SharedPreferences.getInstance();
-                          await prefs.setString(valueShared_STORE_KEY,
-                              store.storeId.toString());
-
-                          await Future.delayed(const Duration(milliseconds: 50));
-
-                          Get.to(() => const HomeScreen(), arguments: {
-                            'storeId': store.storeId.toString(),
-                            'roleId': 1,
-                          });
-                        },
-                        child: Container(
-                          padding: EdgeInsets.all(12),
-                          margin: EdgeInsets.all(5),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                                width: 1,
-                                color: getStoreColors(store.storeId)['border']!
+                    : RepaintBoundary(
+                      child: SizedBox(
+                                        height: 150,
+                                        child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      itemCount: filteredStoreList.length,
+                      itemBuilder: (context, index) {
+                        var store = filteredStoreList[index];
+                        return InkWell(
+                          onTap: () async {
+                            if (Get.isDialogOpen ?? false) {
+                              Get.back();
+                            }
+                            SharedPreferences prefs = await SharedPreferences.getInstance();
+                            await prefs.setString(valueShared_STORE_KEY,
+                                store.storeId.toString());
+                      
+                            await Future.delayed(const Duration(milliseconds: 50));
+                      
+                            Get.to(() => const HomeScreen(), arguments: {
+                              'storeId': store.storeId.toString(),
+                              'roleId': 1,
+                            });
+                          },
+                          child: Container(
+                            padding: EdgeInsets.all(12),
+                            margin: EdgeInsets.all(5),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                  width: 1,
+                                  color: getStoreColors(store.storeId)['border']!
+                              ),
+                              color: getStoreColors(store.storeId)['background']!,
                             ),
-                            color: getStoreColors(store.storeId)['background']!,
-                          ),
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('ID : ${store.storeId}',  // Changed from store.id
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w800,
-                                        fontFamily: 'Mulish'
-                                    ),
-                                  ),
-                                  Container(
-                                    width: MediaQuery.of(context).size.width*0.26,
-                                    child: Text('${store.storeName}',
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('ID : ${store.storeId}',  // Changed from store.id
                                       style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w700,
-                                          fontFamily: 'Mulish',
-                                          color: getStoreColors(store.storeId)['nameColor']!  // Changed from store.id
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                          fontFamily: 'Mulish'
                                       ),
                                     ),
+                                    Container(
+                                      width: MediaQuery.of(context).size.width*0.26,
+                                      child: Text('${store.storeName}',
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            fontFamily: 'Mulish',
+                                            color: getStoreColors(store.storeId)['nameColor']!  // Changed from store.id
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (store.report != null)
+                                  Text(
+                                    'Orders : ${store.report!.totalOrders ?? 0}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      fontFamily: 'Mulish',
+                                    ),
                                   ),
-                                ],
-                              ),
-                              if (store.report != null)
                                 Text(
-                                  'Orders : ${store.report!.totalOrders ?? 0}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    fontFamily: 'Mulish',
+                                    'Sale : ${store.report!.totalSales ?? 0}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      fontFamily: 'Mulish',
+                                    ),
                                   ),
-                                ),
-                              Text(
-                                  'Sale : ${store.report!.totalSales ?? 0}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    fontFamily: 'Mulish',
-                                  ),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+                        );
+                      },
+                                        ),
+                                      ),
+                    ),
                 if (searchController.text.isNotEmpty)
                   Container(
                     margin: EdgeInsets.symmetric(horizontal: 17, vertical: 10),
@@ -804,14 +806,14 @@ class _SuperAdminState extends State<SuperAdmin> {
                               Row(
                                 children: [
                                   Text(
-                                    '${'order_number'.tr} : ',
+                                    '${order.orderNumber != null ? 'order_number'.tr : 'Order ID'} : ',
                                     style: const TextStyle(
                                         fontWeight: FontWeight.w700,
                                         fontSize: 11,
                                         fontFamily: "Mulish"),
                                   ),
                                   Text(
-                                    '${order.orderNumber}',
+                                    '${order.orderNumber ?? order.id ?? 'N/A'}',
                                     style: const TextStyle(
                                         fontWeight: FontWeight.w500,
                                         fontSize: 11,
@@ -1124,7 +1126,7 @@ class _SuperAdminState extends State<SuperAdmin> {
                     const SizedBox(width: 15),
                     Container(
                       height: 35,
-                      width: 70,
+                      width: 80,
                       decoration: BoxDecoration(
                         color: const Color(0xFFE25454),
                         borderRadius: BorderRadius.circular(3),
