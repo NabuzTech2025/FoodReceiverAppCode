@@ -73,7 +73,7 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
       SnackBar(
         content: Text(message),
         backgroundColor: isError ? Colors.red : Colors.green,
-        duration: Duration(seconds: 2),
+        duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -176,7 +176,7 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
       }
 
       // Small delay then show success message
-      await Future.delayed(Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 300));
 
       if (mounted) {
         _showSnackbar('tax_add'.tr);
@@ -274,7 +274,7 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
       }
 
       // Small delay then show success message
-      await Future.delayed(Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 300));
 
       if (mounted) {
         _showSnackbar('tax_upd'.tr);
@@ -341,7 +341,7 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
                   const SizedBox(height: 30),
                   Text(
                     'tax_name'.tr,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       fontFamily: 'Mulish',
@@ -372,7 +372,7 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
                   const SizedBox(height: 20),
                   Text(
                     'percentage'.tr,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       fontFamily: 'Mulish',
@@ -423,7 +423,7 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
                         width: 120,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xff757B8F),
+                            backgroundColor: const Color(0xff757B8F),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
@@ -437,7 +437,7 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
                           },
                           child: Text(
                             'cancel'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               fontFamily: 'Mulish',
@@ -469,7 +469,7 @@ class _AddTaxBottomSheetState extends State<AddTaxBottomSheet> {
                           )
                               : Text(
                             'saved'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               fontFamily: 'Mulish',

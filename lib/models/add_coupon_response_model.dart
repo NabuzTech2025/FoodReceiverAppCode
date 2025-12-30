@@ -45,20 +45,20 @@ class AddCouponResponseModel {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['store_id'] = this.storeId;
-    data['code'] = this.code;
-    data['name'] = this.name;
-    data['coupon_type'] = this.couponType;
-    data['value'] = this.value;
-    data['min_cart_amount'] = this.minCartAmount;
-    data['max_discount_amount'] = this.maxDiscountAmount;
-    data['start_at'] = this.startAt;
-    data['end_at'] = this.endAt;
-    data['usage_limit'] = this.usageLimit;
-    data['usage_per_user'] = this.usagePerUser;
-    data['id'] = this.id;
-    data['is_active'] = this.isActive;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['store_id'] = storeId;
+    data['code'] = code;
+    data['name'] = name;
+    data['coupon_type'] = couponType;
+    data['value'] = value;
+    data['min_cart_amount'] = minCartAmount;
+    data['max_discount_amount'] = maxDiscountAmount;
+    data['start_at'] = startAt;
+    data['end_at'] = endAt;
+    data['usage_limit'] = usageLimit;
+    data['usage_per_user'] = usagePerUser;
+    data['id'] = id;
+    data['is_active'] = isActive;
     return data;
   }
 }

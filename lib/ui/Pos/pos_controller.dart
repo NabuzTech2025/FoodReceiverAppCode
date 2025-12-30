@@ -223,7 +223,7 @@ class PosController extends GetxController {
 
     sidebarScrollController.animateTo(
       targetPosition,
-      duration: Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
   }
@@ -241,7 +241,7 @@ class PosController extends GetxController {
 
       mainScrollController.animateTo(
         currentScroll + position.dy + 160,
-        duration: Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       )
           .then((_) {
@@ -266,7 +266,7 @@ class PosController extends GetxController {
   Future<void> _initializeSocketConnection() async {
     try {
       await _socketService.connect();
-      await Future.delayed(Duration(milliseconds: 2000));
+      await Future.delayed(const Duration(milliseconds: 2000));
 
       if (storeId != null) {
         _listenToStoreStatus();
@@ -282,11 +282,9 @@ class PosController extends GetxController {
     _socketService.listenToStoreStatus(storeId!);
 
     _socketService.storeStatusStream.listen((data) {
-      if (data != null) {
-        _parseStoreOpeningTime(data['today_hours']);
-        _generateSofortTimeSlots();
-      }
-    });
+      _parseStoreOpeningTime(data['today_hours']);
+      _generateSofortTimeSlots();
+        });
   }
 
   void _parseStoreOpeningTime(List<dynamic>? todayHours) {
@@ -334,7 +332,7 @@ class PosController extends GetxController {
       minimumPrepTime = deliveryMinutes + 15;
     } else {
       // Pickup: 30 min
-      startTime = storeOpeningTime.value!.add(Duration(minutes: 30));
+      startTime = storeOpeningTime.value!.add(const Duration(minutes: 30));
       minimumPrepTime = 30;
     }
 
@@ -529,7 +527,7 @@ class PosController extends GetxController {
   void showPostcodeSelector(BuildContext context) {
     if (postcode.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Loading postcodes...'), backgroundColor: Colors.orange),
+        const SnackBar(content: Text('Loading postcodes...'), backgroundColor: Colors.orange),
       );
       return;
     }
@@ -716,7 +714,7 @@ class PosController extends GetxController {
           child: SingleChildScrollView(
             child: Container(
               width: 400,
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -724,7 +722,7 @@ class PosController extends GetxController {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
+                      const Text(
                         'Item Note',
                         style: TextStyle(
                           fontFamily: 'Mulish',
@@ -735,19 +733,19 @@ class PosController extends GetxController {
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: Icon(Icons.close),
+                        icon: const Icon(Icons.close),
                         padding: EdgeInsets.zero,
-                        constraints: BoxConstraints(),
+                        constraints: const BoxConstraints(),
                       ),
                     ],
                   ),
-                  SizedBox(height: 15),
+                  const SizedBox(height: 15),
                   TextField(
                     controller: itemNoteController,
                     maxLines: 4,
                     decoration: InputDecoration(
                       hintText: 'Enter note for this item...',
-                      hintStyle: TextStyle(
+                      hintStyle: const TextStyle(
                         fontFamily: 'Mulish',
                         fontWeight: FontWeight.w400,
                         fontSize: 14,
@@ -759,22 +757,22 @@ class PosController extends GetxController {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Color(0xffE31E24)),
+                        borderSide: const BorderSide(color: Color(0xffE31E24)),
                       ),
-                      contentPadding: EdgeInsets.all(12),
+                      contentPadding: const EdgeInsets.all(12),
                     ),
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontFamily: 'Mulish',
                       fontSize: 14,
                     ),
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: Text(
+                        child: const Text(
                           'Cancel',
                           style: TextStyle(
                             fontFamily: 'Mulish',
@@ -784,7 +782,7 @@ class PosController extends GetxController {
                           ),
                         ),
                       ),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       ElevatedButton(
                         onPressed: () {
                           cartItems[itemIndex]['item_note'] = itemNoteController.text;
@@ -792,7 +790,7 @@ class PosController extends GetxController {
                           Navigator.pop(context);
 
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
+                            const SnackBar(
                               content: Text(
                                 'Item note added successfully',
                                 style: TextStyle(
@@ -807,14 +805,14 @@ class PosController extends GetxController {
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xffE31E24),
+                          backgroundColor: const Color(0xffE31E24),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          padding: EdgeInsets.symmetric(
+                          padding: const EdgeInsets.symmetric(
                               horizontal: 20, vertical: 12),
                         ),
-                        child: Text(
+                        child: const Text(
                           'Save Note',
                           style: TextStyle(
                             fontFamily: 'Mulish',
@@ -887,7 +885,7 @@ class PosController extends GetxController {
       visibleCategories.sort();
       visibleCategories.refresh();
 
-      await Future.delayed(Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 300));
     }
 
     // Find the position in visible categories list
@@ -897,12 +895,12 @@ class PosController extends GetxController {
       try {
         await landscapeProductScrollController.scrollTo(
           index: visibleIndex,
-          duration: Duration(milliseconds: 500),
+          duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOutCubic,
           alignment: 0.05, // Small offset from top
         );
 
-        await Future.delayed(Duration(milliseconds: 300));
+        await Future.delayed(const Duration(milliseconds: 300));
       } catch (e) {
         print('Scroll error: $e');
       }
@@ -924,7 +922,7 @@ class PosController extends GetxController {
 
     landscapeCategoryScrollController.animateTo(
       targetPosition,
-      duration: Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
   }
@@ -1017,11 +1015,6 @@ class PosController extends GetxController {
   }
 
   void toggleVariantTopping(int variantId, int toppingId) {
-    if (variantId == null || toppingId == null) {
-      print('⚠️ Null ID detected: variantId=$variantId, toppingId=$toppingId');
-      return;
-    }
-
     if (!selectedToppingsMap.containsKey(variantId)) {
       selectedToppingsMap[variantId] = [];
     }
@@ -1130,7 +1123,7 @@ class PosController extends GetxController {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (Get.context != null && Get.context!.mounted) {
           ScaffoldMessenger.of(Get.context!).showSnackBar(
-            SnackBar(
+            const SnackBar(
               content: Text(
                 'Note added successfully',
                 style: TextStyle(
@@ -1153,7 +1146,7 @@ class PosController extends GetxController {
     if (cartItems.isEmpty) {
       if (Get.context != null && Get.context!.mounted) {
         ScaffoldMessenger.of(Get.context!).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text(
               'Please add items to cart',
               style: TextStyle(
@@ -1300,13 +1293,13 @@ class PosController extends GetxController {
     // Find last Sunday of March
     DateTime marchEnd = DateTime.utc(year, 3, 31);
     while (marchEnd.weekday != DateTime.sunday) {
-      marchEnd = marchEnd.subtract(Duration(days: 1));
+      marchEnd = marchEnd.subtract(const Duration(days: 1));
     }
 
     // Find last Sunday of October
     DateTime octoberEnd = DateTime.utc(year, 10, 31);
     while (octoberEnd.weekday != DateTime.sunday) {
-      octoberEnd = octoberEnd.subtract(Duration(days: 1));
+      octoberEnd = octoberEnd.subtract(const Duration(days: 1));
     }
 
     // DST starts at 2:00 AM on last Sunday of March
@@ -1559,7 +1552,7 @@ class PosController extends GetxController {
       initializeVisibleCategories();
 
       // Small delay to ensure UI is ready
-      await Future.delayed(Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 300));
 
       if (showLoader && Get.isDialogOpen == true) {
         Get.back();
@@ -1662,7 +1655,7 @@ class PosController extends GetxController {
       initializeVisibleCategories();
 
       // Small delay to ensure UI is ready
-      await Future.delayed(Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 300));
 
       isLoading.value = false;
 
@@ -1682,7 +1675,7 @@ class PosController extends GetxController {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (Get.context != null && Get.context!.mounted) {
             ScaffoldMessenger.of(Get.context!).showSnackBar(
-              SnackBar(
+              const SnackBar(
                 content: Text(
                   'Data refreshed successfully',
                   style: TextStyle(
@@ -1723,7 +1716,7 @@ class PosController extends GetxController {
           child: SingleChildScrollView(
             child: Container(
               width: 400,
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1731,7 +1724,7 @@ class PosController extends GetxController {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
+                      const Text(
                         'Add Note',
                         style: TextStyle(
                           fontFamily: 'Mulish',
@@ -1742,19 +1735,19 @@ class PosController extends GetxController {
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: Icon(Icons.close),
+                        icon: const Icon(Icons.close),
                         padding: EdgeInsets.zero,
-                        constraints: BoxConstraints(),
+                        constraints: const BoxConstraints(),
                       ),
                     ],
                   ),
-                  SizedBox(height: 15),
+                  const SizedBox(height: 15),
                   TextField(
                     controller: noteController, // Changed from _noteController
                     maxLines: 4,
                     decoration: InputDecoration(
                       hintText: 'Enter your note here...',
-                      hintStyle: TextStyle(
+                      hintStyle: const TextStyle(
                         fontFamily: 'Mulish',
                         fontWeight: FontWeight.w400,
                         fontSize: 14,
@@ -1766,22 +1759,22 @@ class PosController extends GetxController {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Color(0xffE31E24)),
+                        borderSide: const BorderSide(color: Color(0xffE31E24)),
                       ),
-                      contentPadding: EdgeInsets.all(12),
+                      contentPadding: const EdgeInsets.all(12),
                     ),
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontFamily: 'Mulish',
                       fontSize: 14,
                     ),
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: Text(
+                        child: const Text(
                           'Cancel',
                           style: TextStyle(
                             fontFamily: 'Mulish',
@@ -1791,14 +1784,14 @@ class PosController extends GetxController {
                           ),
                         ),
                       ),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       ElevatedButton(
                         onPressed: () {
                           orderNote.value =
                               noteController.text; // Changed from setState
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
+                            const SnackBar(
                               content: Text(
                                 'Note added successfully',
                                 style: TextStyle(
@@ -1813,14 +1806,14 @@ class PosController extends GetxController {
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xffE31E24),
+                          backgroundColor: const Color(0xffE31E24),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          padding: EdgeInsets.symmetric(
+                          padding: const EdgeInsets.symmetric(
                               horizontal: 20, vertical: 12),
                         ),
-                        child: Text(
+                        child: const Text(
                           'Add Note',
                           style: TextStyle(
                             fontFamily: 'Mulish',
@@ -1851,15 +1844,15 @@ class PosController extends GetxController {
               ),
               child: Container(
                   width: 350,
-                  padding: EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(20),
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(
+                    const Icon(
                       Icons.power_settings_new,
                       color: Color(0xffE31E24),
                       size: 50,
                     ),
-                    SizedBox(height: 15),
-                    Text(
+                    const SizedBox(height: 15),
+                    const Text(
                       'Logout',
                       style: TextStyle(
                         fontFamily: 'Mulish',
@@ -1868,8 +1861,8 @@ class PosController extends GetxController {
                         color: Color(0xff0B1928),
                       ),
                     ),
-                    SizedBox(height: 10),
-                    Text(
+                    const SizedBox(height: 10),
+                    const Text(
                       'Are you sure you want to logout?',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -1879,7 +1872,7 @@ class PosController extends GetxController {
                         color: Color(0xff797878),
                       ),
                     ),
-                    SizedBox(height: 25),
+                    const SizedBox(height: 25),
                     Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -1887,13 +1880,13 @@ class PosController extends GetxController {
                             child: TextButton(
                               onPressed: () => Navigator.pop(context),
                               style: TextButton.styleFrom(
-                                padding: EdgeInsets.symmetric(vertical: 12),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                   side: BorderSide(color: Colors.grey.shade300),
                                 ),
                               ),
-                              child: Text(
+                              child: const Text(
                                 'Cancel',
                                 style: TextStyle(
                                   fontFamily: 'Mulish',
@@ -1904,13 +1897,13 @@ class PosController extends GetxController {
                               ),
                             ),
                           ),
-                          SizedBox(width: 10),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () {
                                 Navigator.pop(context);
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
+                                  const SnackBar(
                                     content: Text(
                                       'Logged out successfully',
                                       style: TextStyle(
@@ -1925,13 +1918,13 @@ class PosController extends GetxController {
                                 );
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xffE31E24),
-                                padding: EdgeInsets.symmetric(vertical: 12),
+                                backgroundColor: const Color(0xffE31E24),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
-                              child: Text(
+                              child: const Text(
                                 'Logout',
                                 style: TextStyle(
                                   fontFamily: 'Mulish',

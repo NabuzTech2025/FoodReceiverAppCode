@@ -3081,13 +3081,13 @@ class CallService extends GetConnect {
       print("Fetching orders with limit=$limit, offset=$offset");
 
       httpClient.baseUrl = Api.baseUrl;
-      httpClient.timeout = Duration(seconds: 30);
+      httpClient.timeout = const Duration(seconds: 30);
 
       var res = await get('orders/admin/list?limit=$limit&offset=$offset', headers: {
         'accept': 'application/json',
         'Authorization': "Bearer $Token",
       }).timeout(
-        Duration(seconds: 30),
+        const Duration(seconds: 30),
         onTimeout: () {
           throw Exception('Request timeout');
         },
@@ -3201,7 +3201,7 @@ class CallService extends GetConnect {
       print("🔑 User Access Token: $accessToken");
       print("📦 Request Body Type: ${body.runtimeType}");
 
-      String prettyJson = JsonEncoder.withIndent('  ').convert(body);
+      String prettyJson = const JsonEncoder.withIndent('  ').convert(body);
       print("📦 FULL Request Body:\n$prettyJson");
 
       var res = await post(

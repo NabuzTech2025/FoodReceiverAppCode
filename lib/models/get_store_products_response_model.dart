@@ -67,7 +67,7 @@ class GetStoreProducts {
     if (json['enriched_topping_groups'] != null) {
       enrichedToppingGroups = <EnrichedToppingGroups>[];
       json['enriched_topping_groups'].forEach((v) {
-        enrichedToppingGroups!.add(new EnrichedToppingGroups.fromJson(v));
+        enrichedToppingGroups!.add(EnrichedToppingGroups.fromJson(v));
       });
     }
   }
@@ -80,7 +80,7 @@ class GetStoreProducts {
     data['image_url'] = imageUrl;
     data['type'] = type;
     data['price'] = price;
-    data['discount_price'] = this.discountPrice;
+    data['discount_price'] = discountPrice;
     data['store_id'] = storeId;
     data['tax_id'] = taxId;
     data['isActive'] = isActive;
@@ -95,9 +95,9 @@ class GetStoreProducts {
       data['variants'] = variants!.map((v) => v.toJson()).toList();
     }
     data['tax'] = tax;
-    if (this.enrichedToppingGroups != null) {
+    if (enrichedToppingGroups != null) {
       data['enriched_topping_groups'] =
-          this.enrichedToppingGroups!.map((v) => v.toJson()).toList();
+          enrichedToppingGroups!.map((v) => v.toJson()).toList();
     }
     return data;
   }
@@ -257,20 +257,20 @@ class EnrichedToppingGroups {
     if (json['toppings'] != null) {
       toppings = <Toppings>[];
       json['toppings'].forEach((v) {
-        toppings!.add(new Toppings.fromJson(v));
+        toppings!.add(Toppings.fromJson(v));
       });
     }
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['id'] = this.id;
-    data['name'] = this.name;
-    data['min_select'] = this.minSelect;
-    data['max_select'] = this.maxSelect;
-    data['is_required'] = this.isRequired;
-    if (this.toppings != null) {
-      data['toppings'] = this.toppings!.map((v) => v.toJson()).toList();
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['id'] = id;
+    data['name'] = name;
+    data['min_select'] = minSelect;
+    data['max_select'] = maxSelect;
+    data['is_required'] = isRequired;
+    if (toppings != null) {
+      data['toppings'] = toppings!.map((v) => v.toJson()).toList();
     }
     return data;
   }
@@ -302,13 +302,13 @@ class Toppings {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['description'] = this.description;
-    data['price'] = this.price;
-    data['store_id'] = this.storeId;
-    data['isActive'] = this.isActive;
-    data['id'] = this.id;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['description'] = description;
+    data['price'] = price;
+    data['store_id'] = storeId;
+    data['isActive'] = isActive;
+    data['id'] = id;
     return data;
   }
 }

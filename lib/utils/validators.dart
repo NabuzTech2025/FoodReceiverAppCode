@@ -1,20 +1,20 @@
-import 'package:flutter/material.dart';
 
-import 'package:shared_preferences/shared_preferences.dart';
 
 
 validateName(String? name) {
   if (name == null || name.isEmpty) {
     return "Please enter Name.";
-  } else
+  } else {
     return null;
+  }
 }
 
 validateLastName(String? name) {
   if (name == null || name.isEmpty) {
     return "Please enter Surame.";
-  } else
+  } else {
     return null;
+  }
 }
 
 bool validateAddress(String? name) {
@@ -25,21 +25,23 @@ bool validateAddress(String? name) {
 }
 
 bool validateEmail(String? email) {
-  RegExp regex = new RegExp(
+  RegExp regex = RegExp(
       r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$');
-  if (!regex.hasMatch(email!))
+  if (!regex.hasMatch(email!)) {
     return false;
-  else
+  } else {
     return true;
+  }
 }
 
 String? emailValidate(String? email) {
-  RegExp regex = new RegExp(
+  RegExp regex = RegExp(
       r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$');
-  if (!regex.hasMatch(email!))
+  if (!regex.hasMatch(email!)) {
     return 'Enter valid email';
-  else
+  } else {
     return null;
+  }
 }
 
 String? validatePassword(String? name) {
@@ -64,7 +66,7 @@ bool validatePhoneNumber(String? phone) {
 }
 
 String? validateQuantity(String quantity) {
-  if (quantity.length < 1) {
+  if (quantity.isEmpty) {
     return 'Enter a value';
   }
   return null;
@@ -73,27 +75,27 @@ String? validateQuantity(String quantity) {
 //(**************************************)
 
 String? validateFieldForValue(String name) {
-  if (name == null || name.isEmpty) {
+  if (name.isEmpty) {
     return "Please enter input.";
-  } else if (name.length < 1) {
+  } else if (name.isEmpty) {
     return 'Enter valid input';
   }
   return null;
 }
 
 String? validateFieldText(String name, String content) {
-  if (name == null || name.trim().isEmpty) {
+  if (name.trim().isEmpty) {
     return content;
-  } else if (name.length < 1) {
+  } else if (name.isEmpty) {
     return content;
   }
   return null;
 }
 
 String? validateFieldCustomText(String name, String content) {
-  if (name == null || name.trim().isEmpty) {
+  if (name.trim().isEmpty) {
     return content;
-  } else if (name.length < 1) {
+  } else if (name.isEmpty) {
     return content;
   }
   return null;
@@ -120,8 +122,9 @@ confrimPassword(String? txt, String passowrd) {
   }
   if (passowrd != txt) {
     return "Confirm password should equal Password";
-  } else
+  } else {
     return null;
+  }
 }
 
 password(String? txt) {
@@ -139,16 +142,17 @@ password(String? txt) {
   }
   if (!txt.contains(RegExp(r'[a-z]'))) {
     return "Password must has lowercase";
-  } else
+  } else {
     return null;
+  }
 }
 
 emailValidation(String? email) {
-  RegExp regex = new RegExp(
+  RegExp regex = RegExp(
       r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$');
   if (email == null || email.isEmpty) {
     return "Please enter Email.";
-  } else if (!regex.hasMatch(email!)) {
+  } else if (!regex.hasMatch(email)) {
     return "Email is not valid!";
   } else
     return null;
@@ -227,19 +231,19 @@ getSyncingData(String envornment) {
 }*/
 
 String getEnvName(String? baseURL) {
-  print("RaxarDataBaseURL " + baseURL!);
+  print("RaxarDataBaseURL ${baseURL!}");
   String enviromentType = "";
-  if (baseURL!.contains("api.raxar.com")) {
+  if (baseURL.contains("api.raxar.com")) {
     enviromentType = "Production";
-  } else if (baseURL!.contains("apitest.raxar.com")) {
+  } else if (baseURL.contains("apitest.raxar.com")) {
     enviromentType = "Test";
-  } else if (baseURL!.contains("apibeta.raxar.com")) {
+  } else if (baseURL.contains("apibeta.raxar.com")) {
     enviromentType = "Beta";
-  } else if (baseURL!.contains("apidev.raxar.com")) {
+  } else if (baseURL.contains("apidev.raxar.com")) {
     enviromentType = "Development";
-  } else if (baseURL!.contains("apiprep.raxar.com")) {
+  } else if (baseURL.contains("apiprep.raxar.com")) {
     enviromentType = "Prep";
   }
-  print("RaxarData " + enviromentType);
+  print("RaxarData $enviromentType");
   return enviromentType;
 }

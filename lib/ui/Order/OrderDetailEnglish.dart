@@ -637,7 +637,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                       style:
                           const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     ),
-                    Text('Coupon Applied : ${couponCode}',style: TextStyle(
+                    Text('Coupon Applied : $couponCode',style: const TextStyle(
                         fontFamily: 'Mulish',fontSize: 15,fontWeight: FontWeight.w600
                     ),),
                     const SizedBox(height: 2),
@@ -1075,7 +1075,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
                     color: Colors.green,
                   ),
                 ),
-                Container(
+                SizedBox(
                   width: MediaQuery.of(context).size.width * 0.75,
                   child: Text(
                     item.note!,
@@ -1441,7 +1441,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
         },
       );
 
-      timeoutTimer?.cancel();
+      timeoutTimer.cancel();
 
       if (loaderShown && (Get.isDialogOpen ?? false)) {
         Get.back();
@@ -1472,7 +1472,7 @@ class _OrderDetailState extends State<OrderDetailEnglish> {
           ),
         );
       }
-    } on TimeoutException catch (e) {
+    } on TimeoutException {
       timeoutTimer?.cancel();
 
       if (loaderShown && (Get.isDialogOpen ?? false)) {

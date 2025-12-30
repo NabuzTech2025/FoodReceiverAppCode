@@ -82,7 +82,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
         SnackBar(
           content: Text(message),
           backgroundColor: backgroundColor ?? Colors.red,
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
         ),
       );
     }
@@ -108,12 +108,12 @@ class _ReservationDetailsState extends State<ReservationDetails> {
             ),
             Text(
               'details'.tr,
-              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
+              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
             ),
           ],
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Get.back(),
         ),
       ),
@@ -131,11 +131,11 @@ class _ReservationDetailsState extends State<ReservationDetails> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Divider(color: Color(0xff757B8F)),
+            const Divider(color: Color(0xff757B8F)),
             Center(
               child: Text(
                 '${'order_id'.tr}: $orderId',
-                style: TextStyle(
+                style: const TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 18,
                     fontFamily: 'Mulish'),
@@ -144,61 +144,61 @@ class _ReservationDetailsState extends State<ReservationDetails> {
             Center(
               child: Text(
                 '${'date'.tr}: ${formatDateTime(date)}',
-                style: TextStyle(
+                style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                     fontFamily: 'Mulish'),
               ),
             ),
-            Divider(color: Color(0xff757B8F)),
+            const Divider(color: Color(0xff757B8F)),
             Text(
               '${'customer'.tr} : $customerName',
-              style: TextStyle(
+              style: const TextStyle(
                   fontFamily: 'Mulish',
                   fontSize: 15,
                   fontWeight: FontWeight.w600),
             ),
-            SizedBox(height: 5),
+            const SizedBox(height: 5),
             Text(
               '${'phone'.tr} : $phone ',
-              style: TextStyle(
+              style: const TextStyle(
                   fontFamily: 'Mulish',
                   fontSize: 15,
                   fontWeight: FontWeight.w600),
             ),
-            SizedBox(height: 5),
+            const SizedBox(height: 5),
             Text(
               '${'guest'.tr} : $guest',
-              style: TextStyle(
+              style: const TextStyle(
                   fontFamily: 'Mulish',
                   fontSize: 15,
                   fontWeight: FontWeight.w600),
             ),
-            SizedBox(height: 5),
-            Divider(color: Color(0xff757B8F)),
+            const SizedBox(height: 5),
+            const Divider(color: Color(0xff757B8F)),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   '${'reservation_date'.tr}:  ${formatDateTime(reservation)}',
-                  style: TextStyle(
+                  style: const TextStyle(
                       fontFamily: 'Mulish',
                       fontSize: 15,
                       fontWeight: FontWeight.w600),
                 ),
               ],
             ),
-            SizedBox(height: 5),
-            Divider(color: Color(0xff757B8F)),
-            SizedBox(height: 5),
+            const SizedBox(height: 5),
+            const Divider(color: Color(0xff757B8F)),
+            const SizedBox(height: 5),
             Text(
               '${'note'.tr}:  $note',
-              style: TextStyle(
+              style: const TextStyle(
                   fontFamily: 'Mulish',
                   fontSize: 15,
                   fontWeight: FontWeight.w600),
             ),
-            Spacer(),
+            const Spacer(),
             status.toLowerCase() == 'pending' || status.isEmpty
                 ? Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -209,14 +209,14 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                   },
                   child: Container(
                     width: 100,
-                    padding: EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                         color: Colors.red,
                         borderRadius: BorderRadius.circular(5)),
                     child: Center(
                       child: Text(
                         'decline'.tr,
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontWeight: FontWeight.w500,
                             fontSize: 15,
                             color: Colors.white),
@@ -224,21 +224,21 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                     ),
                   ),
                 ),
-                SizedBox(width: 20),
+                const SizedBox(width: 20),
                 GestureDetector(
                   onTap: () {
                     acceptDeclineReservation('booked');
                   },
                   child: Container(
                     width: 110,
-                    padding: EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                         color: Colors.green,
                         borderRadius: BorderRadius.circular(5)),
                     child: Center(
                       child: Text(
                         'accept'.tr,
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontWeight: FontWeight.w500,
                             fontSize: 15,
                             color: Colors.white),
@@ -256,7 +256,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                 }
                     : null,
                 child: Container(
-                  padding: EdgeInsets.symmetric(
+                  padding: const EdgeInsets.symmetric(
                       horizontal: 20, vertical: 12),
                   decoration: BoxDecoration(
                     color: getStatusColor(status),
@@ -264,7 +264,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                   ),
                   child: Text(
                     'Status: ${status.toUpperCase()}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
                       fontSize: 16,
@@ -274,7 +274,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                 ),
               ),
             ),
-            SizedBox(height: 40),
+            const SizedBox(height: 40),
           ],
         ),
       ),
@@ -335,7 +335,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
             )),
         barrierDismissible: false,
       );
-      _orderTimer = Timer(Duration(seconds: 7), () {
+      _orderTimer = Timer(const Duration(seconds: 7), () {
         if (Get.isDialogOpen ?? false) {
           Get.back();
           showSnackbar("Order Timeout", "Request timed out. Please try again.");
@@ -349,7 +349,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
       GetOrderStatusResponseModel model =
       await CallService().acceptDeclineReservation(map, id);
 
-      await Future.delayed(Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 2));
       _orderTimer?.cancel();
       print("Reservation status updated successfully to: $statusToUpdate");
 
@@ -366,7 +366,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
       await getFullReservationDetails();
 
       // Small delay before showing snackbar
-      await Future.delayed(Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 300));
 
       if (mounted && context.mounted) {
         showSnackbar(
@@ -389,7 +389,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
 
       print('Status error: $e');
 
-      await Future.delayed(Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 300));
 
       if (mounted && context.mounted) {
         showSnackbar('error'.tr, '${'updated_status'.tr}: ${e.toString()}');
@@ -448,7 +448,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
 
       await getFullReservationDetails();
 
-      await Future.delayed(Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 300));
 
       if (mounted && context.mounted) {
         showSnackbar(
@@ -466,7 +466,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
       }
       print('Edit error: $e');
 
-      await Future.delayed(Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 300));
 
       if (mounted && context.mounted) {
         showSnackbar(
@@ -495,7 +495,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
         children: [
           Container(
             height: Get.height * 0.85,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(35),
@@ -512,7 +512,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
             child: Column(
               children: [
                 Container(
-                  margin: EdgeInsets.only(top: 12),
+                  margin: const EdgeInsets.only(top: 12),
                   width: 50,
                   height: 4,
                   decoration: BoxDecoration(
@@ -522,12 +522,12 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                 ),
                 Container(
                   width: double.infinity,
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-                  margin: EdgeInsets.all(8),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                  margin: const EdgeInsets.all(8),
                   child: Center(
                     child: Text(
                       'edit_reservation'.tr,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.black,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -538,8 +538,8 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                 ),
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: 10),
-                    physics: BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    physics: const BouncingScrollPhysics(),
                     child: Column(
                       children: [
                         _buildEditableField(
@@ -555,7 +555,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                         _buildEditableField(
                             'special_note'.tr, noteController, Icons.note,
                             maxLines: 3),
-                        SizedBox(height: 20),
+                        const SizedBox(height: 20),
                         Row(
                           children: [
                             Expanded(
@@ -590,16 +590,16 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                                               child: Column(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
-                                                  SizedBox(height: 20),
-                                                  Icon(
+                                                  const SizedBox(height: 20),
+                                                  const Icon(
                                                     Icons.warning_amber_rounded,
                                                     color: Colors.orange,
                                                     size: 50,
                                                   ),
-                                                  SizedBox(height: 15),
+                                                  const SizedBox(height: 15),
                                                   Text(
                                                     'cancel_reservation'.tr,
-                                                    style: TextStyle(
+                                                    style: const TextStyle(
                                                         fontSize: 18,
                                                         fontWeight:
                                                         FontWeight.w800,
@@ -607,7 +607,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                                                         fontFamily: 'Mulish'),
                                                     textAlign: TextAlign.center,
                                                   ),
-                                                  SizedBox(height: 10),
+                                                  const SizedBox(height: 10),
                                                   Text(
                                                     'cancel_msg'.tr,
                                                     style: TextStyle(
@@ -638,7 +638,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                                                             foregroundColor:
                                                             Colors.black87,
                                                             minimumSize:
-                                                            Size(0, 45),
+                                                            const Size(0, 45),
                                                             shape:
                                                             RoundedRectangleBorder(
                                                               borderRadius:
@@ -650,7 +650,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                                                           child: Center(
                                                             child: Text(
                                                               'no_'.tr,
-                                                              style: TextStyle(
+                                                              style: const TextStyle(
                                                                 fontSize: 12,
                                                                 fontWeight:
                                                                 FontWeight
@@ -689,12 +689,12 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                                                           style: ElevatedButton
                                                               .styleFrom(
                                                             backgroundColor:
-                                                            Color(
+                                                            const Color(
                                                                 0xFFE25454),
                                                             foregroundColor:
                                                             Colors.white,
                                                             minimumSize:
-                                                            Size(0, 45),
+                                                            const Size(0, 45),
                                                             shape:
                                                             RoundedRectangleBorder(
                                                               borderRadius:
@@ -706,7 +706,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                                                           child: Center(
                                                             child: Text(
                                                               'yes'.tr,
-                                                              style: TextStyle(
+                                                              style: const TextStyle(
                                                                 fontSize: 12,
                                                                 fontWeight:
                                                                 FontWeight
@@ -762,25 +762,25 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                                     },
                                   );
                                 },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red[400],
+                                  foregroundColor: Colors.white,
+                                  minimumSize: const Size(0, 50),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
                                 child: Text(
                                   'cancel_reserv'.tr,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontFamily: 'Mulish',
                                     fontWeight: FontWeight.w700,
                                     fontSize: 14,
                                   ),
                                 ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red[400],
-                                  foregroundColor: Colors.white,
-                                  minimumSize: Size(0, 50),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(3),
-                                  ),
-                                ),
                               ),
                             ),
-                            SizedBox(width: 10),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: ElevatedButton(
                                 onPressed: () {
@@ -793,26 +793,26 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                                     noteController.text,
                                   );
                                 },
-                                child: Text(
-                                  'save_reserv'.tr,
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      fontFamily: 'Mulish'),
-                                ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.green,
                                   foregroundColor: Colors.white,
-                                  minimumSize: Size(0, 50),
+                                  minimumSize: const Size(0, 50),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(3),
                                   ),
+                                ),
+                                child: Text(
+                                  'save_reserv'.tr,
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      fontFamily: 'Mulish'),
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 20),
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
@@ -849,8 +849,8 @@ class _ReservationDetailsState extends State<ReservationDetails> {
       isDismissible: true,
       enableDrag: true,
       isScrollControlled: true,
-      enterBottomSheetDuration: Duration(milliseconds: 300),
-      exitBottomSheetDuration: Duration(milliseconds: 200),
+      enterBottomSheetDuration: const Duration(milliseconds: 300),
+      exitBottomSheetDuration: const Duration(milliseconds: 200),
     );
   }
 
@@ -870,15 +870,15 @@ class _ReservationDetailsState extends State<ReservationDetails> {
       String label, TextEditingController controller, IconData icon,
       {int maxLines = 1}) {
     return Container(
-      margin: EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: 8),
             child: Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
@@ -900,7 +900,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
               onTap: label == 'reservation'.tr
                   ? () => _selectReservationDateTime(controller)
                   : null,
-              style: TextStyle(
+              style: const TextStyle(
                 fontFamily: 'Mulish',
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
@@ -915,7 +915,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                   fontWeight: FontWeight.w400,
                 ),
                 prefixIcon: Container(
-                  padding: EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(12),
                   child: Icon(
                     icon,
                     color: Colors.grey[600],
@@ -968,7 +968,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -1037,7 +1037,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
     await Get.bottomSheet(
       Container(
         height: Get.height * 0.7,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(20),
@@ -1047,14 +1047,14 @@ class _ReservationDetailsState extends State<ReservationDetails> {
         child: Column(
           children: [
             Container(
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Colors.blue.shade600, Colors.blue.shade800],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.only(
+                borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
                 ),
@@ -1063,28 +1063,28 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.access_time, color: Colors.white),
-                      SizedBox(width: 10),
+                      const Icon(Icons.access_time, color: Colors.white),
+                      const SizedBox(width: 10),
                       Text(
                         'time_slot'.tr,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           fontFamily: 'Mulish',
                         ),
                       ),
-                      Spacer(),
+                      const Spacer(),
                       IconButton(
-                        icon: Icon(Icons.close, color: Colors.white),
+                        icon: const Icon(Icons.close, color: Colors.white),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                     ],
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
                     dayInfo,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -1094,7 +1094,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
               ),
             ),
             Container(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Text(
                 '${'date'.tr}: ${DateFormat('dd-MM-yyyy (EEEE)').format(selectedDate)}',
                 style: TextStyle(
@@ -1107,10 +1107,10 @@ class _ReservationDetailsState extends State<ReservationDetails> {
             ),
             Expanded(
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: GridView.builder(
-                  physics: BouncingScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  physics: const BouncingScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
@@ -1138,7 +1138,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                         String selectedTime = slot.displayTime;
                         Navigator.of(context).pop();
 
-                        Future.delayed(Duration(milliseconds: 300), () {
+                        Future.delayed(const Duration(milliseconds: 300), () {
                           if (mounted && context.mounted) {
                             showSnackbar(
                               'time_selected'.tr,
@@ -1164,7 +1164,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                             BoxShadow(
                               color: Colors.green.withOpacity(0.2),
                               blurRadius: 4,
-                              offset: Offset(0, 2),
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
@@ -1185,7 +1185,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
                 ),
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -1209,7 +1209,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
       String time12 = DateFormat('h:mm a').format(currentSlot);
 
       slots.add(TimeSlot(time24, time12));
-      currentSlot = currentSlot.add(Duration(minutes: 20));
+      currentSlot = currentSlot.add(const Duration(minutes: 20));
     }
 
     return slots;
@@ -1235,7 +1235,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
   Future<void> cancelReservation(String statusToUpdate) async {
     String id = widget.id;
     try {
-      _orderTimer = Timer(Duration(seconds: 7), () {
+      _orderTimer = Timer(const Duration(seconds: 7), () {
         if (Get.isDialogOpen ?? false) {
           Get.back();
           showSnackbar("Order Timeout", "Request timed out. Please try again.");
@@ -1248,7 +1248,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
       GetOrderStatusResponseModel model =
       await CallService().acceptDeclineReservation(map, id);
 
-      await Future.delayed(Duration(seconds: 1));
+      await Future.delayed(const Duration(seconds: 1));
       _orderTimer?.cancel();
 
       print("Reservation status updated successfully to: $statusToUpdate");
@@ -1259,7 +1259,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
 
       await getFullReservationDetails();
 
-      await Future.delayed(Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 300));
 
       if (mounted && context.mounted) {
         showSnackbar(
@@ -1276,7 +1276,7 @@ class _ReservationDetailsState extends State<ReservationDetails> {
 
       print('Cancel reservation error: $e');
 
-      await Future.delayed(Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 300));
 
       if (mounted && context.mounted) {
         showSnackbar(

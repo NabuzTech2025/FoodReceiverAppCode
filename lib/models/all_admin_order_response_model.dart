@@ -67,13 +67,13 @@ class AllOrderAdminResponseModel {
 
       if (json['items'] != null && json['items'] is List) {
         items = <Items>[];
-        (json['items'] as List).forEach((v) {
+        for (var v in (json['items'] as List)) {
           try {
             items!.add(Items.fromJson(v));
           } catch (e) {
             print("Error parsing item: $e");
           }
-        });
+        }
       }
 
       discount = json['discount'] != null && json['discount'] is Map
@@ -98,24 +98,24 @@ class AllOrderAdminResponseModel {
 
       if (json['tax_summary'] != null && json['tax_summary'] is List) {
         taxSummary = <TaxSummary>[];
-        (json['tax_summary'] as List).forEach((v) {
+        for (var v in (json['tax_summary'] as List)) {
           try {
             taxSummary!.add(TaxSummary.fromJson(v));
           } catch (e) {
             print("Error parsing tax summary: $e");
           }
-        });
+        }
       }
 
       if (json['brutto_netto_summary'] != null && json['brutto_netto_summary'] is List) {
         bruttoNettoSummary = <BruttoNettoSummary>[];
-        (json['brutto_netto_summary'] as List).forEach((v) {
+        for (var v in (json['brutto_netto_summary'] as List)) {
           try {
             bruttoNettoSummary!.add(BruttoNettoSummary.fromJson(v));
           } catch (e) {
             print("Error parsing brutto netto summary: $e");
           }
-        });
+        }
       }
 
       guestShippingJson = json['guest_shipping_json'] != null && json['guest_shipping_json'] is Map
@@ -129,50 +129,50 @@ class AllOrderAdminResponseModel {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['user_id'] = this.userId;
-    data['discount_id'] = this.discountId;
-    data['note'] = this.note;
-    data['order_type'] = this.orderType;
-    data['order_status'] = this.orderStatus;
-    data['approval_status'] = this.approvalStatus;
-    data['delivery_time'] = this.deliveryTime;
-    data['store_id'] = this.storeId;
-    data['isActive'] = this.isActive;
-    data['id'] = this.id;
-    data['created_at'] = this.createdAt;
-    data['store_name'] = this.storeName;
-    data['order_number'] = this.orderNumber;
-    if (this.user != null) {
-      data['user'] = this.user!.toJson();
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['user_id'] = userId;
+    data['discount_id'] = discountId;
+    data['note'] = note;
+    data['order_type'] = orderType;
+    data['order_status'] = orderStatus;
+    data['approval_status'] = approvalStatus;
+    data['delivery_time'] = deliveryTime;
+    data['store_id'] = storeId;
+    data['isActive'] = isActive;
+    data['id'] = id;
+    data['created_at'] = createdAt;
+    data['store_name'] = storeName;
+    data['order_number'] = orderNumber;
+    if (user != null) {
+      data['user'] = user!.toJson();
     }
-    if (this.items != null) {
-      data['items'] = this.items!.map((v) => v.toJson()).toList();
+    if (items != null) {
+      data['items'] = items!.map((v) => v.toJson()).toList();
     }
-    if (this.discount != null) {
-      data['discount'] = this.discount!.toJson();
+    if (discount != null) {
+      data['discount'] = discount!.toJson();
     }
-    if (this.invoice != null) {
-      data['invoice'] = this.invoice!.toJson();
+    if (invoice != null) {
+      data['invoice'] = invoice!.toJson();
     }
-    if (this.payment != null) {
-      data['payment'] = this.payment!.toJson();
+    if (payment != null) {
+      data['payment'] = payment!.toJson();
     }
-    if (this.shippingAddress != null) {
-      data['shipping_address'] = this.shippingAddress!.toJson();
+    if (shippingAddress != null) {
+      data['shipping_address'] = shippingAddress!.toJson();
     }
-    if (this.billingAddress != null) {
-      data['billing_address'] = this.billingAddress!.toJson();
+    if (billingAddress != null) {
+      data['billing_address'] = billingAddress!.toJson();
     }
-    if (this.taxSummary != null) {
-      data['tax_summary'] = this.taxSummary!.map((v) => v.toJson()).toList();
+    if (taxSummary != null) {
+      data['tax_summary'] = taxSummary!.map((v) => v.toJson()).toList();
     }
-    if (this.bruttoNettoSummary != null) {
+    if (bruttoNettoSummary != null) {
       data['brutto_netto_summary'] =
-          this.bruttoNettoSummary!.map((v) => v.toJson()).toList();
+          bruttoNettoSummary!.map((v) => v.toJson()).toList();
     }
-    if (this.guestShippingJson != null) {
-      data['guest_shipping_json'] = this.guestShippingJson!.toJson();
+    if (guestShippingJson != null) {
+      data['guest_shipping_json'] = guestShippingJson!.toJson();
     }
     return data;
   }
@@ -221,27 +221,27 @@ class Items {
     if (json['toppings'] != null) {
       toppings = <Toppings>[];
       json['toppings'].forEach((v) {
-        toppings!.add(new Toppings.fromJson(v));
+        toppings!.add(Toppings.fromJson(v));
       });
     }
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['product_id'] = this.productId;
-    data['variant_id'] = this.variantId;
-    data['quantity'] = this.quantity;
-    data['unit_price'] = this.unitPrice;
-    data['note'] = this.note;
-    data['id'] = this.id;
-    if (this.variant != null) {
-      data['variant'] = this.variant!.toJson();
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['product_id'] = productId;
+    data['variant_id'] = variantId;
+    data['quantity'] = quantity;
+    data['unit_price'] = unitPrice;
+    data['note'] = note;
+    data['id'] = id;
+    if (variant != null) {
+      data['variant'] = variant!.toJson();
     }
-    data['product_name'] = this.productName;
-    data['variant_name'] = this.variantName;
-    data['tax'] = this.tax;
-    if (this.toppings != null) {
-      data['toppings'] = this.toppings!.map((v) => v.toJson()).toList();
+    data['product_name'] = productName;
+    data['variant_name'] = variantName;
+    data['tax'] = tax;
+    if (toppings != null) {
+      data['toppings'] = toppings!.map((v) => v.toJson()).toList();
     }
     return data;
   }
@@ -274,13 +274,13 @@ class Discount {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['code'] = this.code;
-    data['type'] = this.type;
-    data['value'] = this.value;
-    data['expires_at'] = this.expiresAt;
-    data['store_id'] = this.storeId;
-    data['id'] = this.id;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['code'] = code;
+    data['type'] = type;
+    data['value'] = value;
+    data['expires_at'] = expiresAt;
+    data['store_id'] = storeId;
+    data['id'] = id;
     return data;
   }
 }
@@ -318,15 +318,15 @@ class Invoice {
 
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['invoice_number'] = this.invoiceNumber;
-    data['total_amount'] = this.totalAmount;
-    data['issued_at'] = this.issuedAt;
-    data['store_id'] = this.storeId;
-    data['id'] = this.id;
-    data['order_id'] = this.orderId;
-    data['delivery_fee'] = this.deliveryFee;
-    data['discount_amount'] = this.discountAmount;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['invoice_number'] = invoiceNumber;
+    data['total_amount'] = totalAmount;
+    data['issued_at'] = issuedAt;
+    data['store_id'] = storeId;
+    data['id'] = id;
+    data['order_id'] = orderId;
+    data['delivery_fee'] = deliveryFee;
+    data['discount_amount'] = discountAmount;
     return data;
   }
 }
@@ -356,13 +356,13 @@ class Payment {
     orderId = json['order_id'] as int?;
   }
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['payment_method'] = this.paymentMethod;
-    data['status'] = this.status;
-    data['paid_at'] = this.paidAt;
-    data['amount'] = this.amount;
-    data['id'] = this.id;
-    data['order_id'] = this.orderId;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['payment_method'] = paymentMethod;
+    data['status'] = status;
+    data['paid_at'] = paidAt;
+    data['amount'] = amount;
+    data['id'] = id;
+    data['order_id'] = orderId;
     return data;
   }
 }
@@ -378,9 +378,9 @@ class TaxSummary {
     taxAmount = (json['tax_amount'] as num?)?.toDouble();  // ✅ Changed
   }
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['tax_rate'] = this.taxRate;
-    data['tax_amount'] = this.taxAmount;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['tax_rate'] = taxRate;
+    data['tax_amount'] = taxAmount;
     return data;
   }
 }
@@ -401,11 +401,11 @@ class BruttoNettoSummary {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['tax_rate'] = this.taxRate;
-    data['brutto'] = this.brutto;
-    data['netto'] = this.netto;
-    data['tax_amount'] = this.taxAmount;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['tax_rate'] = taxRate;
+    data['brutto'] = brutto;
+    data['netto'] = netto;
+    data['tax_amount'] = taxAmount;
     return data;
   }
 }
@@ -442,15 +442,15 @@ class GuestShippingJson {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['zip'] = this.zip;
-    data['city'] = this.city;
-    data['type'] = this.type;
-    data['email'] = this.email;
-    data['line1'] = this.line1;
-    data['phone'] = this.phone;
-    data['country'] = this.country;
-    data['customer_name'] = this.customerName;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['zip'] = zip;
+    data['city'] = city;
+    data['type'] = type;
+    data['email'] = email;
+    data['line1'] = line1;
+    data['phone'] = phone;
+    data['country'] = country;
+    data['customer_name'] = customerName;
     return data;
   }
 }
@@ -470,11 +470,11 @@ class User {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['username'] = this.username;
-    data['id'] = this.id;
-    data['store_id'] = this.storeId;
-    data['role_id'] = this.roleId;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['username'] = username;
+    data['id'] = id;
+    data['store_id'] = storeId;
+    data['role_id'] = roleId;
     return data;
   }
 }
@@ -514,16 +514,16 @@ class ShippingAddress {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['type'] = this.type;
-    data['line1'] = this.line1;
-    data['city'] = this.city;
-    data['zip'] = this.zip;
-    data['country'] = this.country;
-    data['phone'] = this.phone;
-    data['customer_name'] = this.customerName;
-    data['id'] = this.id;
-    data['user_id'] = this.userId;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['type'] = type;
+    data['line1'] = line1;
+    data['city'] = city;
+    data['zip'] = zip;
+    data['country'] = country;
+    data['phone'] = phone;
+    data['customer_name'] = customerName;
+    data['id'] = id;
+    data['user_id'] = userId;
     return data;
   }
 }
@@ -544,11 +544,11 @@ class Toppings {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['topping_id'] = this.toppingId;
-    data['quantity'] = this.quantity;
-    data['price'] = this.price;
-    data['name'] = this.name;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['topping_id'] = toppingId;
+    data['quantity'] = quantity;
+    data['price'] = price;
+    data['name'] = name;
     return data;
   }
 }
@@ -587,14 +587,14 @@ class Variant {
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = {};
-    data['name'] = this.name;
-    data['price'] = this.price;
-    data['discount_price'] = this.discountPrice;
-    data['item_code'] = this.itemCode;
-    data['image_url'] = this.imageUrl;
-    data['description'] = this.description;
-    data['id'] = this.id;
-    data['qty_on_hand'] = this.qtyOnHand;
+    data['name'] = name;
+    data['price'] = price;
+    data['discount_price'] = discountPrice;
+    data['item_code'] = itemCode;
+    data['image_url'] = imageUrl;
+    data['description'] = description;
+    data['id'] = id;
+    data['qty_on_hand'] = qtyOnHand;
     return data;
   }
 }

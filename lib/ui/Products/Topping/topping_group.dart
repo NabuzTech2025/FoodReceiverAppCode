@@ -119,7 +119,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
     return Scaffold(
       backgroundColor: Colors.white,
       drawer: CustomDrawer(onSelectTab: _openTab),
-      appBar: CustomAppBar(),
+      appBar: const CustomAppBar(),
       body: Column(
         children: [
           Expanded(
@@ -132,7 +132,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('topping_group'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontFamily: 'Mulish',
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold)),
@@ -148,7 +148,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
                             ),
                             child: Center(
                               child: Text('add'.tr,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
                                     fontSize: 12,
@@ -160,7 +160,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 15),
+                  const SizedBox(height: 15),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Align(
@@ -176,7 +176,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
 
                   Container(
                     padding: const EdgeInsets.all(15),
@@ -187,17 +187,17 @@ class _ToppingGroupState extends State<ToppingGroup> {
                       children: [
                         Container(
                           child: Text('topping_group'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 13,
                                 fontFamily: 'Mulish'),
                           ),
                         ),
-                        Container(
+                        SizedBox(
                           width: MediaQuery.of(context).size.width*0.3,
                           child: Center(
                             child: Text('status'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 13,
                                     fontFamily: 'Mulish')),
@@ -248,10 +248,10 @@ class _ToppingGroupState extends State<ToppingGroup> {
                                 child: Container(
                                   width: 60,
                                   height: double.infinity,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xffE25454),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xffE25454),
                                   ),
-                                  child: Icon(
+                                  child: const Icon(
                                     Icons.delete_outline,
                                     color: Colors.white,
                                     size: 25,
@@ -298,7 +298,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
                                        borderRadius: BorderRadius.circular(5),
                                        color: (item.isActive ?? false) ? Colors.green : Colors.grey,
                                      ),
-                                     padding: EdgeInsets.all(5),
+                                     padding: const EdgeInsets.all(5),
                                      width: MediaQuery.of(context).size.width * 0.32,
                                      child: Center(
                                        child: Text( (item.isActive ?? false)? 'Active':'InActive',
@@ -337,7 +337,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
                     BoxShadow(
                       color: Colors.grey.shade200,
                       blurRadius: 5,
-                      offset: Offset(0, -2),
+                      offset: const Offset(0, -2),
                     ),
                   ],
                 ),
@@ -371,7 +371,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
                       ),
                     ),
 
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
                     // Page Numbers
                     ...(_getPageNumbers().map((pageNum) {
@@ -384,10 +384,10 @@ class _ToppingGroupState extends State<ToppingGroup> {
                             width: 35,
                             height: 35,
                             decoration: BoxDecoration(
-                              color: isActive ? Color(0xFF0EA5E9) : Colors
+                              color: isActive ? const Color(0xFF0EA5E9) : Colors
                                   .white,
                               border: Border.all(
-                                color: isActive ? Color(0xFF0EA5E9) : Colors
+                                color: isActive ? const Color(0xFF0EA5E9) : Colors
                                     .grey.shade300,
                               ),
                               borderRadius: BorderRadius.circular(4),
@@ -409,7 +409,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
                       );
                     }).toList()),
 
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
                     // Next Button
                     GestureDetector(
@@ -473,22 +473,22 @@ class _ToppingGroupState extends State<ToppingGroup> {
                 children: [
                   Text(
                     isEditMode ? 'edit_topping_group'.tr : 'add_topping_group'.tr,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       fontFamily: 'Mulish',
                     ),
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   Text(
                     '${'name'.tr} :',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       fontFamily: 'Mulish',
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   TextField(
                     controller: nameController,
                     decoration: InputDecoration(
@@ -503,12 +503,12 @@ class _ToppingGroupState extends State<ToppingGroup> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(4),
-                        borderSide: BorderSide(color: Color(0xFF0EA5E9)),
+                        borderSide: const BorderSide(color: Color(0xFF0EA5E9)),
                       ),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     ),
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -518,21 +518,21 @@ class _ToppingGroupState extends State<ToppingGroup> {
                         },
                         style: TextButton.styleFrom(
                           backgroundColor: Colors.grey.shade400,
-                          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
                         child: Text(
                           'close'.tr,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                             fontFamily: 'Mulish',
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       TextButton(
                         onPressed: () async {
                           String name = nameController.text.trim();
@@ -554,15 +554,15 @@ class _ToppingGroupState extends State<ToppingGroup> {
                           }
                         },
                         style: TextButton.styleFrom(
-                          backgroundColor: Color(0xFFFCAE03),
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                          backgroundColor: const Color(0xFFFCAE03),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
                         child: Text(
                           'save_topping'.tr,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                             fontFamily: 'Mulish',
                             fontWeight: FontWeight.w600,
@@ -711,7 +711,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
           SnackBar(
             content: Text('topping_group_create'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -727,7 +727,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
           SnackBar(
             content: Text('${'failed_topping_group'.tr}: ${e.toString()}'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -822,7 +822,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
           SnackBar(
             content: Text('topping_group_delete'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -836,7 +836,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
           SnackBar(
             content: Text('failed_delete_group'.tr),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -867,7 +867,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(height: 20,),
+                    const SizedBox(height: 20,),
                     Text(
                       '${'are'.tr}"$toppingGroupName"?',
                       style: const TextStyle(
@@ -898,7 +898,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
                             ),
                             child:  Text(
                               'cancel'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -927,7 +927,7 @@ class _ToppingGroupState extends State<ToppingGroup> {
                             ),
                             child:  Text(
                               'delete'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),

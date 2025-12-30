@@ -685,7 +685,7 @@ class _OrderHistoryDetailsState extends State<OrderHistoryDetails> {
                   color: Colors.green,
                 ),
               ),
-              Container(
+              SizedBox(
                 width: MediaQuery.of(context).size.width*0.75,
                 child: Text(
                   '${item.note}',

@@ -1,10 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'dart:io';
 import '../../../customView/CustomAppBar.dart';
 import '../../../customView/CustomDrawer.dart';
 import '../../api/repository/api_repository.dart';
@@ -999,7 +997,7 @@ class _CouponState extends State<Coupon> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Store ID not found'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('Store ID not found'), backgroundColor: Colors.red),
         );
       }
       return false;
@@ -1007,7 +1005,7 @@ class _CouponState extends State<Coupon> {
 
     if (Get.isDialogOpen == true) {
       Get.back();
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 100));
     }
 
     Get.dialog(
@@ -1049,12 +1047,12 @@ class _CouponState extends State<Coupon> {
       }
 
       final result = await Future.any([CallService().addNewCoupon(map),
-        Future.delayed(Duration(seconds: 6)).then((_) => null)
+        Future.delayed(const Duration(seconds: 6)).then((_) => null)
       ]);
 
       if (Get.isDialogOpen == true) {
         Get.back();
-        await Future.delayed(Duration(milliseconds: 200));
+        await Future.delayed(const Duration(milliseconds: 200));
       }
 
       if (result == null) {
@@ -1064,7 +1062,7 @@ class _CouponState extends State<Coupon> {
       // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Coupon added successfully'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
@@ -1080,7 +1078,7 @@ class _CouponState extends State<Coupon> {
     } catch (e) {
       if (Get.isDialogOpen == true) {
         Get.back();
-        await Future.delayed(Duration(milliseconds: 200));
+        await Future.delayed(const Duration(milliseconds: 200));
       }
 
       print('Error adding coupon: $e');
@@ -1090,7 +1088,7 @@ class _CouponState extends State<Coupon> {
           SnackBar(
             content: Text('Failed to add coupon: $e'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -1117,7 +1115,7 @@ class _CouponState extends State<Coupon> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Store ID not found'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('Store ID not found'), backgroundColor: Colors.red),
         );
       }
       return false;
@@ -1125,7 +1123,7 @@ class _CouponState extends State<Coupon> {
 
     if (Get.isDialogOpen == true) {
       Get.back();
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 100));
     }
 
     Get.dialog(
@@ -1167,12 +1165,12 @@ class _CouponState extends State<Coupon> {
 
       final result = await Future.any([
         //CallService().updateCoupon(map),
-        Future.delayed(Duration(seconds: 6)).then((_) => null)
+        Future.delayed(const Duration(seconds: 6)).then((_) => null)
       ]);
 
       if (Get.isDialogOpen == true) {
         Get.back();
-        await Future.delayed(Duration(milliseconds: 200));
+        await Future.delayed(const Duration(milliseconds: 200));
       }
 
       if (result == null) {
@@ -1181,7 +1179,7 @@ class _CouponState extends State<Coupon> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Coupon updated successfully'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
@@ -1196,7 +1194,7 @@ class _CouponState extends State<Coupon> {
     } catch (e) {
       if (Get.isDialogOpen == true) {
         Get.back();
-        await Future.delayed(Duration(milliseconds: 200));
+        await Future.delayed(const Duration(milliseconds: 200));
       }
 
       print('Error updating coupon: $e');
@@ -1206,7 +1204,7 @@ class _CouponState extends State<Coupon> {
           SnackBar(
             content: Text('Failed to update coupon: $e'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
       }

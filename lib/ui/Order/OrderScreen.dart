@@ -62,7 +62,7 @@ class _OrderScreenState extends State<OrderScreenNew>
         return Icons.help;
     }
   }
-
+  bool _isDisposed = false;
   late SharedPreferences sharedPreferences;
   String? bearerKey;
   String dateSeleted = "";
@@ -166,6 +166,7 @@ class _OrderScreenState extends State<OrderScreenNew>
 
   @override
   void dispose() {
+    _isDisposed = true;
     _socketService.disconnect();
 
     WidgetsBinding.instance.removeObserver(this);
@@ -1227,19 +1228,17 @@ class _OrderScreenState extends State<OrderScreenNew>
   void _initializeSocket() {
     _socketService.disconnect();
 
-    // ✅ Add mounted check before setState
-    if (mounted) {
-      setState(() {
-        _isLiveDataActive = false;
-        _lastUpdateTime = null;
-        _hasSocketData = false;
-      });
-    }
+    if (!mounted || _isDisposed) return; // ✅ CHECK BOTH
+
+    setState(() {
+      _isLiveDataActive = false;
+      _lastUpdateTime = null;
+      _hasSocketData = false;
+    });
 
     String? storeID = sharedPreferences.getString(valueShared_STORE_KEY);
 
     int dynamicStoreId;
-
     if (storeID != null && storeID.isNotEmpty) {
       int? parsedId = int.tryParse(storeID);
 
@@ -1258,7 +1257,7 @@ class _OrderScreenState extends State<OrderScreenNew>
     }
 
     _socketService.onSalesUpdate = (data) {
-      if (!mounted) return; // ✅ ADD THIS LINE
+      if (_isDisposed || !mounted)  return;
 
       if (data['store_id'] != null &&
           data['store_id'].toString() != dynamicStoreId.toString()) {
@@ -1268,18 +1267,18 @@ class _OrderScreenState extends State<OrderScreenNew>
       _handleSalesUpdate(data, isFromSocket: true);
     };
     _socketService.onConnected = () {
-      if (!mounted) return; // ✅ ADD THIS LINE
+      if (_isDisposed || !mounted)  return;
       setState(() => _isLiveDataActive = true);
     };
     _socketService.onDisconnected = () {
-      if (!mounted) return;
+      if (_isDisposed || !mounted) return;
       setState(() {
         _isLiveDataActive = false;
         _hasSocketData = false;
       });
     };
     _socketService.onNewOrder = (data) {
-      if (!mounted) return; // ✅ ADD THIS LINE
+      if (_isDisposed || !mounted)
 
       if (data['store_id'] != null &&
           data['store_id'].toString() != dynamicStoreId.toString()) {
@@ -1296,7 +1295,6 @@ class _OrderScreenState extends State<OrderScreenNew>
       print('❌ Socket connection error: $e');
     }
   }
-
 
   Future<void> getLiveSaleReport() async {
     Timer? timeoutTimer;
@@ -1377,7 +1375,7 @@ class _OrderScreenState extends State<OrderScreenNew>
         _isLiveDataActive = true;
         _lastUpdateTime = DateTime.now();
       });
-    } on TimeoutException catch (e) {
+    } on TimeoutException {
       _setEmptyValues();
     } catch (e) {
       _setEmptyValues();
@@ -1424,7 +1422,7 @@ class _OrderScreenState extends State<OrderScreenNew>
   }
 
   void _handleSalesUpdate(Map<String, dynamic> salesData, {bool isFromSocket = false}) {
-    if (!mounted) return;
+    if (_isDisposed || !mounted)  return;
 
     if (isFromSocket) {
       SalesCacheHelper.saveSalesData(salesData);
@@ -1641,7 +1639,7 @@ class _OrderScreenState extends State<OrderScreenNew>
       } else {
         _startNoOrderTimer();
       }
-    } on TimeoutException catch (e) {
+    } on TimeoutException {
       // Handle timeout
     } catch (e) {
       Log.loga("OrderScreen", "getOrders Api:: e >>>>> $e");
@@ -1771,82 +1769,95 @@ class _OrderScreenState extends State<OrderScreenNew>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      GestureDetector(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('order'.tr,
-                                style: const TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.bold)),
-                            Text(
-                              dateSeleted.isEmpty
-                                  ? DateFormat('d MMMM, y')
-                                  .format(DateTime.now())
-                                  : dateSeleted,
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          Text(
-                            '${'total_order'.tr}: ${_getTotalOrders()}',
-                            style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                fontFamily: "Mulish",
-                                color: Colors.black),
-                          ),
-                          IconButton(
-                            iconSize: 30,
-                            icon: const Icon(Icons.refresh),
-                            onPressed: _manualRefresh,
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.sync),
-                            onPressed: () async {
-                              await syncLocalPosOrder();
-                            },
-                          )
-                        ],
+                      Text('order'.tr,
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text(
+                        dateSeleted.isEmpty
+                            ? DateFormat('d MMMM, y')
+                            .format(DateTime.now())
+                            : dateSeleted,
+                        style: const TextStyle(fontSize: 14),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _buildStatusContainer(
-                          '${'accepted'.tr} ${_getApprovalStatusCount("accepted")}',
-                          Colors.green.withOpacity(0.1),
+                  Row(
+                    children: [
+                      Text(
+                        '${'total_order'.tr}: ${_getTotalOrders()}',
+                        style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            fontFamily: "Mulish",
+                            color: Colors.black),
+                      ),
+                      IconButton(
+                        iconSize: 20,
+                        icon: const Icon(Icons.refresh),
+                        onPressed: _manualRefresh,
+                      ),
+                      GestureDetector(
+                        onTap: ()async {
+                          await syncLocalPosOrder();
+                        },
+                        child: Container(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                height: 25,
+                                padding: EdgeInsets.zero,
+                                child: IconButton(
+                                  iconSize: 20,
+                                  padding: EdgeInsets.zero,
+                                  constraints: BoxConstraints(
+                                      maxHeight: 0
+                                  ),
+                                  icon: const Icon(Icons.sync),
+                                  onPressed: () {}
+                                ),
+                              ),
+                              Text('sync', style: TextStyle(fontSize: 9)),
+                            ],
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        _buildStatusContainer(
-                          '${"decline".tr} ${_getApprovalStatusCount("declined")}',
-                          Colors.red.withOpacity(0.1),
-                        ),
-                        const SizedBox(width: 8),
-                        _buildStatusContainer(
-                          '${"pickup".tr} ${_getOrderTypeCount("pickup")}',
-                          Colors.blue.withOpacity(0.1),
-                        ),
-                        const SizedBox(width: 8),
-                        _buildStatusContainer(
-                          '${"delivery".tr} ${_getOrderTypeCount("delivery")}',
-                          Colors.purple.withOpacity(0.1),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
+              ),
+              const SizedBox(height: 10),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildStatusContainer(
+                      '${'accepted'.tr} ${_getApprovalStatusCount("accepted")}',
+                      Colors.green.withOpacity(0.1),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildStatusContainer(
+                      '${"decline".tr} ${_getApprovalStatusCount("declined")}',
+                      Colors.red.withOpacity(0.1),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildStatusContainer(
+                      '${"pickup".tr} ${_getOrderTypeCount("pickup")}',
+                      Colors.blue.withOpacity(0.1),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildStatusContainer(
+                      '${"delivery".tr} ${_getOrderTypeCount("delivery")}',
+                      Colors.purple.withOpacity(0.1),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 15),
               Expanded(
@@ -2068,7 +2079,7 @@ class _OrderScreenState extends State<OrderScreenNew>
                                                           child:
                                                           Row(crossAxisAlignment: CrossAxisAlignment.start,
                                                             children: [
-                                                              Container(
+                                                              SizedBox(
                                                                 width: MediaQuery.of(context).size.width * (_storeType == '2' ? 0.35 :
                                                                 (order.orderType == 2 ? 0.18 : 0.18)),
                                                                 child: Text(order.orderType == 2 ? 'pickup'.tr : (_storeType == '2'
@@ -2440,10 +2451,10 @@ class _OrderScreenState extends State<OrderScreenNew>
                         order, updatedTime);
                   },
                   child: Container(
-                    padding: EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                        color: Color(0xff14b65f)
+                        color: const Color(0xff14b65f)
                     ),
                     child: Text('saved'.tr, style: const TextStyle(color: Colors.white)),
                   ),
@@ -2513,7 +2524,7 @@ class _OrderScreenState extends State<OrderScreenNew>
         },
       );
 
-      timeoutTimer?.cancel();
+      timeoutTimer.cancel();
 
       if (loaderShown && (Get.isDialogOpen ?? false)) {
         Get.back();
@@ -2528,7 +2539,7 @@ class _OrderScreenState extends State<OrderScreenNew>
       } else {
         print('❌ Failed to update delivery time: ${result.mess}');
       }
-    } on TimeoutException catch (e) {
+    } on TimeoutException {
       timeoutTimer?.cancel();
 
       if (loaderShown && (Get.isDialogOpen ?? false)) {
@@ -2708,19 +2719,20 @@ class _OrderScreenState extends State<OrderScreenNew>
     int germanyOffset = isDST ? 2 : 1;
     return utcTime.add(Duration(hours: germanyOffset));
   }
+
   bool _isDaylightSavingTimeDb(DateTime dateTime) {
     int year = dateTime.year;
 
     // Find last Sunday of March
     DateTime marchEnd = DateTime.utc(year, 3, 31);
     while (marchEnd.weekday != DateTime.sunday) {
-      marchEnd = marchEnd.subtract(Duration(days: 1));
+      marchEnd = marchEnd.subtract(const Duration(days: 1));
     }
 
     // Find last Sunday of October
     DateTime octoberEnd = DateTime.utc(year, 10, 31);
     while (octoberEnd.weekday != DateTime.sunday) {
-      octoberEnd = octoberEnd.subtract(Duration(days: 1));
+      octoberEnd = octoberEnd.subtract(const Duration(days: 1));
     }
 
     // DST starts at 2:00 AM on last Sunday of March
@@ -2731,6 +2743,7 @@ class _OrderScreenState extends State<OrderScreenNew>
 
     return dateTime.isAfter(dstStart) && dateTime.isBefore(dstEnd);
   }
+
   Future<Map<String, dynamic>> _buildSyncOrderMap(
       Map<String, dynamic> orderDetails) async
   {

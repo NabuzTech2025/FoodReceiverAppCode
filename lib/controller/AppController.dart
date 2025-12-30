@@ -180,8 +180,9 @@ class AppController extends GetxController {
             order.guestShippingJson?.line1?.toLowerCase() ?? '';
         final city = order.shipping_address?.city?.toLowerCase() ??
             order.guestShippingJson?.city?.toLowerCase() ?? '';
-        if (line1.contains(lowerQuery) || city.contains(lowerQuery))
+        if (line1.contains(lowerQuery) || city.contains(lowerQuery)) {
           return true;
+        }
 
         // Search in order items
         if (order.items?.any((item) =>

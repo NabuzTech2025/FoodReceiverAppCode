@@ -1,6 +1,5 @@
 
 import 'dart:async';
-import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -10,7 +9,6 @@ import 'package:food_app/constants/app_color.dart';
 import 'package:get/get.dart';
 import '../../customView/CustomDrawer.dart';
 import '../../models/get_store_products_response_model.dart';
-import '../../utils/my_application.dart';
 import '../home_screen.dart';
 import 'pos_controller.dart';
 class ResponsivePos extends StatelessWidget {
@@ -49,11 +47,13 @@ class _PosLandscapeState extends State<PosLandscape> {
 
   @override
   void dispose() {
-
-    try {
-      Get.delete<PosController>(tag: 'pos_controller', force: true);
-    } catch (e) {
-      print('⚠️ Error disposing PosController: $e');
+    // ✅ Add a check before deleting controller
+    if (Get.isRegistered<PosController>(tag: 'pos_controller')) {
+      try {
+        Get.delete<PosController>(tag: 'pos_controller', force: true);
+      } catch (e) {
+        print('⚠️ Error disposing PosController: $e');
+      }
     }
 
     // ✅ Call super.dispose() last
@@ -113,7 +113,7 @@ class _PosLandscapeState extends State<PosLandscape> {
         child: Scaffold(
           key: _scaffoldKey,
         drawer: CustomDrawer(onSelectTab: _openTab),
-        backgroundColor: Color(0xffFBF9FF),
+        backgroundColor: const Color(0xffFBF9FF),
         body: Stack(
           children:[
             Padding(
@@ -194,7 +194,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                   ),
                 ),
               ),
-              Spacer(),
+              const Spacer(),
               Padding(
                 padding: EdgeInsets.only(bottom: _responsive(context, 20)),
                 child: GestureDetector(
@@ -205,7 +205,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                     width: _responsive(context, 45),
                     height: _responsive(context, 45),
                     decoration: BoxDecoration(
-                      color: Color(0xffE31E24),
+                      color: const Color(0xffE31E24),
                       borderRadius: BorderRadius.circular(_responsive(context, 8)),
                     ),
                     child: Icon(
@@ -240,7 +240,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                 'assets/images/plus.png',
                 height: _responsive(context, 20),
                 width: _responsive(context, 20),
-                color: Color(0xff0B1928),
+                color: const Color(0xff0B1928),
               ),
             ),
           ),
@@ -254,12 +254,12 @@ class _PosLandscapeState extends State<PosLandscape> {
       width: _responsive(context, 45),
       height: _responsive(context, 45),
       decoration: BoxDecoration(
-        color: isActive ? Color(0xffE31E24) : Colors.transparent,
+        color: isActive ? const Color(0xffE31E24) : Colors.transparent,
         borderRadius: BorderRadius.circular(_responsive(context, 8)),
       ),
       child: Icon(
         icon,
-        color: Color(0xff0B1928),
+        color: const Color(0xff0B1928),
         size: _responsive(context, 24),
       ),
     );
@@ -268,7 +268,7 @@ class _PosLandscapeState extends State<PosLandscape> {
   Widget _buildProductsSection(PosController controller, BuildContext context) {
     return Column(
       children: [
-        SizedBox(height: 5),
+        const SizedBox(height: 5),
         _buildHeader(controller, context),
         SizedBox(height: _responsive(context, 20)),
         _buildCategoryTabs(controller, context),
@@ -308,7 +308,7 @@ class _PosLandscapeState extends State<PosLandscape> {
               itemBuilder: (context, visibleIndex) {
                 int categoryIndex = categoriesToShow[visibleIndex];
                 if (categoryIndex >= controller.productCategoryList.length) {
-                  return SizedBox.shrink();
+                  return const SizedBox.shrink();
                 }
 
                 var category = controller.productCategoryList[categoryIndex];
@@ -317,7 +317,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                 p.categoryId == category.id && (p.isActive ?? false))
                     .toList();
 
-                if (categoryProducts.isEmpty) return SizedBox.shrink();
+                if (categoryProducts.isEmpty) return const SizedBox.shrink();
 
                 return Container(
                   child: Column(
@@ -338,7 +338,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                       ),
                       GridView.builder(
                         shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
+                        physics: const NeverScrollableScrollPhysics(),
                         padding: EdgeInsets.zero,
                         cacheExtent: 500,
                         addAutomaticKeepAlives: true,
@@ -446,7 +446,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                 BoxShadow(
                   color: Colors.grey.withOpacity(0.1),
                   blurRadius: 4,
-                  offset: Offset(0, 2),
+                  offset: const Offset(0, 2),
                 )
               ],
             ),
@@ -475,7 +475,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                         Container(
                           width: _responsive(context, 24),
                           height: _responsive(context, 24),
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: AppColor.borderGreen,
                             shape: BoxShape.circle,
                           ),
@@ -519,7 +519,7 @@ class _PosLandscapeState extends State<PosLandscape> {
          child:  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
            children: [
              Container(
-               padding: EdgeInsets.all(15),
+               padding: const EdgeInsets.all(15),
                decoration: BoxDecoration(
                    color: Colors.white,
                    borderRadius: BorderRadius.circular(9)
@@ -546,13 +546,13 @@ class _PosLandscapeState extends State<PosLandscape> {
                        decoration: BoxDecoration(
                          borderRadius: BorderRadius.circular(
                              _responsive(context, 5)),
-                         color: Color(0xffFBF9FF),
+                         color: const Color(0xffFBF9FF),
                        ),
                        child: TextField(
                          controller: controller.searchController,
                          onChanged: controller.filterProducts,
                          decoration: InputDecoration(
-                           contentPadding: EdgeInsets.only(bottom: 5),
+                           contentPadding: const EdgeInsets.only(bottom: 5),
                            hintText: 'Search Item name or ID',
                            hintStyle: TextStyle(
                              fontFamily: 'Mulish',
@@ -577,7 +577,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                          ),
                        ),
                      ),
-                     SizedBox(width: 5,),
+                     const SizedBox(width: 5,),
                      GestureDetector(
                        onTap: () {
                          if (widget.onNavigateToTab != null) {
@@ -597,19 +597,19 @@ class _PosLandscapeState extends State<PosLandscape> {
                              right: -8,
                              child: Obx(() =>
                                  Container(
-                                   padding: EdgeInsets.all(4),
-                                   decoration: BoxDecoration(
+                                   padding: const EdgeInsets.all(4),
+                                   decoration: const BoxDecoration(
                                      color: Color(0xffE31E24),
                                      shape: BoxShape.circle,
                                    ),
-                                   constraints: BoxConstraints(
+                                   constraints: const BoxConstraints(
                                      minWidth: 18,
                                      minHeight: 18,
                                    ),
                                    child: Center(
                                      child: Text(
                                        '${controller.cartItems.length}',
-                                       style: TextStyle(
+                                       style: const TextStyle(
                                          color: Colors.white,
                                          fontSize: 10,
                                          fontWeight: FontWeight.w700,
@@ -637,10 +637,10 @@ class _PosLandscapeState extends State<PosLandscape> {
                              fontSize: _responsive(context, 12),
                              fontWeight: FontWeight.w700,
                              fontFamily: 'Mulish',
-                             color: Color(0xff232121),
+                             color: const Color(0xff232121),
                            ),
                          ),
-                         Icon(Icons.arrow_drop_down)
+                         const Icon(Icons.arrow_drop_down)
                        ],
                      ),
                    ]
@@ -662,7 +662,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                      ? SizedBox(
                    width: _responsive(context, 20),
                    height: _responsive(context, 20),
-                   child: CircularProgressIndicator(
+                   child: const CircularProgressIndicator(
                      strokeWidth: 2,
                      valueColor: AlwaysStoppedAnimation<Color>(
                          Color(0xffE31E24)),
@@ -670,14 +670,14 @@ class _PosLandscapeState extends State<PosLandscape> {
                  )
                      : Icon(
                    Icons.refresh,
-                   color: Color(0xffE31E24),
+                   color: const Color(0xffE31E24),
                    size: _responsive(context, 30),
                  ),
                ),
              )),
              GestureDetector(
                onTap: () {
-                 Get.offAll(() => HomeScreen());
+                 Get.offAll(() => const HomeScreen());
                },
                child: Container(
                  height: 60,
@@ -704,10 +704,10 @@ class _PosLandscapeState extends State<PosLandscape> {
           child: Container(
             height: _responsive(context, 71),
             width: _responsive(context, 55),
-            margin: EdgeInsets.all(5),
+            margin: const EdgeInsets.all(5),
            // padding: EdgeInsets.only(right: _responsive(context, 10)),
             decoration: BoxDecoration(
-              color: Color(0xffFBF9FF),
+              color: const Color(0xffFBF9FF),
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(_responsive(context, 12)),
                 topRight: Radius.circular(_responsive(context, 12)),
@@ -718,7 +718,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                 'assets/images/plus.png',
                 height: _responsive(context, 20),
                 width: _responsive(context, 20),
-                color: Color(0xff0B1928),
+                color: const Color(0xff0B1928),
               ),
             ),
           ),
@@ -727,7 +727,7 @@ class _PosLandscapeState extends State<PosLandscape> {
   }
 
   Widget _buildCategoryTabs(PosController controller, BuildContext context) {
-    return Container(
+    return SizedBox(
       height: _responsive(context, 115),
       child: Obx(() => ListView.builder(
         controller: controller.landscapeCategoryScrollController,
@@ -749,7 +749,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(_responsive(context, 8)),
                   border: Border.all(
-                    color: isSelected ? AppColor.borderGreen : Color(0xffCFC1ED),
+                    color: isSelected ? AppColor.borderGreen : const Color(0xffCFC1ED),
                     width: 1,
                   ),
                   color: Colors.white,
@@ -764,13 +764,13 @@ class _PosLandscapeState extends State<PosLandscape> {
                           height: _responsive(context, 55),
                           width: _responsive(context, 55),
                           fit: BoxFit.cover,
-                          placeholder: (context, url) => CircularProgressIndicator(strokeWidth: 2),
+                          placeholder: (context, url) => const CircularProgressIndicator(strokeWidth: 2),
                           errorWidget: (context, url, error) => Icon(Icons.restaurant, size: _responsive(context, 20)),
                         ),
                       ),
                     ),
                     SizedBox(height: _responsive(context, 8)),
-                    Container(
+                    SizedBox(
                       width: MediaQuery.of(context).size.width*0.5,
                       child: Text(
                         category.name ?? '',
@@ -805,7 +805,7 @@ class _PosLandscapeState extends State<PosLandscape> {
         ),
         child: Column(
           children: [
-            SizedBox(height: 5,),
+            const SizedBox(height: 5,),
             //
             // Padding(
             //   padding: EdgeInsets.only(left: 8.0,right: 8),
@@ -845,9 +845,9 @@ class _PosLandscapeState extends State<PosLandscape> {
                   vertical: _responsive(context, 6),
                 ),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Color(0xffEDE4FF), width: 1),
+                  border: Border.all(color: const Color(0xffEDE4FF), width: 1),
                   borderRadius: BorderRadius.circular(_responsive(context, 5)),
-                  color: Color(0xffFBF9FF),
+                  color: const Color(0xffFBF9FF),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -858,7 +858,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                         fontFamily: 'Mulish',
                         fontWeight: FontWeight.w500,
                         fontSize: _responsive(context, 14),
-                        color: Color(0xff797878),
+                        color: const Color(0xff797878),
                       ),
                     ),
                     GestureDetector(
@@ -866,7 +866,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                       child: Container(
                         padding: EdgeInsets.all(_responsive(context, 8)),
                         decoration: BoxDecoration(
-                          color: Color(0xffB8ABD1),
+                          color: const Color(0xffB8ABD1),
                           borderRadius: BorderRadius.circular(_responsive(context, 6)),
                         ),
                         child: SvgPicture.asset(
@@ -938,7 +938,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                               fontFamily: 'Mulish',
                               fontWeight: FontWeight.w500,
                               fontSize: _responsive(context, 20),
-                              color: Color(0xff797878),
+                              color: const Color(0xff797878),
                             ),
                           ),
                         ),
@@ -1114,7 +1114,7 @@ class _PosLandscapeState extends State<PosLandscape> {
     return Obx(() {
       if (!controller.showVariantDialog.value ||
           controller.selectedProduct.value == null) {
-        return SizedBox.shrink();
+        return const SizedBox.shrink();
       }
 
       var product = controller.selectedProduct.value!;
@@ -1149,7 +1149,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                       // Header
                       Container(
                         padding: EdgeInsets.all(_responsive(context, 16)),
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           border: Border(
                               bottom: BorderSide(color: Color(0xffEDE4FF))),
                         ),
@@ -1207,8 +1207,8 @@ class _PosLandscapeState extends State<PosLandscape> {
                                                                 context, 8)),
                                                     border: Border.all(
                                                       color: isSelected
-                                                          ? Color(0xff0C831F)
-                                                          : Color(0xffEDE4FF),
+                                                          ? const Color(0xff0C831F)
+                                                          : const Color(0xffEDE4FF),
                                                       width: 2,
                                                     ),
                                                   ),
@@ -1225,7 +1225,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                                                               BoxShape.circle,
                                                           border: Border.all(
                                                             color: isSelected
-                                                                ? Color(
+                                                                ? const Color(
                                                                     0xff0C831F)
                                                                 : Colors.grey,
                                                             width: 2,
@@ -1244,7 +1244,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                                                                           context,
                                                                           10),
                                                                   decoration:
-                                                                      BoxDecoration(
+                                                                      const BoxDecoration(
                                                                     shape: BoxShape
                                                                         .circle,
                                                                     color: Color(
@@ -1303,14 +1303,14 @@ class _PosLandscapeState extends State<PosLandscape> {
                                                   padding: EdgeInsets.all(
                                                       _responsive(context, 12)),
                                                   decoration: BoxDecoration(
-                                                    color: Color(0xffFBF9FF),
+                                                    color: const Color(0xffFBF9FF),
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                             _responsive(
                                                                 context, 8)),
                                                     border: Border.all(
                                                         color:
-                                                            Color(0xffEDE4FF)),
+                                                            const Color(0xffEDE4FF)),
                                                   ),
                                                   child: Column(
                                                     crossAxisAlignment:
@@ -1353,11 +1353,11 @@ class _PosLandscapeState extends State<PosLandscape> {
                                                                                     height: _responsive(context, 25),
                                                                                     decoration: BoxDecoration(
                                                                                       border: Border.all(
-                                                                                        color: isToppingSelected ? Color(0xff0C831F) : Colors.grey,
+                                                                                        color: isToppingSelected ? const Color(0xff0C831F) : Colors.grey,
                                                                                         width: 2,
                                                                                       ),
                                                                                       borderRadius: BorderRadius.circular(4),
-                                                                                      color: isToppingSelected ? Color(0xff0C831F) : Colors.transparent,
+                                                                                      color: isToppingSelected ? const Color(0xff0C831F) : Colors.transparent,
                                                                                     ),
                                                                                     child: isToppingSelected ? Icon(Icons.check, size: _responsive(context, 18), color: Colors.white) : null,
                                                                                   ),
@@ -1385,7 +1385,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                                                                             ),
                                                                           );
                                                                         }))
-                                                                .toList(),
+                                                                ,
                                                             SizedBox(
                                                                 height:
                                                                     _responsive(
@@ -1400,7 +1400,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                                             ],
                                           );
                                         }))
-                                    .toList(),
+                                    ,
                               ],
                               SizedBox(height: _responsive(context, 16)),
                             ],
@@ -1413,10 +1413,10 @@ class _PosLandscapeState extends State<PosLandscape> {
                         onTap: () => controller.addToCartWithVariant(),
                         child: Container(
                           width: double.infinity,
-                          margin: EdgeInsets.all(10),
+                          margin: const EdgeInsets.all(10),
                           padding: EdgeInsets.all(_responsive(context, 12)),
                           decoration: BoxDecoration(
-                            color: Color(0xff0C831F),
+                            color: const Color(0xff0C831F),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
@@ -1442,7 +1442,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                     child: Container(
                       width: _responsive(context, 40),
                       height: _responsive(context, 40),
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: Color(0xffE31E24),
                         shape: BoxShape.circle,
                       ),
@@ -1493,10 +1493,10 @@ class _PosLandscapeState extends State<PosLandscape> {
       return GestureDetector(
         onTap: () => controller.setOrderType(type),
         child: Container(
-          padding: EdgeInsets.all(9),
+          padding: const EdgeInsets.all(9),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(_responsive(context, 5)),
-            color: isSelected ? Color(0xff0C831F) : Color(0xffFBF9FF),
+            color: isSelected ? const Color(0xff0C831F) : const Color(0xffFBF9FF),
           ),
           child: Row(
             children: [
@@ -1513,7 +1513,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                   fontSize:14,
                   fontWeight: FontWeight.w700,
                   fontFamily: 'Mulish',
-                  color: isSelected ? Colors.white : Color(0xff0B1928),
+                  color: isSelected ? Colors.white : const Color(0xff0B1928),
                 ),
               )
             ],
@@ -1531,10 +1531,10 @@ class _PosLandscapeState extends State<PosLandscape> {
           child: ListView.separated(
             shrinkWrap: true,
             padding: EdgeInsets.zero,
-            physics: NeverScrollableScrollPhysics(),
+            physics: const NeverScrollableScrollPhysics(),
             itemCount: controller.cartItems.length,
             separatorBuilder: (context, index) =>
-                Divider(height: 1, color: Color(0xffE6E1EE)),
+                const Divider(height: 1, color: Color(0xffE6E1EE)),
             itemBuilder: (context, index) {
               final item = controller.cartItems[index];
               List<String> toppingsList = [];
@@ -1561,11 +1561,11 @@ class _PosLandscapeState extends State<PosLandscape> {
                           child: Icon(
                             Icons.close,
                             size: _responsive(context, 20),
-                            color: Color(0xffE31E24),
+                            color: const Color(0xffE31E24),
                           ),
                         ),
                         // Product name
-                        Container(
+                        SizedBox(
                           width: MediaQuery.of(context).size.width*0.15,
                           child: Text(
                             item['name'],
@@ -1585,8 +1585,8 @@ class _PosLandscapeState extends State<PosLandscape> {
                             height: _responsive(context, 14),
                             width: _responsive(context, 14),
                             color: item['item_note'] != null && item['item_note'].toString().isNotEmpty
-                                ? Color(0xff0C831F)
-                                : Color(0xff797878),
+                                ? const Color(0xff0C831F)
+                                : const Color(0xff797878),
                           ),
                         ),
 
@@ -1601,13 +1601,13 @@ class _PosLandscapeState extends State<PosLandscape> {
                                 width: _responsive(context, 25),
                                 height: _responsive(context, 25),
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Color(0xffB8ABD1), width: 1),
+                                  border: Border.all(color: const Color(0xffB8ABD1), width: 1),
                                   borderRadius: BorderRadius.circular(_responsive(context, 4)),
                                 ),
                                 child: Icon(
                                   Icons.remove,
                                   size: _responsive(context, 20),
-                                  color: Color(0xff0B1928),
+                                  color: const Color(0xff0B1928),
                                 ),
                               ),
                             ),
@@ -1618,7 +1618,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                                 fontFamily: 'Mulish',
                                 fontWeight: FontWeight.w700,
                                 fontSize: _responsive(context, 16),
-                                color: Color(0xff0B1928),
+                                color: const Color(0xff0B1928),
                               ),
                             ),
                             SizedBox(width: _responsive(context, 5)),
@@ -1628,13 +1628,13 @@ class _PosLandscapeState extends State<PosLandscape> {
                                 width: _responsive(context, 25),
                                 height: _responsive(context, 25),
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Color(0xffB8ABD1), width: 1),
+                                  border: Border.all(color: const Color(0xffB8ABD1), width: 1),
                                   borderRadius: BorderRadius.circular(_responsive(context, 4)),
                                 ),
                                 child: Icon(
                                   Icons.add,
                                   size: _responsive(context, 20),
-                                  color: Color(0xff0B1928),
+                                  color: const Color(0xff0B1928),
                                 ),
                               ),
                             ),
@@ -1650,7 +1650,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                             fontFamily: 'Mulish',
                             fontWeight: FontWeight.w700,
                             fontSize: _responsive(context, 15),
-                            color: Color(0xff0B1928),
+                            color: const Color(0xff0B1928),
                           ),
                         ),
                       ],
@@ -1671,7 +1671,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                                   fontFamily: 'Mulish',
                                   fontWeight: FontWeight.w500,
                                   fontSize: _responsive(context, 12),
-                                  color: Color(0xff797878),
+                                  color: const Color(0xff797878),
                                 ),
                               ),
                             );
@@ -1700,7 +1700,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                                   fontFamily: 'Mulish',
                                   fontWeight: FontWeight.w600,
                                   fontSize: _responsive(context, 11),
-                                  color: Color(0xff797878),
+                                  color: const Color(0xff797878),
 
                                 ),
                               ),
@@ -1715,7 +1715,7 @@ class _PosLandscapeState extends State<PosLandscape> {
           ),
         );
       }
-      return SizedBox.shrink();
+      return const SizedBox.shrink();
     });
   }
 
@@ -1735,7 +1735,7 @@ class _PosLandscapeState extends State<PosLandscape> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(_responsive(context, 12)),
-            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 7)],
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 7)],
           ),
           child: Column(
             children: [
@@ -1769,7 +1769,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                       fontSize: _responsive(context, 16),
                       fontWeight: FontWeight.w700,
                       fontFamily: 'Mulish',
-                      color: Color(0xff00B10E),
+                      color: const Color(0xff00B10E),
                     ),
                   ),
                   Text(
@@ -1782,7 +1782,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                   ),
                 ],
               ),
-              Divider(color: Color(0xffB8ABD1), thickness: 1),
+              const Divider(color: Color(0xffB8ABD1), thickness: 1),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -1792,7 +1792,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                       fontSize: _responsive(context, 20),
                       fontWeight: FontWeight.w700,
                       fontFamily: 'Mulish',
-                      color: Color(0xff00B10E),
+                      color: const Color(0xff00B10E),
                     ),
                   ),
                   Text(
@@ -1818,7 +1818,7 @@ class _PosLandscapeState extends State<PosLandscape> {
               },
               child: Container(
                 padding: EdgeInsets.all(_responsive(context, 10)),
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Color(0xff0B1928),
                   shape: BoxShape.circle,
                 ),
@@ -1844,7 +1844,7 @@ class _PosLandscapeState extends State<PosLandscape> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(_responsive(context, 8)),
-        border: Border.all(color: Color(0xffE6E1EE)),
+        border: Border.all(color: const Color(0xffE6E1EE)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1920,7 +1920,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                 keyboardType: TextInputType.text,
                 textInputAction: TextInputAction.next,
                 suffixIcon: controller.selectedOrderType.value == 'Lieferzeit'
-                    ? Icon(Icons.arrow_drop_down, color: Color(0xff0B1928))
+                    ? const Icon(Icons.arrow_drop_down, color: Color(0xff0B1928))
                     : null,
               ),
             ),
@@ -1999,7 +1999,7 @@ class _PosLandscapeState extends State<PosLandscape> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(_responsive(context, 4)),
-              borderSide: BorderSide(color: Color(0xffE31E24)),
+              borderSide: const BorderSide(color: Color(0xffE31E24)),
             ),
           ),
         ),
@@ -2015,9 +2015,9 @@ class _PosLandscapeState extends State<PosLandscape> {
       ),
       padding: EdgeInsets.all(_responsive(context, 12)),
       decoration: BoxDecoration(
-        color: Color(0xffFBF9FF),
+        color: const Color(0xffFBF9FF),
         borderRadius: BorderRadius.circular(_responsive(context, 8)),
-        border: Border.all(color: Color(0xffE6E1EE)),
+        border: Border.all(color: const Color(0xffE6E1EE)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2061,7 +2061,7 @@ class _PosLandscapeState extends State<PosLandscape> {
             ],
           ),
           SizedBox(height: _responsive(context, 8)),
-          Divider(color: Color(0xffE6E1EE), thickness: 1),
+          const Divider(color: Color(0xffE6E1EE), thickness: 1),
           SizedBox(height: _responsive(context, 8)),
           _buildDetailRow('Ihre Name', controller.customerDetails['name'] ?? '', context),
           SizedBox(height: _responsive(context, 4)),
@@ -2090,7 +2090,7 @@ class _PosLandscapeState extends State<PosLandscape> {
             fontSize: _responsive(context, 11),
             fontWeight: FontWeight.w700,
             fontFamily: 'Mulish',
-            color: Color(0xff797878),
+            color: const Color(0xff797878),
           ),
         ),
         Expanded(
@@ -2100,7 +2100,7 @@ class _PosLandscapeState extends State<PosLandscape> {
               fontSize: _responsive(context, 11),
               fontWeight: FontWeight.w600,
               fontFamily: 'Mulish',
-              color: Color(0xff0B1928),
+              color: const Color(0xff0B1928),
             ),
           ),
         ),
@@ -2118,7 +2118,7 @@ class _PosLandscapeState extends State<PosLandscape> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(_responsive(context, 8)),
-          border: Border.all(color: Color(0xffE6E1EE)),
+          border: Border.all(color: const Color(0xffE6E1EE)),
         ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2138,17 +2138,17 @@ class _PosLandscapeState extends State<PosLandscape> {
                         height: _responsive(context, 24),
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: Color(0xff0B1928),
+                            color: const Color(0xff0B1928),
                             width: 2,
                           ),
                           borderRadius: BorderRadius.circular(_responsive(context, 4)),
                         ),
                         child: controller.isHeuteSelected.value?
                             Container(
-                              margin: EdgeInsets.all(2),
+                              margin: const EdgeInsets.all(2),
                               decoration: BoxDecoration(
                                 color: controller.isHeuteSelected.value
-                                    ? Color(0xff0C831F)
+                                    ? const Color(0xff0C831F)
                                     : Colors.transparent,
                                 borderRadius: BorderRadius.circular(_responsive(context, 4)),
                               ),
@@ -2162,7 +2162,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                           fontSize: _responsive(context, 14),
                           fontWeight: FontWeight.w700,
                           fontFamily: 'Mulish',
-                          color: Color(0xff0B1928),
+                          color: const Color(0xff0B1928),
                         ),
                       ),
                     ],
@@ -2181,10 +2181,10 @@ class _PosLandscapeState extends State<PosLandscape> {
                       vertical: _responsive(context, 10),
                     ),
                     decoration: BoxDecoration(
-                      color: Color(0xffFBF9FF),
+                      color: const Color(0xffFBF9FF),
                       borderRadius:
                           BorderRadius.circular(_responsive(context, 6)),
-                      border: Border.all(color: Color(0xffE6E1EE)),
+                      border: Border.all(color: const Color(0xffE6E1EE)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2195,19 +2195,19 @@ class _PosLandscapeState extends State<PosLandscape> {
                             fontSize: _responsive(context, 12),
                             fontWeight: FontWeight.w500,
                             fontFamily: 'Mulish',
-                            color: Color(0xff0B1928),
+                            color: const Color(0xff0B1928),
                           ),
                         ),
                         Icon(
                           Icons.access_time,
                           size: _responsive(context, 16),
-                          color: Color(0xff0B1928),
+                          color: const Color(0xff0B1928),
                         ),
                       ],
                     ),
                   ),
                 )
-              : SizedBox.shrink()),
+              : const SizedBox.shrink()),
 
           SizedBox(height: _responsive(context, 12)),
 
@@ -2227,17 +2227,17 @@ class _PosLandscapeState extends State<PosLandscape> {
                         height: _responsive(context, 24),
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: Color(0xff0B1928),
+                            color: const Color(0xff0B1928),
                             width: 2,
                           ),
                           borderRadius: BorderRadius.circular(_responsive(context, 4)),
                         ),
                         child: controller.isVorbestellenSelected.value
                             ?  Container(
-                          margin: EdgeInsets.all(2),
+                          margin: const EdgeInsets.all(2),
                           decoration: BoxDecoration(
                             color: controller.isVorbestellenSelected.value
-                                ? Color(0xff0C831F)
+                                ? const Color(0xff0C831F)
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(_responsive(context, 4)),
                           ),
@@ -2251,7 +2251,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                           fontSize: _responsive(context, 14),
                           fontWeight: FontWeight.w700,
                           fontFamily: 'Mulish',
-                          color: Color(0xff0B1928),
+                          color: const Color(0xff0B1928),
                         ),
                       ),
                     ],
@@ -2272,10 +2272,10 @@ class _PosLandscapeState extends State<PosLandscape> {
                           vertical: _responsive(context, 10),
                         ),
                         decoration: BoxDecoration(
-                          color: Color(0xffFBF9FF),
+                          color: const Color(0xffFBF9FF),
                           borderRadius:
                               BorderRadius.circular(_responsive(context, 6)),
-                          border: Border.all(color: Color(0xffE6E1EE)),
+                          border: Border.all(color: const Color(0xffE6E1EE)),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2286,13 +2286,13 @@ class _PosLandscapeState extends State<PosLandscape> {
                                 fontSize: _responsive(context, 12),
                                 fontWeight: FontWeight.w500,
                                 fontFamily: 'Mulish',
-                                color: Color(0xff797878),
+                                color: const Color(0xff797878),
                               ),
                             ),
                             Container(
                               padding: EdgeInsets.all(_responsive(context, 6)),
                               decoration: BoxDecoration(
-                                color: Color(0xffE31E24),
+                                color: const Color(0xffE31E24),
                                 borderRadius: BorderRadius.circular(
                                     _responsive(context, 4)),
                               ),
@@ -2318,10 +2318,10 @@ class _PosLandscapeState extends State<PosLandscape> {
                               vertical: _responsive(context, 10),
                             ),
                             decoration: BoxDecoration(
-                              color: Color(0xffFBF9FF),
+                              color: const Color(0xffFBF9FF),
                               borderRadius: BorderRadius.circular(
                                   _responsive(context, 6)),
-                              border: Border.all(color: Color(0xffE6E1EE)),
+                              border: Border.all(color: const Color(0xffE6E1EE)),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2332,13 +2332,13 @@ class _PosLandscapeState extends State<PosLandscape> {
                                     fontSize: _responsive(context, 12),
                                     fontWeight: FontWeight.w500,
                                     fontFamily: 'Mulish',
-                                    color: Color(0xff797878),
+                                    color: const Color(0xff797878),
                                   ),
                                 ),
                                 Icon(
                                   Icons.access_time,
                                   size: _responsive(context, 16),
-                                  color: Color(0xff0B1928),
+                                  color: const Color(0xff0B1928),
                                 ),
                               ],
                             ),
@@ -2347,10 +2347,10 @@ class _PosLandscapeState extends State<PosLandscape> {
                       ),
                   ],
                 )
-              : SizedBox.shrink()),
+              : const SizedBox.shrink()),
 
           SizedBox(height: _responsive(context, 16)),
-          Divider(color: Color(0xffE6E1EE), thickness: 1),
+          const Divider(color: Color(0xffE6E1EE), thickness: 1),
           SizedBox(height: _responsive(context, 12)),
 
           Text(
@@ -2359,7 +2359,7 @@ class _PosLandscapeState extends State<PosLandscape> {
               fontSize: _responsive(context, 13),
               fontWeight: FontWeight.w700,
               fontFamily: 'Mulish',
-              color: Color(0xff0B1928),
+              color: const Color(0xff0B1928),
             ),
           ),
           SizedBox(height: _responsive(context, 12)),
@@ -2373,14 +2373,14 @@ class _PosLandscapeState extends State<PosLandscape> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(_responsive(context, 6)),
-                  border: Border.all(color: Color(0xffE31E24), width: 2),
+                  border: Border.all(color: const Color(0xffE31E24), width: 2),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       Icons.credit_card,
-                      color: Color(0xffE31E24),
+                      color: const Color(0xffE31E24),
                       size: _responsive(context, 16),
                     ),
                     SizedBox(width: _responsive(context, 3)),
@@ -2390,7 +2390,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                         fontSize: _responsive(context, 11),
                         fontWeight: FontWeight.w700,
                         fontFamily: 'Mulish',
-                        color: Color(0xffE31E24),
+                        color: const Color(0xffE31E24),
                       ),
                     ),
                   ],
@@ -2405,7 +2405,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                   horizontal: _responsive(context, 12),
                 ),
                 decoration: BoxDecoration(
-                  color: Color(0xff232D3F),
+                  color: const Color(0xff232D3F),
                   borderRadius: BorderRadius.circular(_responsive(context, 6)),
                 ),
                 child:
@@ -2445,7 +2445,7 @@ class _PosLandscapeState extends State<PosLandscape> {
           _responsive(context, 12),
         ),
         decoration: BoxDecoration(
-          color: Color(0xff0C831F),
+          color: const Color(0xff0C831F),
           borderRadius: BorderRadius.only(
             bottomLeft: Radius.circular(_responsive(context, 5)),
             bottomRight: Radius.circular(_responsive(context, 5)),
@@ -2469,7 +2469,7 @@ class _PosLandscapeState extends State<PosLandscape> {
   Widget _buildTimeBottomSheet(PosController controller, BuildContext context) {
     return Obx(() {
       if (!controller.showTimeBottomSheet.value) {
-        return SizedBox.shrink();
+        return const SizedBox.shrink();
       }
 
       return Positioned(
@@ -2484,7 +2484,7 @@ class _PosLandscapeState extends State<PosLandscape> {
               BoxShadow(
                 color: Colors.black.withOpacity(0.2),
                 blurRadius: 10,
-                offset: Offset(-2, 0),
+                offset: const Offset(-2, 0),
               ),
             ],
           ),
@@ -2495,7 +2495,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                 children: [
                   Container(
                   padding: EdgeInsets.all(_responsive(context, 16)),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     border: Border(
                       bottom: BorderSide(color: Color(0xffE6E1EE)),
                     ),
@@ -2507,15 +2507,15 @@ class _PosLandscapeState extends State<PosLandscape> {
                         height: _responsive(context, 35),
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: Color(0xff0B1928),
+                            color: const Color(0xff0B1928),
                             width: 2,
                           ),
                           borderRadius: BorderRadius.circular(_responsive(context, 6)),
                         ),
                         child: Container(
-                          margin: EdgeInsets.all(2),
+                          margin: const EdgeInsets.all(2),
                           decoration: BoxDecoration(
-                            color: Color(0xff0C831F),
+                            color: const Color(0xff0C831F),
                             borderRadius: BorderRadius.circular(_responsive(context, 4)),
                           ),
                         )
@@ -2539,7 +2539,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                     child: Container(
                       width: _responsive(context, 45),
                       height: _responsive(context, 45),
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: Color(0xffE31E24),
                         shape: BoxShape.circle,
                       ),
@@ -2579,11 +2579,11 @@ class _PosLandscapeState extends State<PosLandscape> {
                             padding: EdgeInsets.symmetric(vertical: _responsive(context, 8)),
                             decoration: BoxDecoration(
                               color: controller.selectedTimeSlot.value == 'sofort'
-                                  ? Color(0xff0C831F)
-                                  : Color(0xffFBF9FF),
+                                  ? const Color(0xff0C831F)
+                                  : const Color(0xffFBF9FF),
                               borderRadius: BorderRadius.circular(_responsive(context, 5)),
                               border: Border.all(
-                                color: Color(0xff0C831F),
+                                color: const Color(0xff0C831F),
                                 width: 1,
                               ),
                             ),
@@ -2596,7 +2596,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                                   fontFamily: 'Mulish',
                                   color: controller.selectedTimeSlot.value == 'sofort'
                                       ? Colors.white
-                                      : Color(0xff0B1928),
+                                      : const Color(0xff0B1928),
                                 ),
                               ),
                             ),
@@ -2606,7 +2606,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                         // Then show generated time slots
                         GridView.builder(
                           shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
+                          physics: const NeverScrollableScrollPhysics(),
                           padding: EdgeInsets.zero,
                           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 4,
@@ -2623,10 +2623,10 @@ class _PosLandscapeState extends State<PosLandscape> {
                               onTap: () => controller.selectTimeSlot(timeSlot),
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: isSelected ? Color(0xff0C831F) : Color(0xffE9F6EF),
+                                  color: isSelected ? const Color(0xff0C831F) : const Color(0xffE9F6EF),
                                   borderRadius: BorderRadius.circular(_responsive(context, 4)),
                                   border: Border.all(
-                                    color: isSelected ? Color(0xff0C831F) : Color(0xff0C831F),
+                                    color: isSelected ? const Color(0xff0C831F) : const Color(0xff0C831F),
                                     width: 1,
                                   ),
                                 ),
@@ -2637,7 +2637,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                                       fontSize: _responsive(context, 16),
                                       fontWeight: FontWeight.w700,
                                       fontFamily: 'Mulish',
-                                      color: isSelected ? Colors.white : Color(0xff0B1928),
+                                      color: isSelected ? Colors.white : const Color(0xff0B1928),
                                     ),
                                   ),
                                 ),
@@ -2660,7 +2660,7 @@ class _PosLandscapeState extends State<PosLandscape> {
   Widget _buildCalendarBottomSheet(PosController controller, BuildContext context) {
     return Obx(() {
       if (!controller.showCalendar.value) {
-        return SizedBox.shrink();
+        return const SizedBox.shrink();
       }
 
       return Positioned(
@@ -2675,7 +2675,7 @@ class _PosLandscapeState extends State<PosLandscape> {
               BoxShadow(
                 color: Colors.black.withOpacity(0.3),
                 blurRadius: 15,
-                offset: Offset(-2, -2),
+                offset: const Offset(-2, -2),
               ),
             ],
           ),
@@ -2686,7 +2686,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                 children:[
                   Container(
                   padding: EdgeInsets.all(_responsive(context, 16)),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     border: Border(bottom: BorderSide(color: Color(0xffE6E1EE))),
                   ),
                     child: Row(
@@ -2699,17 +2699,17 @@ class _PosLandscapeState extends State<PosLandscape> {
                             fontFamily: 'Mulish',
                           ),
                         ),
-                        SizedBox(width: 5),
+                        const SizedBox(width: 5),
                         Text(
                           '${controller.getCurrentGermanyDate().year}',
                           style: TextStyle(
                             fontSize: _responsive(context, 18),
                             fontWeight: FontWeight.w400,
                             fontFamily: 'Mulish',
-                            color: Color(0xff0C831F),
+                            color: const Color(0xff0C831F),
                           ),
                         ),
-                        Icon(Icons.arrow_drop_down, color: Color(0xff0C831F)),
+                        const Icon(Icons.arrow_drop_down, color: Color(0xff0C831F)),
                       ],
                     ),
                 ),
@@ -2720,7 +2720,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                     child: Container(
                       width: _responsive(context, 45),
                       height: _responsive(context, 45),
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: Color(0xffE31E24),
                         shape: BoxShape.circle,
                       ),
@@ -2744,9 +2744,9 @@ class _PosLandscapeState extends State<PosLandscape> {
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day) =>
                             Container(
-                              padding: EdgeInsets.all(2),
+                              padding: const EdgeInsets.all(2),
                           width: _responsive(context, 50),
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: Color(0xff0B1928),
                           ),
                           child: Center(
@@ -2813,8 +2813,8 @@ class _PosLandscapeState extends State<PosLandscape> {
                                     decoration: BoxDecoration(
                                       color: isPastDate
                                           ? Colors.grey.shade300
-                                          : (isSelected ? Color(0xff0C831F) : Colors.transparent),
-                                      border: Border.all(color: Color(0xffEEF5FF), width: 1),
+                                          : (isSelected ? const Color(0xff0C831F) : Colors.transparent),
+                                      border: Border.all(color: const Color(0xffEEF5FF), width: 1),
                                     ),
                                     child: Center(
                                       child: Text(
@@ -2825,7 +2825,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                                           fontFamily: 'Mulish',
                                           color: isPastDate
                                               ? Colors.grey.shade500
-                                              : (isSelected ? Colors.white : Color(0xff0B1928)),
+                                              : (isSelected ? Colors.white : const Color(0xff0B1928)),
                                         ),
                                       ),
                                     ),
@@ -2851,7 +2851,7 @@ class _PosLandscapeState extends State<PosLandscape> {
   Widget _buildPostcodeDialog(PosController controller, BuildContext context) {
     return Obx(() {
       if (!controller.showPostcodeDialog.value) {
-        return SizedBox.shrink();
+        return const SizedBox.shrink();
       }
 
       return Stack(
@@ -2874,7 +2874,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                 children: [
                   Container(
                     padding: EdgeInsets.all(_responsive(context, 16)),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       border: Border(bottom: BorderSide(color: Color(0xffEDE4FF))),
                     ),
                     child: Row(
@@ -2889,7 +2889,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                           ),
                         ),
                         IconButton(
-                          icon: Icon(Icons.close),
+                          icon: const Icon(Icons.close),
                           onPressed: () => controller.showPostcodeDialog.value = false,
                         ),
                       ],
@@ -2909,10 +2909,10 @@ class _PosLandscapeState extends State<PosLandscape> {
                             margin: EdgeInsets.only(bottom: _responsive(context, 8)),
                             padding: EdgeInsets.all(_responsive(context, 12)),
                             decoration: BoxDecoration(
-                              color: isSelected ? Color(0xff0C831F).withOpacity(0.1) : Colors.white,
+                              color: isSelected ? const Color(0xff0C831F).withOpacity(0.1) : Colors.white,
                               borderRadius: BorderRadius.circular(_responsive(context, 8)),
                               border: Border.all(
-                                color: isSelected ? Color(0xff0C831F) : Color(0xffEDE4FF),
+                                color: isSelected ? const Color(0xff0C831F) : const Color(0xffEDE4FF),
                                 width: 2,
                               ),
                             ),
@@ -2930,7 +2930,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                                         fontSize: _responsive(context, 16),
                                       ),
                                     ),
-                                    SizedBox(height: 4),
+                                    const SizedBox(height: 4),
                                     Text(
                                       'Delivery: ${postcodeItem.deliveryTime ?? 0} min',
                                       style: TextStyle(
@@ -2943,7 +2943,7 @@ class _PosLandscapeState extends State<PosLandscape> {
                                   ],
                                 ),
                                 if (isSelected)
-                                  Icon(Icons.check_circle, color: Color(0xff0C831F)),
+                                  const Icon(Icons.check_circle, color: Color(0xff0C831F)),
                               ],
                             ),
                           ),

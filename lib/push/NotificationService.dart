@@ -108,11 +108,11 @@ class NotificationService {
 
       if (title != null) {
         if (title.contains('New Order')) {
-          Future.delayed(Duration(milliseconds: 500), () {
+          Future.delayed(const Duration(milliseconds: 500), () {
             Get.offAllNamed('/home', arguments: {'initialTab': 0});
           });
         } else if (title.contains('Reservation')) {
-          Future.delayed(Duration(milliseconds: 500), () {
+          Future.delayed(const Duration(milliseconds: 500), () {
             Get.offAllNamed('/home', arguments: {'initialTab': 1});
           });
         }
@@ -135,7 +135,7 @@ class NotificationService {
       print('✅ Alarm sound started playing');
 
       // Stop after 5 seconds
-      Future.delayed(Duration(seconds: 5), () async {
+      Future.delayed(const Duration(seconds: 5), () async {
         try {
           await _audioPlayer.stop();
           print('✅ Alarm sound stopped');
@@ -160,7 +160,7 @@ class NotificationService {
         importance: Importance.max,
         priority: Priority.max,
         playSound: true,
-        sound: RawResourceAndroidNotificationSound('alarm'),
+        sound: const RawResourceAndroidNotificationSound('alarm'),
         enableVibration: true,
         vibrationPattern: Int64List.fromList([0, 1000, 500, 1000]),
         autoCancel: true,
@@ -171,7 +171,7 @@ class NotificationService {
         visibility: NotificationVisibility.public,
       );
 
-      final iosDetails = DarwinNotificationDetails(
+      const iosDetails = DarwinNotificationDetails(
         presentAlert: true,
         presentBadge: true,
         presentSound: true,

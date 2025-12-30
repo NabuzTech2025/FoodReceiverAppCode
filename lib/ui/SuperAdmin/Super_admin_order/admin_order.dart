@@ -10,7 +10,6 @@ import '../../../api/repository/api_repository.dart';
 import '../../../constants/constant.dart';
 import '../../../models/order_history_response_model.dart';
 import '../../../utils/my_application.dart';
-import '../../Order/OrderDetailEnglish.dart';
 import '../../order_history_details.dart';
 
 class AdminOrder extends StatefulWidget {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -368,7 +367,7 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                     // Store Hours Name
                     Text(
                       'store_name'.tr,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         fontFamily: 'Mulish',
@@ -408,7 +407,7 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                             children: [
                               Text(
                                 'opening'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   fontFamily: 'Mulish',
@@ -455,7 +454,7 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                             children: [
                               Text(
                                 'closing'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   fontFamily: 'Mulish',
@@ -503,7 +502,7 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                       children: [
                         Text(
                           'days'.tr,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             fontFamily: 'Mulish',
@@ -522,7 +521,7 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                             ),
                             Text(
                               'all'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                                 fontFamily: 'Mulish',
@@ -583,7 +582,7 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                           width: 120,
                           child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xff757B8F),
+                                backgroundColor: const Color(0xff757B8F),
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
@@ -593,13 +592,13 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                               onPressed: (){
                                 Navigator.pop(context);
                               },
-                              child: Text('cancel'.tr,style: TextStyle(
+                              child: Text('cancel'.tr,style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 fontFamily: 'Mulish',
                               ),)),
                         ),
-                        SizedBox(width: 20,),
+                        const SizedBox(width: 20,),
                         SizedBox(
                           width: 120,
                           child: ElevatedButton(
@@ -623,7 +622,7 @@ class _AddStoreHoursBottomSheetState extends State<AddStoreHoursBottomSheet> {
                             )
                                 :  Text(
                               'saved'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 fontFamily: 'Mulish',

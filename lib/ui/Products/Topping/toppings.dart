@@ -120,7 +120,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       drawer: CustomDrawer(onSelectTab: _openTab),
-      appBar: CustomAppBar(),
+      appBar: const CustomAppBar(),
       body: Column(
         children: [
           Expanded(
@@ -133,7 +133,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('topping'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontFamily: 'Mulish',
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold)),
@@ -149,7 +149,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                             ),
                             child: Center(
                               child: Text('add'.tr,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
                                     fontSize: 12,
@@ -161,7 +161,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 15),
+                  const SizedBox(height: 15),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Align(
@@ -177,7 +177,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
 
                   Container(
                     padding: const EdgeInsets.all(15),
@@ -186,10 +186,10 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                     ),
                     child: Row(
                       children: [
-                        Container(
+                        SizedBox(
                           width: MediaQuery.of(context).size.width * 0.43,
                           child: Text('topping_name'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 13,
                                 fontFamily: 'Mulish'),
@@ -197,17 +197,17 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                         ),
                         Container(
                           child: Text('desc'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 13,
                                   fontFamily: 'Mulish')),
                         ),
                         const SizedBox(width: 15),
-                        Container(
+                        SizedBox(
                           width: MediaQuery.of(context).size.width * 0.2,
                           child: Center(
                             child: Text('price'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 13,
                                   fontFamily: 'Mulish'),
@@ -279,10 +279,10 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                                   child: Container(
                                     width: 60,
                                     height: double.infinity,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xffE25454),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xffE25454),
                                     ),
-                                    child: Icon(
+                                    child: const Icon(
                                       Icons.delete_outline,
                                       color: Colors.white,
                                       size: 25,
@@ -304,11 +304,11 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                             ),
                             child: Row(
                               children: [
-                                SizedBox(width: 5),
+                                const SizedBox(width: 5),
                                 Container(
                                   child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Container(
+                                      SizedBox(
                                         width: MediaQuery.of(context).size.width * 0.4,
                                         child:  Text(
                                           currentPageItems[index].name ?? 'N/A',
@@ -319,7 +319,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                                           //overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                      Container(
+                                      SizedBox(
                                         width: MediaQuery.of(context).size.width * 0.32,
                                         child: Text(
                                           currentPageItems[index].description ?? 'N/A',
@@ -338,7 +338,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                                     child: Text(
                                       '€${currentPageItems[index].price?.toStringAsFixed(2) ??
                                           '0.00'}',
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontSize: 12,
                                           fontFamily: 'Mulish',
                                           fontWeight: FontWeight.w700,
@@ -370,7 +370,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                     BoxShadow(
                       color: Colors.grey.shade200,
                       blurRadius: 5,
-                      offset: Offset(0, -2),
+                      offset: const Offset(0, -2),
                     ),
                   ],
                 ),
@@ -404,7 +404,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                       ),
                     ),
 
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
                     // Page Numbers
                     ...(_getPageNumbers().map((pageNum) {
@@ -417,10 +417,10 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                             width: 35,
                             height: 35,
                             decoration: BoxDecoration(
-                              color: isActive ? Color(0xFF0EA5E9) : Colors
+                              color: isActive ? const Color(0xFF0EA5E9) : Colors
                                   .white,
                               border: Border.all(
-                                color: isActive ? Color(0xFF0EA5E9) : Colors
+                                color: isActive ? const Color(0xFF0EA5E9) : Colors
                                     .grey.shade300,
                               ),
                               borderRadius: BorderRadius.circular(4),
@@ -442,7 +442,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                       );
                     }).toList()),
 
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
                     // Next Button
                     GestureDetector(
@@ -509,7 +509,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
               children: [
                 Container(
                   height: MediaQuery.of(context).size.height * 0.7,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(20),
@@ -519,7 +519,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                   child: Column(
                     children: [
                       Container(
-                        padding: EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(color: Colors.grey.shade200),
@@ -529,7 +529,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(isEditMode ? 'edit_topping'.tr : 'add_topping'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 fontFamily: 'Mulish',
@@ -540,20 +540,20 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                       ),
                       Expanded(
                         child: SingleChildScrollView(
-                          padding: EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(8),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SizedBox(height: 10),
+                              const SizedBox(height: 10),
                               Text(
                                 'name'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   fontFamily: 'Mulish',
                                 ),
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               TextField(
                                 controller: nameController,
                                 decoration: InputDecoration(
@@ -568,21 +568,21 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                                    borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                                   ),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                 ),
                               ),
-                              SizedBox(height: 10),
+                              const SizedBox(height: 10),
                               Text(
                                 'price'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   fontFamily: 'Mulish',
                                 ),
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               TextField(
                                 controller: priceController,
                                 keyboardType: TextInputType.number,
@@ -597,21 +597,21 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                                    borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                                   ),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                 ),
                               ),
-                              SizedBox(height: 10),
+                              const SizedBox(height: 10),
                               Text(
                                 'desc'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   fontFamily: 'Mulish',
                                 ),
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               TextField(
                                 controller: descriptionController,
                                 keyboardType: TextInputType.text,
@@ -626,12 +626,12 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Color(0xFFFCAE03)),
+                                    borderSide: const BorderSide(color: Color(0xFFFCAE03)),
                                   ),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                 ),
                               ),
-                              SizedBox(height: 10),
+                              const SizedBox(height: 10),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -643,14 +643,14 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                                       },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.black.withOpacity(0.2),
-                                        padding: EdgeInsets.symmetric(vertical: 14),
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                       ),
                                       child: Text(
                                         'close'.tr,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 16,
                                           fontWeight: FontWeight.w700,
@@ -659,7 +659,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                                       ),
                                     ),
                                   ),
-                                  SizedBox(width: 15),
+                                  const SizedBox(width: 15),
                                   SizedBox(
                                     width: 200,
                                     child: ElevatedButton(
@@ -694,14 +694,14 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                                         );
                                       },
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: Color(0xFFFCAE03),
-                                        padding: EdgeInsets.symmetric(vertical: 14),
+                                        backgroundColor: const Color(0xFFFCAE03),
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                       ),
                                       child: Text( isEditMode ? 'update'.tr : 'ad'.tr,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 16,
                                           fontWeight: FontWeight.w700,
@@ -712,7 +712,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                                   ),
                                 ],
                               ),
-                              SizedBox(height: 20),
+                              const SizedBox(height: 20),
                             ],
                           ),
                         ),
@@ -864,7 +864,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
           SnackBar(
             content: Text('topping_created'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -880,7 +880,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
           SnackBar(
             content: Text('${'failed_topping'.tr}: ${e.toString()}'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -968,7 +968,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
           SnackBar(
             content: Text('topping_delete'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -982,7 +982,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
           SnackBar(
             content: Text('failed_delete'.tr),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -1013,7 +1013,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(height: 20,),
+                    const SizedBox(height: 20,),
                     Text(
                       '${'are'.tr}"$toppingName"?',
                       style: const TextStyle(
@@ -1044,7 +1044,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                             ),
                             child:  Text(
                               'cancel'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -1073,7 +1073,7 @@ class _ToppingsScreenState extends State<ToppingsScreen> {
                             ),
                             child:  Text(
                               'delete'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),

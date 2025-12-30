@@ -30,15 +30,15 @@ class GetPrinterIpResponseModel {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['ip_address'] = this.ipAddress;
-    data['store_id'] = this.storeId;
-    data['isActive'] = this.isActive;
-    data['type'] = this.type;
-    data['category_id'] = this.categoryId;
-    data['isRemote'] = this.isRemote;
-    data['id'] = this.id;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['ip_address'] = ipAddress;
+    data['store_id'] = storeId;
+    data['isActive'] = isActive;
+    data['type'] = type;
+    data['category_id'] = categoryId;
+    data['isRemote'] = isRemote;
+    data['id'] = id;
     return data;
   }
 }

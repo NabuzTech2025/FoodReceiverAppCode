@@ -12,11 +12,12 @@ import '../constants/constant.dart';
 import '../models/DailySalesReport.dart';
 import '../models/order_history_response_model.dart';
 import '../models/today_report.dart';
-import '../utils/log_util.dart';
 import '../utils/my_application.dart';
 import 'order_history.dart';
 
 class ReportScreen extends StatefulWidget {
+  const ReportScreen({super.key});
+
   @override
   _ReportScreenState createState() => _ReportScreenState();
 }
@@ -141,7 +142,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
   }
 
   void _startLiveDataUpdates() {
-    _liveDataTimer = Timer.periodic(Duration(seconds: 30), (timer) {
+    _liveDataTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (!showCalendar) getLiveSaleReport();
     });
   }
@@ -151,14 +152,10 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
 
     try {
       // ✅ No loading dialog - just fetch data
-      final result = await ApiRepo().reportGetApi(bearerKey).timeout(Duration(seconds: 7));
+      final result = await ApiRepo().reportGetApi(bearerKey).timeout(const Duration(seconds: 7));
 
-      if (result != null) {
-        setState(() => reportList = result);
-      } else {
-        showSnackbar("Error", "error");
-      }
-    } catch (e) {
+      setState(() => reportList = result);
+        } catch (e) {
       showSnackbar("api_error".tr, "${'an_error'.tr}: $e");
     }
   }
@@ -267,7 +264,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
       _isCalculatingTotal = true;
     });
 
-    Future.delayed(Duration(milliseconds: 300), () {
+    Future.delayed(const Duration(milliseconds: 300), () {
       double total = 0.0;
       for (var report in reportList) {
         if (report.startDate != null) {
@@ -305,7 +302,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         ),
       )
           : Padding(
-        padding: EdgeInsets.all(15),
+        padding: const EdgeInsets.all(15),
         child: ListView(
           children: [
             _buildHeader(),
@@ -316,7 +313,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
             ],
             showCalendar && _selectedDate != null
                 ? _buildReportStatus(_selectedReport ?? _currentDateReport)
-                : !showCalendar ? _buildReportStatus(null) : SizedBox.shrink(),
+                : !showCalendar ? _buildReportStatus(null) : const SizedBox.shrink(),
             const SizedBox(height: 16),
           ],
         ),
@@ -346,19 +343,19 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
               Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  Text('liveSale'.tr, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, fontFamily: "Mulish", color: Color(0xff0C831F))),
+                  Text('liveSale'.tr, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, fontFamily: "Mulish", color: Color(0xff0C831F))),
                   Positioned(
                     right: -11, top: 0,
                     child: FadeTransition(
                       opacity: _animation,
-                      child: Container(width: 9, height: 9, decoration: BoxDecoration(color: Color(0xff0C831F), shape: BoxShape.circle)),
+                      child: Container(width: 9, height: 9, decoration: const BoxDecoration(color: Color(0xff0C831F), shape: BoxShape.circle)),
                     ),
                   ),
                 ],
               ),
               Text(
                 _selectedDate != null ? DateFormat('MMMM y').format(_selectedDate!) : DateFormat('MMMM y').format(DateTime.now()),
-                style: TextStyle(fontSize: 11, color: Color(0xff757B8F), fontWeight: FontWeight.w600, fontFamily: "Mulish"),
+                style: const TextStyle(fontSize: 11, color: Color(0xff757B8F), fontWeight: FontWeight.w600, fontFamily: "Mulish"),
               ),
             ],
           ),
@@ -376,8 +373,8 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
           },
           child: Row(
             children: [
-              Text('history'.tr, style: TextStyle(fontFamily: "Mulish", fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xff1F1E1E))),
-              SizedBox(width: 5),
+              Text('history'.tr, style: const TextStyle(fontFamily: "Mulish", fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xff1F1E1E))),
+              const SizedBox(width: 5),
               SvgPicture.asset('assets/images/dropdown.svg', height: 5, width: 11),
             ],
           ),
@@ -418,7 +415,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             IconButton(
-              icon: Icon(Icons.chevron_left),
+              icon: const Icon(Icons.chevron_left),
               onPressed: () => setState(() {
                 displayedMonth = prevMonth;
                 displayedYear = prevYear;
@@ -426,9 +423,9 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
                 _calculateMonthTotal(prevMonth, prevYear);
               }),
             ),
-            Text("${_monthName(displayedMonth)} $displayedYear", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text("${_monthName(displayedMonth)} $displayedYear", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             IconButton(
-              icon: Icon(Icons.chevron_right),
+              icon: const Icon(Icons.chevron_right),
               onPressed: () => setState(() {
                 displayedMonth = nextMonth;
                 displayedYear = nextYear;
@@ -443,10 +440,10 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
           children: [
             Text(
               '${'total_sales'.tr} : ',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
             ),
             _isCalculatingTotal
-                ? SizedBox(
+                ? const SizedBox(
               width: 16,
               height: 16,
               child: CircularProgressIndicator(
@@ -456,7 +453,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
             )
                 : Text(
               '€ ${formatAmount(_monthTotalSales)}',
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
                 color: Colors.green,
@@ -517,7 +514,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
         }
       },
       child: Container(
-        padding: EdgeInsets.all(6),
+        padding: const EdgeInsets.all(6),
         color: Colors.white,
         child: SizedBox(
           height: 65,
@@ -527,11 +524,11 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
               Text("${date.day}",
                   style: TextStyle(fontWeight: FontWeight.bold,
                       color: isCurrentMonth ? Colors.black : Colors.grey[600])),
-              SizedBox(height: 2),
+              const SizedBox(height: 2),
               if (report != null) ...[
                 SvgPicture.asset('assets/images/ic_report.svg', height: 12, width: 12),
-                SizedBox(height: 2),
-                Text("${formatAmount(report.totalSales ?? 0)}", style: TextStyle(fontSize: 10, color: Colors.green)),
+                const SizedBox(height: 2),
+                Text(formatAmount(report.totalSales ?? 0), style: const TextStyle(fontSize: 10, color: Colors.green)),
               ]
             ],
           ),
@@ -545,14 +542,14 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     return TableRow(
       children: days.map((day) => Container(
         color: Colors.black,
-        padding: EdgeInsets.symmetric(vertical: 7),
-        child: Center(child: Text(day, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        child: Center(child: Text(day, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
       )).toList(),
     );
   }
 
   Widget _buildReportStatus(DailySalesReport? report) {
-    if (showCalendar && _selectedDate == null) return SizedBox.shrink();
+    if (showCalendar && _selectedDate == null) return const SizedBox.shrink();
 
     final isLiveData = report == null;
     final data = isLiveData ? _getLiveData() : _getReportData(report);
@@ -564,52 +561,52 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
           children: [
             Lottie.asset('assets/animations/sales.json', width: 30, height: 30, repeat: true),
             Text(_selectedDate != null ? DateFormat('dd MMMM y').format(_selectedDate!) : "sales".tr,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
         if (isLiveData && _lastUpdateTime != null) ...[
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text("${"last".tr}: ${DateFormat('HH:mm:ss').format(_lastUpdateTime!)}",
               style: TextStyle(fontSize: 10, color: Colors.grey[600], fontStyle: FontStyle.italic)),
         ],
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         ..._buildDataRows(data['sales']!),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         Row(children: [
           Lottie.asset('assets/animations/payment.json', width: 30, height: 30, repeat: true),
-          Text("payment".tr, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text("payment".tr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ]),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         ..._buildDataRows(data['payment']!),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         Row(children: [
           Lottie.asset('assets/animations/orderType.json', width: 30, height: 30, repeat: true),
-          Text("order_type".tr, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text("order_type".tr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ]),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         ..._buildDataRows(data['orderType']!),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         Row(children: [
           Lottie.asset('assets/animations/approval.json', width: 30, height: 30, repeat: true),
-          Text("approval".tr, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text("approval".tr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ]),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         ..._buildDataRows(data['approval']!),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         Row(children: [
           Lottie.asset('assets/animations/tax.json', width: 30, height: 30, repeat: true),
-          Text("tax".tr, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text("tax".tr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ]),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         ..._buildDataRows(data['tax']!),
         if (!isLiveData) ...[
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           GestureDetector(
             onTap: orderHistory,
             child: Container(
-              padding: EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(5), color: Colors.green),
-              child: Text('view_full'.tr, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: "Mulish", color: Colors.white)),
+              child: Text('view_full'.tr, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: "Mulish", color: Colors.white)),
             ),
           )
         ]
@@ -619,12 +616,12 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
 
   List<Widget> _buildDataRows(Map<String, String> data) {
     return data.entries.map((e) => Padding(
-      padding: EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 6),
       child: RichText(
         text: TextSpan(
           children: [
-            TextSpan(text: e.key, style: TextStyle(color: Colors.black)),
-            TextSpan(text: "   ${e.value}", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+            TextSpan(text: e.key, style: const TextStyle(color: Colors.black)),
+            TextSpan(text: "   ${e.value}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
           ],
         ),
       ),
@@ -677,7 +674,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
       'payment': {"cash".tr: '${report.data?.paymentMethods['cash'] ?? 0}'},
       'orderType': {
         "delivery".tr: '${report.data?.orderTypes['delivery'] ?? 0}',
-        "pickup".tr: '${report.data?.orderTypes?['pickup'] ?? 0}',
+        "pickup".tr: '${report.data?.orderTypes['pickup'] ?? 0}',
         "dine_in".tr: '${report.data?.orderTypes['dine_in'] ?? 0}',
       },
       'approval': {
@@ -712,7 +709,7 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
     } catch (e) {
       _closeDialog();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${'during'.tr}: $e'), backgroundColor: Colors.red, duration: Duration(seconds: 3)),
+        SnackBar(content: Text('${'during'.tr}: $e'), backgroundColor: Colors.red, duration: const Duration(seconds: 3)),
       );
     }
   }

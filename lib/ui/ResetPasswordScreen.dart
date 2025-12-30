@@ -1,34 +1,31 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:food_app/ui/Login/LoginScreen.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../api/api.dart';
 import '../api/repository/api_repository.dart';
 import '../api/responses/userLogin_h.dart';
 import '../constants/constant.dart';
 import '../customView/custom_button.dart';
 import '../customView/custom_text_form_prefiex.dart';
 import '../utils/log_util.dart';
-import '../utils/my_application.dart';
 import '../utils/validators.dart';
-import 'home_screen.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
+  const ResetPasswordScreen({super.key});
+
   @override
   _ResetPasswordScreenState createState() => _ResetPasswordScreenState();
 }
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen>
     with TickerProviderStateMixin {
-  GlobalKey<FormState> _formKey = GlobalKey();
-  late TextEditingController _PasswordController = TextEditingController();
-  late TextEditingController _confirmPasswordController =
+  final GlobalKey<FormState> _formKey = GlobalKey();
+  late final TextEditingController _PasswordController = TextEditingController();
+  late final TextEditingController _confirmPasswordController =
       TextEditingController();
-  bool _obscureText = true;
+  final bool _obscureText = true;
   late UserLoginH userData;
   late SharedPreferences sharedPreferences;
 
@@ -60,16 +57,16 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
               backgroundColor: Colors.grey[100],
               elevation: 0,
               leading: IconButton(
-                icon: Icon(Icons.arrow_back),
+                icon: const Icon(Icons.arrow_back),
                 onPressed: () {
                   Navigator.pop(context); // Goes back to the previous screen
                 },
               ),
-              actions: [],
+              actions: const [],
             ),
 
             body: Container(
-              margin: EdgeInsets.all(18),
+              margin: const EdgeInsets.all(18),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -84,8 +81,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
                       //   fit: BoxFit.cover,
                       // ),
                       Transform.translate(
-                        offset: Offset(-10, 25), // Move up by 10 pixels
-                        child: Text(
+                        offset: const Offset(-10, 25), // Move up by 10 pixels
+                        child: const Text(
                           "Reset Password!",
                           style: TextStyle(
                             fontSize: 30,
@@ -96,7 +93,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
                       ),
                     ],
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 30,
                   ),
                   Form(
@@ -107,7 +104,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
                             keyboardType: TextInputType.text,
                             myLabelText: "Password...",
                             controller: _PasswordController,
-                            icon: Icon(Icons.lock),
+                            icon: const Icon(Icons.lock),
                             validate: (value) => validateFieldCustomText(
                                 value, "Please enter password"),
                             valueChanged: (value) {},
@@ -116,7 +113,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
                           keyboardType: TextInputType.visiblePassword,
                           myLabelText: "Confirm Password...",
                           controller: _confirmPasswordController,
-                          icon: Icon(Icons.lock),
+                          icon: const Icon(Icons.lock),
                           validate: (value) => validateFieldCustomText(
                               value, "Please enter confirm password"),
                           valueChanged: (value) {},
@@ -125,10 +122,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
                       ],
                     ),
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 10,
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 20,
                   ),
                   CustomButton(
@@ -162,7 +159,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
       String email, String password, String deviceToken) async {
     try {
       Get.dialog(
-        Center(
+        const Center(
             child: CupertinoActivityIndicator(
           radius: 20,
           color: Colors.orange,
@@ -170,18 +167,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         barrierDismissible: false,
       );
       final result = await ApiRepo().loginApi(email, password, deviceToken);
-      Log.loga(title, "LoginData :: result >>>>> ${result?.toJson()}");
+      Log.loga(title, "LoginData :: result >>>>> ${result.toJson()}");
       Get.back();
-      if (result != null) {
-        // Handle navigation or success here
+      // Handle navigation or success here
 
-        print("LoginData  " + result.role_id.toString());
-        print("LoginDataaccess_token  " + result.access_token.toString());
-        Get.to(() => LoginScreen());
-      } else {
-        showSnackbar("Error", "Error on login");
-      }
-    } catch (e) {
+      print("LoginData  ${result.role_id}");
+      print("LoginDataaccess_token  ${result.access_token}");
+      Get.to(() => const LoginScreen());
+        } catch (e) {
       Log.loga(title, "Login Api:: e >>>>> $e");
       showSnackbar("Api Error", "An error occurred: $e");
       Get.back();
@@ -191,7 +184,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
   Future<void> postResetPAssword(String email, String password) async {
     try {
       Get.dialog(
-        Center(
+        const Center(
             child: CupertinoActivityIndicator(
           radius: 20,
           color: Colors.orange,
@@ -199,16 +192,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         barrierDismissible: false,
       );
       final result = await ApiRepo().resetPasswordApi(email, password);
-      Log.loga(title, "LoginData :: result >>>>> ${result?.toJson()}");
+      Log.loga(title, "LoginData :: result >>>>> ${result.toJson()}");
       Get.back();
-      if (result != null) {
-        // Handle navigation or success here
+      // Handle navigation or success here
 
-        Get.to(() => LoginScreen());
-      } else {
-        showSnackbar("Error", "Error on login");
-      }
-    } catch (e) {
+      Get.to(() => const LoginScreen());
+        } catch (e) {
       Log.loga(title, "Login Api:: e >>>>> $e");
       showSnackbar("Api Error", "An error occurred: $e");
       Get.back();

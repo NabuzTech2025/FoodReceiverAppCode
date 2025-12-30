@@ -81,29 +81,29 @@ void showSnackbar(String title, String msg) {
 
 appbarColor() {
   return Container(
-    decoration: BoxDecoration(
+    decoration: const BoxDecoration(
       gradient: LinearGradient(
           colors: [
             AppColor.backgroundBlueLightColor,
             AppColor.backgroundBlueDarkColor,
           ],
-          begin: const FractionalOffset(0.0, 0.0),
-          end: const FractionalOffset(1.0, 0.0),
-          stops: const [0.0, 1.0],
+          begin: FractionalOffset(0.0, 0.0),
+          end: FractionalOffset(1.0, 0.0),
+          stops: [0.0, 1.0],
           tileMode: TileMode.clamp),
     ),
   );
 }
 
 gradientContainer() {
-  return LinearGradient(
+  return const LinearGradient(
       colors: [
         AppColor.backgroundBlueLightColor,
         AppColor.backgroundBlueDarkColor,
       ],
-      begin: const FractionalOffset(0.0, 0.0),
-      end: const FractionalOffset(1.0, 0.0),
-      stops: const [0.0, 1.0],
+      begin: FractionalOffset(0.0, 0.0),
+      end: FractionalOffset(1.0, 0.0),
+      stops: [0.0, 1.0],
       tileMode: TileMode.clamp);
 }
 

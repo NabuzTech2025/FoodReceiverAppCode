@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:food_app/models/Store.dart';
 import 'package:food_app/ui/Allergy/item_allergy.dart';
 import 'package:food_app/ui/Category%20Availability/category_management.dart';
 import 'package:food_app/ui/Coupon/coupons.dart';
-import 'package:food_app/ui/Pos/pos.dart';
 import 'package:food_app/ui/PostCode/postcode.dart';
 import 'package:food_app/ui/PrinterSettingsScreen.dart';
 import 'package:food_app/ui/home_screen.dart';
@@ -19,8 +19,6 @@ import '../constants/constant.dart';
 import '../ui/Allergy/add_allergy.dart';
 import '../ui/Discount/discount.dart';
 import '../ui/Login/LoginScreen.dart';
-import '../ui/Login/desktopLogin.dart';
-import '../ui/Pos/pos_controller.dart';
 import '../ui/Products/Category/category.dart';
 import '../ui/Products/Group Item/group_item.dart';
 import '../ui/Products/Product/products.dart';
@@ -132,22 +130,43 @@ class _CustomDrawerState extends State<CustomDrawer> {
   }
 
   void _navigateToHomeScreenTab(int tabIndex) {
-    Navigator.of(context).pop(); // Close drawer first
+     Navigator.pop(context);
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (!mounted) return;
 
-    if (_isOnHomeScreen()) {
-      // ✅ Update app controller immediately before switching tabs
-      app.appController.onTabChanged(tabIndex);
-      Future.delayed(const Duration(milliseconds: 50), () {
+      // ✅ Handle orientation based on tab index
+      if (tabIndex == 3) {
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.portraitDown,
+        ]);
+      } else {
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.portraitDown,
+        ]);
+      }
+
+      // ✅ Check if currently on HomeScreen
+      bool isCurrentlyOnHomeScreen = Get.currentRoute == '/HomeScreen' ||
+          Get.currentRoute == '/' ||
+          context.widget.runtimeType.toString().contains('HomeScreen');
+
+      if (isCurrentlyOnHomeScreen) {
+        // ✅ Already on HomeScreen - just switch tabs
+        app.appController.onTabChanged(tabIndex);
         widget.onSelectTab(tabIndex);
-      });
-    } else {
-      // ✅ When coming from other screen, navigate with proper cleanup
-      Get.off(
-            () => const HomeScreen(),
-        arguments: {'initialTab': tabIndex},
-        transition: Transition.noTransition, // Smooth transition
-      );
-    }
+      } else {
+        // ✅ Navigate to HomeScreen with the tab
+        Get.offAll(
+              () => const HomeScreen(),
+          arguments: {'initialTab': tabIndex},
+          transition: Transition.noTransition,
+        );
+      }
+    });
   }
 
   @override
@@ -211,11 +230,12 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   _drawerItem('reports'.tr,'assets/images/report.svg', onTap: () {
                     _navigateToHomeScreenTab(2);
                   }),
-                  _drawerItem('setting'.tr,'assets/images/settings.svg', onTap: () {
-                    //_navigateToHomeScreenTab(3);
-                    Get.to(()=>PrinterSettingsScreen());
-                  }),
+                  _drawerItem('setting'.tr, 'assets/images/settings.svg', onTap: () {
+                    Navigator.of(context).pop(); // Drawer close karo
 
+                    // ✅ Directly PrinterSettingsScreen pe jao, tab system se bilkul alag
+                    Get.to(() => const PrinterSettingsScreen());
+                  }),
                   _expandableProductItem(),
 
                   _drawerItem('discount'.tr,'assets/images/discount.svg', onTap: () {
@@ -240,11 +260,27 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     Navigator.of(context).pop();
                     Get.to(() => const Postcode());
                   }),
-                  // _drawerItem('POS'.tr,'assets/images/pos.svg', onTap: () {
-                  //   Navigator.of(context).pop();
-                  //   Get.delete<PosController>(tag: 'pos_controller', force: true);
-                  //   Get.to(() => const ResponsivePos());
-                  // }),
+                  _drawerItem('POS'.tr,'assets/images/pos.svg', onTap: () {
+                    // ✅ First close drawer
+                    Navigator.of(context).pop();
+
+                    // ✅ Then navigate with proper delay
+                    Future.delayed(const Duration(milliseconds: 250), () {
+                      if (!mounted) return;
+
+                      // Set orientation for POS
+                      SystemChrome.setPreferredOrientations([
+                        DeviceOrientation.landscapeLeft,
+                        DeviceOrientation.landscapeRight,
+                        DeviceOrientation.portraitUp,
+                        DeviceOrientation.portraitDown,
+                      ]);
+
+                      // ✅ Direct tab change - simple and working
+                      app.appController.onTabChanged(3);
+                      widget.onSelectTab(3);
+                    });
+                  }),
                   _drawerItem('Coupons'.tr,'assets/images/coupon.svg',
                       iconHeight: 30,
                       iconWidth: 20,
@@ -270,7 +306,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   ),
                 Padding(
                   padding: const EdgeInsets.only(left: 15.0),
-                  child: Text('${'version'.tr}:2.3.1', style: const TextStyle(
+                  child: Text('${'version'.tr}:2.3.3', style: const TextStyle(
                       fontWeight: FontWeight.w300,
                       fontSize: 15
                   ),),

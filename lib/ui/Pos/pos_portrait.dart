@@ -1,7 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:food_app/constants/app_color.dart';
 import 'package:food_app/ui/Pos/pos_controller.dart';
 import 'package:get/get.dart';
 
@@ -21,16 +19,16 @@ class PosPortrait extends StatelessWidget {
       appBar: AppBar(
         leading: GestureDetector(
           onTap: () {
-            Get.offAll(() => HomeScreen());
+            Get.offAll(() => const HomeScreen());
           },
-          child: Icon(Icons.arrow_back_ios, size: 32),
+          child: const Icon(Icons.arrow_back_ios, size: 32),
         ),
       ),
       body: Stack(
         children: [
           Column(
             children: [
-              SizedBox(height: 40),
+              const SizedBox(height: 40),
               _buildPortraitHeader(controller),
               Expanded(
                 child: Row(
@@ -39,7 +37,7 @@ class PosPortrait extends StatelessWidget {
                       if (!controller.isSearching.value) {
                         return _buildPortraitSidebar(controller);
                       }
-                      return SizedBox.shrink();
+                      return const SizedBox.shrink();
                     }),
                     Expanded(
                       child: _buildPortraitContent(controller, context),
@@ -53,7 +51,7 @@ class PosPortrait extends StatelessWidget {
             if (controller.totalItems.value > 0) {
               return _buildCartBar(controller);
             }
-            return SizedBox.shrink();
+            return const SizedBox.shrink();
           }),
         ],
       ),
@@ -69,24 +67,24 @@ class PosPortrait extends StatelessWidget {
           Image.asset('assets/images/drawer.png', height: 25, width: 25),
           Container(
             width: 250,
-            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              border: Border.all(color: Color(0xffDDEAFF), width: 1),
+              border: Border.all(color: const Color(0xffDDEAFF), width: 1),
             ),
             child: Row(
               children: [
-                Icon(Icons.search, size: 15, color: Colors.black),
-                SizedBox(width: 10),
+                const Icon(Icons.search, size: 15, color: Colors.black),
+                const SizedBox(width: 10),
                 Expanded(
                   child: TextField(
                     controller: controller.searchController,
                     onChanged: controller.onSearchChanged,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
                       fontFamily: 'Mulish',
                     ),
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: 'Search item',
                       hintStyle: TextStyle(
                         fontSize: 12,
@@ -104,10 +102,10 @@ class PosPortrait extends StatelessWidget {
                   if (controller.searchQuery.value.isNotEmpty) {
                     return GestureDetector(
                       onTap: controller.clearSearch,
-                      child: Icon(Icons.clear, size: 15, color: Colors.grey),
+                      child: const Icon(Icons.clear, size: 15, color: Colors.grey),
                     );
                   }
-                  return SizedBox.shrink();
+                  return const SizedBox.shrink();
                 }),
               ],
             ),
@@ -115,14 +113,14 @@ class PosPortrait extends StatelessWidget {
           Obx(() => GestureDetector(
             onTap: controller.isRefreshing.value ? null : controller.refreshData,
             child: Container(
-              padding: EdgeInsets.all(6),
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Color(0xffDDEAFF), width: 1),
+                border: Border.all(color: const Color(0xffDDEAFF), width: 1),
               ),
               child: controller.isRefreshing.value
-                  ? SizedBox(
+                  ? const SizedBox(
                 width: 15,
                 height: 15,
                 child: CircularProgressIndicator(
@@ -130,7 +128,7 @@ class PosPortrait extends StatelessWidget {
                   valueColor: AlwaysStoppedAnimation<Color>(Color(0xffE31E24)),
                 ),
               )
-                  : Icon(
+                  : const Icon(
                 Icons.refresh,
                 color: Color(0xffE31E24),
                 size: 15,
@@ -140,7 +138,7 @@ class PosPortrait extends StatelessWidget {
           Row(
             children: [
               Image.asset('assets/images/german.png', height: 20, width: 20),
-              Text(
+              const Text(
                 'GER',
                 style: TextStyle(
                   fontSize: 8,
@@ -149,7 +147,7 @@ class PosPortrait extends StatelessWidget {
                   fontStyle: FontStyle.italic,
                 ),
               ),
-              Icon(Icons.arrow_drop_down, size: 16),
+              const Icon(Icons.arrow_drop_down, size: 16),
             ],
           ),
         ],
@@ -166,7 +164,7 @@ class PosPortrait extends StatelessWidget {
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
             blurRadius: 4,
-            offset: Offset(2, 0),
+            offset: const Offset(2, 0),
           ),
         ],
       ),
@@ -186,7 +184,7 @@ class PosPortrait extends StatelessWidget {
                   height: 80,
                   decoration: BoxDecoration(
                     color:
-                    isSelected ? Color(0xffFFF5F5) : Colors.white,
+                    isSelected ? const Color(0xffFFF5F5) : Colors.white,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -216,7 +214,7 @@ class PosPortrait extends StatelessWidget {
                           ),
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Padding(
                         padding:
                         const EdgeInsets.symmetric(horizontal: 2),
@@ -227,8 +225,8 @@ class PosPortrait extends StatelessWidget {
                             fontWeight: FontWeight.w700,
                             fontFamily: 'Mulish',
                             color: isSelected
-                                ? Color(0xffE7292D)
-                                : Color(0xff232121),
+                                ? const Color(0xffE7292D)
+                                : const Color(0xff232121),
                           ),
                           textAlign: TextAlign.center,
                           maxLines: 2,
@@ -242,14 +240,14 @@ class PosPortrait extends StatelessWidget {
             },
           ),
           AnimatedPositioned(
-            duration: Duration(milliseconds: 300),
+            duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             right: 0,
             top: controller.selectedCategoryIndex.value * 80.0,
             child: Container(
               width: 3,
               height: 80,
-              color: Color(0xffE7292D),
+              color: const Color(0xffE7292D),
             ),
           ),
         ],
@@ -265,7 +263,7 @@ class PosPortrait extends StatelessWidget {
         final displayCategories = controller.getFilteredCategories();
 
         if (displayCategories.isEmpty) {
-          return Center(
+          return const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -302,7 +300,7 @@ class PosPortrait extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Text(
                     displayCategories[categoryIndex].name,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       fontFamily: 'Mulish',
@@ -312,8 +310,8 @@ class PosPortrait extends StatelessWidget {
                 GridView.builder(
                   shrinkWrap: true,
                   padding: EdgeInsets.zero,
-                  physics: NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     childAspectRatio: 0.95,
                     crossAxisSpacing: 8,
@@ -328,7 +326,7 @@ class PosPortrait extends StatelessWidget {
                     );
                   },
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
               ],
             );
           },
@@ -337,7 +335,7 @@ class PosPortrait extends StatelessWidget {
 
       // Normal mode - show only selected category's products
       if (controller.categories.isEmpty) {
-        return Center(
+        return const Center(
           child: Text(
             'No products available',
             style: TextStyle(
@@ -353,7 +351,7 @@ class PosPortrait extends StatelessWidget {
       final selectedCategory = controller.categories[controller.selectedCategoryIndex.value];
 
       if (selectedCategory.products.isEmpty) {
-        return Center(
+        return const Center(
           child: Text(
             'No products in this category',
             style: TextStyle(
@@ -379,7 +377,7 @@ class PosPortrait extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
               selectedCategory.name,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 fontFamily: 'Mulish',
@@ -389,8 +387,8 @@ class PosPortrait extends StatelessWidget {
           GridView.builder(
             shrinkWrap: true,
             padding: EdgeInsets.zero,
-            physics: NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               childAspectRatio: 0.95,
               crossAxisSpacing: 8,
@@ -418,13 +416,13 @@ class PosPortrait extends StatelessWidget {
       child: Obx(() => Container(
         height: 70,
         decoration: BoxDecoration(
-          color: Color(0xff4CAF50),
+          color: const Color(0xff4CAF50),
           borderRadius: BorderRadius.circular(7),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
               blurRadius: 8,
-              offset: Offset(0, -2),
+              offset: const Offset(0, -2),
             ),
           ],
         ),
@@ -445,19 +443,19 @@ class PosPortrait extends StatelessWidget {
                           right: -8,
                           top: -8,
                           child: Container(
-                            padding: EdgeInsets.all(4),
-                            decoration: BoxDecoration(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
                               color: Color(0xffE7292D),
                               shape: BoxShape.circle,
                             ),
-                            constraints: BoxConstraints(
+                            constraints: const BoxConstraints(
                               minWidth: 20,
                               minHeight: 20,
                             ),
                             child: Center(
                               child: Text(
                                 '${controller.totalItems.value}',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
@@ -469,13 +467,13 @@ class PosPortrait extends StatelessWidget {
                         ),
                     ],
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         '${controller.totalPrice.value.toStringAsFixed(2)} €',
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
@@ -484,7 +482,7 @@ class PosPortrait extends StatelessWidget {
                       ),
                       Text(
                         'Items : ${controller.totalItems.value}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,
                           fontWeight: FontWeight.w400,
@@ -495,7 +493,7 @@ class PosPortrait extends StatelessWidget {
                   ),
                 ],
               ),
-              Row(
+              const Row(
                 children: [
                   Text(
                     'View Cart',
@@ -526,7 +524,7 @@ class ProductCard extends StatelessWidget {
   final Product product;
   final PosController controller;
 
-  const ProductCard({
+  const ProductCard({super.key, 
     required this.product,
     required this.controller,
   });
@@ -544,14 +542,14 @@ class ProductCard extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isSelected ? Color(0xff4CAF50) : Colors.transparent,
+              color: isSelected ? const Color(0xff4CAF50) : Colors.transparent,
               width: 2,
             ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
                 blurRadius: 4,
-                offset: Offset(0, 2),
+                offset: const Offset(0, 2),
               ),
             ],
           ),
@@ -563,11 +561,11 @@ class ProductCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
+                    SizedBox(
                       width: MediaQuery.of(context).size.width * 0.25,
                       child: Text(
                         product.name,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           fontFamily: 'Mulish',
@@ -589,10 +587,10 @@ class ProductCard extends StatelessWidget {
                           imageUrl:
                           controller.getTrimmedImageUrl(product.imageUrl),
                           fit: BoxFit.cover,
-                          placeholder: (context, url) => Center(
+                          placeholder: (context, url) => const Center(
                             child: CircularProgressIndicator(strokeWidth: 2),
                           ),
-                          errorWidget: (context, url, error) => Icon(
+                          errorWidget: (context, url, error) => const Icon(
                             Icons.restaurant,
                             color: Colors.grey,
                             size: 25,
@@ -604,10 +602,10 @@ class ProductCard extends StatelessWidget {
                       children: [
                         if (isSelected)
                           Container(
-                            padding: EdgeInsets.symmetric(
+                            padding: const EdgeInsets.symmetric(
                                 horizontal: 4, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Color(0xff4CAF50),
+                              color: const Color(0xff4CAF50),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Row(
@@ -616,15 +614,15 @@ class ProductCard extends StatelessWidget {
                                 GestureDetector(
                                   onTap: () =>
                                       controller.removeFromCartPortrait(product),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(3.0),
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(3.0),
                                     child: Icon(Icons.remove,
                                         size: 13, color: Colors.white),
                                   ),
                                 ),
                                 Text(
                                   '$quantity',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                     fontFamily: 'Mulish',
@@ -634,8 +632,8 @@ class ProductCard extends StatelessWidget {
                                 GestureDetector(
                                   onTap: () =>
                                       controller.addToCartPortrait(product),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(3.0),
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(3.0),
                                     child: Icon(Icons.add,
                                         size: 13, color: Colors.white),
                                   ),
@@ -643,10 +641,10 @@ class ProductCard extends StatelessWidget {
                               ],
                             ),
                           ),
-                        Spacer(),
+                        const Spacer(),
                         Text(
                           '${product.price.toStringAsFixed(2)} €',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             fontFamily: 'Mulish',
@@ -662,7 +660,7 @@ class ProductCard extends StatelessWidget {
                   top: 8,
                   right: 8,
                   child: Container(
-                    padding: EdgeInsets.all(4),
+                    padding: const EdgeInsets.all(4),
                     child: Image.asset('assets/images/non-veg.png',
                         height: 12, width: 12),
                   ),
@@ -672,7 +670,7 @@ class ProductCard extends StatelessWidget {
                   top: 8,
                   right: 8,
                   child: Container(
-                    padding: EdgeInsets.all(4),
+                    padding: const EdgeInsets.all(4),
                     child: Image.asset('assets/images/veg.png',
                         height: 12, width: 12),
                   ),

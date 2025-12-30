@@ -59,7 +59,7 @@ class GetAllStoreResponseModel {
     if (json['store_hours'] != null) {
       storeHours = <StoreHours>[];
       json['store_hours'].forEach((v) {
-        storeHours!.add(new StoreHours.fromJson(v));
+        storeHours!.add(StoreHours.fromJson(v));
       });
     }
     // if (json['printers'] != null) {
@@ -77,26 +77,26 @@ class GetAllStoreResponseModel {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['address'] = this.address;
-    data['country'] = this.country;
-    data['image_url'] = this.imageUrl;
-    data['description'] = this.description;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['address'] = address;
+    data['country'] = country;
+    data['image_url'] = imageUrl;
+    data['description'] = description;
     // if (this.phoneNumbers != null) {
     //   data['phone_numbers'] =
     //       this.phoneNumbers!.map((v) => v.toJson()).toList();
     // }
-    data['number_of_tables'] = this.numberOfTables;
-    data['is_manual_override'] = this.isManualOverride;
-    data['manual_status'] = this.manualStatus;
-    data['id'] = this.id;
-    data['created_at'] = this.createdAt;
+    data['number_of_tables'] = numberOfTables;
+    data['is_manual_override'] = isManualOverride;
+    data['manual_status'] = manualStatus;
+    data['id'] = id;
+    data['created_at'] = createdAt;
     // if (this.postcodes != null) {
     //   data['postcodes'] = this.postcodes!.map((v) => v.toJson()).toList();
     // }
-    if (this.storeHours != null) {
-      data['store_hours'] = this.storeHours!.map((v) => v.toJson()).toList();
+    if (storeHours != null) {
+      data['store_hours'] = storeHours!.map((v) => v.toJson()).toList();
     }
     // if (this.printers != null) {
     //   data['printers'] = this.printers!.map((v) => v.toJson()).toList();
@@ -134,13 +134,13 @@ class StoreHours {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['id'] = this.id;
-    data['day_of_week'] = this.dayOfWeek;
-    data['opening_time'] = this.openingTime;
-    data['closing_time'] = this.closingTime;
-    data['store_id'] = this.storeId;
-    data['name'] = this.name;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['id'] = id;
+    data['day_of_week'] = dayOfWeek;
+    data['opening_time'] = openingTime;
+    data['closing_time'] = closingTime;
+    data['store_id'] = storeId;
+    data['name'] = name;
     return data;
   }
 }

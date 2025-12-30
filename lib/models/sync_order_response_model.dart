@@ -21,12 +21,12 @@ class SyncLocalOrder {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['status'] = this.status;
-    data['limit'] = this.limit;
-    data['offset'] = this.offset;
-    data['processed'] = this.processed;
-    data['synced_order_ids'] = this.syncedOrderIds;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['status'] = status;
+    data['limit'] = limit;
+    data['offset'] = offset;
+    data['processed'] = processed;
+    data['synced_order_ids'] = syncedOrderIds;
     return data;
   }
 }

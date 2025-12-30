@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:food_app/ui/SuperAdmin/super_admin.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 
 import '../utils/my_application.dart';
 
@@ -243,7 +242,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
             if (widget.roleId == 1)
               GestureDetector(
                 onTap: (){
-                  Get.offAll(()=>SuperAdmin());
+                  Get.offAll(()=>const SuperAdmin());
                 },
                 child: Container(
                     padding: const EdgeInsets.all(5),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:food_app/ui/StoreTiming/store_hour_bottomsheet.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,7 +8,6 @@ import '../../api/repository/api_repository.dart';
 import '../../constants/constant.dart';
 import '../../customView/CustomAppBar.dart';
 import '../../customView/CustomDrawer.dart';
-import '../../models/add_new_store_timing_response_model.dart';
 import '../../models/get_store_timing_response_model.dart';
 
 class StoreTiming extends StatefulWidget {
@@ -66,7 +64,7 @@ class _StoreTimingState extends State<StoreTiming> {
     return Scaffold(
       backgroundColor: Colors.white,
       drawer: CustomDrawer(onSelectTab: _openTab),
-      appBar: CustomAppBar(),
+      appBar: const CustomAppBar(),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(10),
@@ -75,7 +73,7 @@ class _StoreTimingState extends State<StoreTiming> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('store_hour'.tr, style: TextStyle(
+                  Text('store_hour'.tr, style: const TextStyle(
                       fontFamily: 'Mulish', fontSize: 18, fontWeight: FontWeight.bold
                   )),
                   GestureDetector(
@@ -89,7 +87,7 @@ class _StoreTimingState extends State<StoreTiming> {
                         color: const Color(0xFFFCAE03),
                       ),
                       child:  Center(
-                        child: Text('add'.tr, style: TextStyle(
+                        child: Text('add'.tr, style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
                           fontSize: 12,
@@ -167,7 +165,7 @@ class _StoreTimingState extends State<StoreTiming> {
             children: [
               Expanded(
                 child: Text(
-                  '$timingName',
+                  timingName,
                   style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 13,
@@ -177,13 +175,13 @@ class _StoreTimingState extends State<StoreTiming> {
               ),
               Row(
                 children: [
-                  Text('open'.tr, style: TextStyle(
+                  Text('open'.tr, style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 13,
                       fontFamily: 'Mulish'
                   )),
-                  SizedBox(width: 20),
-                  Text('close'.tr, style: TextStyle(
+                  const SizedBox(width: 20),
+                  Text('close'.tr, style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 13,
                       fontFamily: 'Mulish'
@@ -368,7 +366,7 @@ class _StoreTimingState extends State<StoreTiming> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       Text(
                         '${"are".tr} "$timingName"',
                         style: const TextStyle(
@@ -400,7 +398,7 @@ class _StoreTimingState extends State<StoreTiming> {
                               ),
                               child: Text(
                                 'cancel'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -428,7 +426,7 @@ class _StoreTimingState extends State<StoreTiming> {
                               ),
                               child: Text(
                                 'delete'.tr,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -497,7 +495,7 @@ class _StoreTimingState extends State<StoreTiming> {
           SnackBar(
             content: Text('del_timing'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 1),
+            duration: const Duration(seconds: 1),
           ),
         );
       }
@@ -513,7 +511,7 @@ class _StoreTimingState extends State<StoreTiming> {
           SnackBar(
             content: Text('delete_timing'.tr),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 1),
+            duration: const Duration(seconds: 1),
           ),
         );
       }

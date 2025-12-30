@@ -1,7 +1,6 @@
 import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:flutter/material.dart';
-import 'package:food_app/models/OrderItem.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -75,9 +74,6 @@ class PrinterHelperEnglish {
     var discount = order.invoice?.discount_amount ?? 0.0;
     var delFee = order.invoice?.delivery_fee ?? 0.0;
     final subtotal = order.items?.fold<double>(0, (sum, item) {
-      if (item == null) return sum;
-
-      // Toppings total for this item
       final toppingsTotal = item.toppings?.fold<double>(
         0,
             (tSum, topping) => tSum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
@@ -98,30 +94,30 @@ class PrinterHelperEnglish {
     String guestPhone = order.guestShippingJson?.phone?.toString() ?? '';
 
     printer.text(" ${store ?? ''}",
-      styles: PosStyles(align: PosAlign.center, bold: true,),);
+      styles: const PosStyles(align: PosAlign.center, bold: true,),);
     printer.text(
       sanitizeText(orderType),
-      styles: PosStyles(align: PosAlign.center, bold: true,),
+      styles: const PosStyles(align: PosAlign.center, bold: true,),
     );
     printer.text("${'order'.tr} # ${order.id ?? ''}",
-      styles: PosStyles(align: PosAlign.center, bold: true),
+      styles: const PosStyles(align: PosAlign.center, bold: true),
     );
 
-    printer.setStyles(PosStyles(align: PosAlign.center));
+    printer.setStyles(const PosStyles(align: PosAlign.center));
     printer.text(
       sanitizeText("${'invoice_number'.tr}: ${order.invoice?.invoiceNumber ?? ''}"),
-      styles: PosStyles(bold: true),
+      styles: const PosStyles(bold: true),
     );
     printer.text(
       sanitizeText("${'date'.tr}: ${order.createdAt ?? dateTimeStr}"),
-      styles: PosStyles(bold: true),
+      styles: const PosStyles(bold: true),
     );
     printer.hr();
     printer.text(
       sanitizeText("${'customer'.tr}: ${(order.shipping_address?.customer_name != null && order.shipping_address!.customer_name!.isNotEmpty)
           ? order.shipping_address!.customer_name!
           : guestName}"),
-      styles: PosStyles(align: PosAlign.left, bold: true),
+      styles: const PosStyles(align: PosAlign.left, bold: true),
     );
 
     String addressText = "${'address'.tr}: ";
@@ -136,14 +132,14 @@ class PrinterHelperEnglish {
 
     printer.text(
       addressText,
-      styles: PosStyles(align: PosAlign.left, bold: true),
+      styles: const PosStyles(align: PosAlign.left, bold: true),
     );
 
     printer.text(
       "${'phone'.tr}: ${(order.shipping_address?.phone != null && order.shipping_address!.phone!.isNotEmpty)
           ? order.shipping_address!.phone!
           : guestPhone}",
-      styles: PosStyles(align: PosAlign.left, bold: true),
+      styles: const PosStyles(align: PosAlign.left, bold: true),
     );
     printer.hr();
     printer.feed(1);
@@ -158,7 +154,7 @@ class PrinterHelperEnglish {
         0x1B, 0x21, 0x00, // ESC command to cancel bold
         ...utf8.encode(order.note ?? "")
       ]),
-      styles: PosStyles(align: PosAlign.left, bold: true), // Start with bold
+      styles: const PosStyles(align: PosAlign.left, bold: true), // Start with bold
     );
 
     printer.hr();
@@ -194,13 +190,13 @@ class PrinterHelperEnglish {
     printer.hr();
 
     printer.text("${'invoice_number'.tr}:  ${order.invoice?.invoiceNumber ?? ''}",
-      styles: PosStyles(align: PosAlign.left, bold: true),
+      styles: const PosStyles(align: PosAlign.left, bold: true),
     );
     printer.text("${'payment_method'.tr}:  ${order.payment?.paymentMethod ?? ''}",
-      styles: PosStyles(align: PosAlign.left, bold: true),
+      styles: const PosStyles(align: PosAlign.left, bold: true),
     );
     printer.text("${'paid'.tr}: ${order.createdAt ?? ''}",
-      styles: PosStyles(align: PosAlign.left, bold: true),
+      styles: const PosStyles(align: PosAlign.left, bold: true),
     );
     printer.hr();
 
@@ -217,9 +213,6 @@ class PrinterHelperEnglish {
     if (order.items == null || order.items!.isEmpty) return;
 
     for (final item in order.items!) {
-      if (item == null) continue;
-
-      // Calculate total price for this single item (including toppings)
       final toppingsTotal = item.toppings?.fold<double>(
         0,
             (sum, topping) => sum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
@@ -292,7 +285,7 @@ class PrinterHelperEnglish {
 
     printer.text(
       '${'vat_rate'.tr}        ${'gross'.tr}       ${'net'.tr}       ${'vat'.tr}',
-      styles: PosStyles(bold: true, align: PosAlign.left),
+      styles: const PosStyles(bold: true, align: PosAlign.left),
     );
 
     for (var tax in order.brutto_netto_summary!) {
@@ -358,7 +351,7 @@ class PrinterHelperEnglish {
 
     final line = '$leftStr$middle1Str$middle2Str$rightStr';
 
-    printer.text(line, styles: PosStyles(align: PosAlign.left));
+    printer.text(line, styles: const PosStyles(align: PosAlign.left));
   }
 
   static String sanitizeText(String text) {
@@ -481,7 +474,6 @@ class PrinterHelperEnglish {
         String guestPhone = order.guestShippingJson?.phone?.toString() ?? '';
 
         final subtotal = order.items?.fold<double>(0, (sum, item) {
-          if (item == null) return sum;
           final toppingsTotal = item.toppings?.fold<double>(
             0,
                 (tSum, topping) =>
@@ -495,26 +487,26 @@ class PrinterHelperEnglish {
         final orderType =   order.orderType == 2 ?'pickup'.tr:'delivery'.tr;
 
         printer.text(" ${store ?? ''}",
-          styles: PosStyles(align: PosAlign.center, bold: true,),);
+          styles: const PosStyles(align: PosAlign.center, bold: true,),);
         printer.text(
           sanitizeText(orderType),
-          styles: PosStyles(align: PosAlign.center, bold: true,),
+          styles: const PosStyles(align: PosAlign.center, bold: true,),
         );
         printer.text(
           "${trBg('order', savedLocale)} # ${order.id ?? ''}",
-          styles: PosStyles(align: PosAlign.center, bold: true),
+          styles: const PosStyles(align: PosAlign.center, bold: true),
         );
 
-        printer.setStyles(PosStyles(align: PosAlign.center));
+        printer.setStyles(const PosStyles(align: PosAlign.center));
         printer.text(
           sanitizeText(
               "${trBg('invoice_number', savedLocale)}: ${order.invoice?.invoiceNumber ?? ''}"),
-          styles: PosStyles(bold: true),
+          styles: const PosStyles(bold: true),
         );
         printer.text(
           sanitizeText(
               "${trBg('date', savedLocale)}: ${order.createdAt ?? dateTimeStr}"),
-          styles: PosStyles(bold: true),
+          styles: const PosStyles(bold: true),
         );
         printer.hr();
 
@@ -523,7 +515,7 @@ class PrinterHelperEnglish {
               "${trBg('customer', savedLocale)}: ${(order.shipping_address?.customer_name != null && order.shipping_address!.customer_name!.isNotEmpty)
                   ? order.shipping_address!.customer_name!
                   : guestName}"),
-          styles: PosStyles(align: PosAlign.left, bold: true),
+          styles: const PosStyles(align: PosAlign.left, bold: true),
         );
 
         String addressText = "${trBg('address', savedLocale)}: ";
@@ -538,13 +530,13 @@ class PrinterHelperEnglish {
 
         printer.text(
           addressText,
-          styles: PosStyles(align: PosAlign.left, bold: true),
+          styles: const PosStyles(align: PosAlign.left, bold: true),
         );
         printer.text(
           "${trBg('phone', savedLocale)}: ${(order.shipping_address?.phone != null && order.shipping_address!.phone!.isNotEmpty)
               ? order.shipping_address!.phone!
               : guestPhone}",
-          styles: PosStyles(align: PosAlign.left, bold: true),
+          styles: const PosStyles(align: PosAlign.left, bold: true),
         );
         printer.hr();
         printer.feed(1);
@@ -559,7 +551,7 @@ class PrinterHelperEnglish {
             0x1B, 0x21, 0x00, // ESC command to cancel bold
             ...utf8.encode(order.note ?? "")
           ]),
-          styles: PosStyles(align: PosAlign.left, bold: true), // Start with bold
+          styles: const PosStyles(align: PosAlign.left, bold: true), // Start with bold
         );
 
         printer.hr();
@@ -599,15 +591,15 @@ class PrinterHelperEnglish {
 
         printer.text(
           "${trBg('invoice_number', savedLocale)}:  ${order.invoice?.invoiceNumber ?? ''}",
-          styles: PosStyles(align: PosAlign.left, bold: true),
+          styles: const PosStyles(align: PosAlign.left, bold: true),
         );
         printer.text(
           "${trBg('payment_method', savedLocale)}:  ${order.payment?.paymentMethod ?? ''}",
-          styles: PosStyles(align: PosAlign.left, bold: true),
+          styles: const PosStyles(align: PosAlign.left, bold: true),
         );
         printer.text(
           "${trBg('paid', savedLocale)}: ${order.createdAt ?? ''}",
-          styles: PosStyles(align: PosAlign.left, bold: true),
+          styles: const PosStyles(align: PosAlign.left, bold: true),
         );
         printer.hr();
 
@@ -641,7 +633,7 @@ class PrinterHelperEnglish {
     // Using trBg instead of 'xxx'.tr
     printer.text(
       '${trBg('vat_rate', locale)}        ${trBg('gross', locale)}       ${trBg('net', locale)}       ${trBg('vat', locale)}',
-      styles: PosStyles(bold: true, align: PosAlign.left),
+      styles: const PosStyles(bold: true, align: PosAlign.left),
     );
 
     for (var tax in order.brutto_netto_summary!) {
@@ -726,9 +718,6 @@ class PrinterHelperEnglish {
     String guestPhone = order.guestShippingJson?.phone?.toString() ?? '';
 
     final subtotal = order.items?.fold<double>(0, (sum, item) {
-      if (item == null) return sum;
-
-      // Toppings total for this item
       final toppingsTotal = item.toppings?.fold<double>(
         0,
             (tSum, topping) => tSum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
@@ -747,30 +736,30 @@ class PrinterHelperEnglish {
 
 
     printer.text(" ${store ?? ''}",
-      styles: PosStyles(align: PosAlign.center, bold: true,),);
+      styles: const PosStyles(align: PosAlign.center, bold: true,),);
     printer.text(
       sanitizeText(orderType),
-      styles: PosStyles(align: PosAlign.center, bold: true,),
+      styles: const PosStyles(align: PosAlign.center, bold: true,),
     );
     printer.text("${'order'.tr} # ${order.id ?? ''}",
-      styles: PosStyles(align: PosAlign.center, bold: true),
+      styles: const PosStyles(align: PosAlign.center, bold: true),
     );
 
-    printer.setStyles(PosStyles(align: PosAlign.center));
+    printer.setStyles(const PosStyles(align: PosAlign.center));
     printer.text(
       sanitizeText("${'invoice_number'.tr}: ${order.invoice?.invoiceNumber ?? ''}"),
-      styles: PosStyles(bold: true),
+      styles: const PosStyles(bold: true),
     );
     printer.text(
       sanitizeText("${'date'.tr}: ${order.createdAt ?? dateTimeStr}"),
-      styles: PosStyles(bold: true),
+      styles: const PosStyles(bold: true),
     );
     printer.hr();
     printer.text(
       sanitizeText("${'customer'.tr}: ${(order.shippingAddress?.customerName != null && order.shippingAddress!.customerName!.isNotEmpty)
           ? order.shippingAddress!.customerName!
           : guestName}"),
-      styles: PosStyles(align: PosAlign.left, bold: true),
+      styles: const PosStyles(align: PosAlign.left, bold: true),
     );
 
     String addressText = "${'address'.tr}: ";
@@ -785,14 +774,14 @@ class PrinterHelperEnglish {
 
     printer.text(
       addressText,
-      styles: PosStyles(align: PosAlign.left, bold: true),
+      styles: const PosStyles(align: PosAlign.left, bold: true),
     );
 
     printer.text(
       "${'phone'.tr}: ${(order.shippingAddress?.phone != null && order.shippingAddress!.phone!.isNotEmpty)
           ? order.shippingAddress!.phone!
           : guestPhone}",
-      styles: PosStyles(align: PosAlign.left, bold: true),
+      styles: const PosStyles(align: PosAlign.left, bold: true),
     );
     printer.hr();
     printer.feed(1);
@@ -807,7 +796,7 @@ class PrinterHelperEnglish {
         0x1B, 0x21, 0x00, // ESC command to cancel bold
         ...utf8.encode(order.note ?? "")
       ]),
-      styles: PosStyles(align: PosAlign.left, bold: true), // Start with bold
+      styles: const PosStyles(align: PosAlign.left, bold: true), // Start with bold
     );
 
     printer.hr();
@@ -843,13 +832,13 @@ class PrinterHelperEnglish {
     printer.hr();
 
     printer.text("${'invoice_number'.tr}:  ${order.invoice?.invoiceNumber ?? ''}",
-      styles: PosStyles(align: PosAlign.left, bold: true),
+      styles: const PosStyles(align: PosAlign.left, bold: true),
     );
     printer.text("${'payment_method'.tr}:  ${order.payment?.paymentMethod ?? ''}",
-      styles: PosStyles(align: PosAlign.left, bold: true),
+      styles: const PosStyles(align: PosAlign.left, bold: true),
     );
     printer.text("${'paid'.tr}: ${order.createdAt ?? ''}",
-      styles: PosStyles(align: PosAlign.left, bold: true),
+      styles: const PosStyles(align: PosAlign.left, bold: true),
     );
     printer.hr();
 
@@ -866,9 +855,6 @@ class PrinterHelperEnglish {
     if (order.items == null || order.items!.isEmpty) return;
 
     for (final item in order.items!) {
-      if (item == null) continue;
-
-      // Calculate total price for this single item (including toppings)
       final toppingsTotal = item.toppings?.fold<double>(
         0,
             (sum, topping) => sum + ((topping.price ?? 0) * (topping.quantity ?? 0)),
@@ -932,7 +918,7 @@ class PrinterHelperEnglish {
 
   printer.text(
     '${'vat_rate'.tr}        ${'gross'.tr}       ${'net'.tr}       ${'vat'.tr}',
-    styles: PosStyles(bold: true, align: PosAlign.left),
+    styles: const PosStyles(bold: true, align: PosAlign.left),
   );
 
   for (var tax in order.bruttoNettoSummary!) {

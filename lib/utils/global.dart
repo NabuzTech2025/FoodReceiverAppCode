@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:food_app/api/repository/api_repository.dart';
 import 'package:food_app/constants/constant.dart';
-import 'package:food_app/models/Store.dart';
 import 'package:food_app/models/order_model.dart';
-import 'package:food_app/utils/log_util.dart';
 import 'package:food_app/utils/my_application.dart';
 import 'package:food_app/utils/printer_helper_english.dart';
-import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -18,7 +15,7 @@ Map<int, DateTime> _orderProcessingTime = <int, DateTime>{};
 // ✅ NEW: Clean old processed orders (older than 1 hour)
 void _cleanOldProcessedOrders() {
   final now = DateTime.now();
-  final oneHourAgo = now.subtract(Duration(hours: 1));
+  final oneHourAgo = now.subtract(const Duration(hours: 1));
 
   _orderProcessingTime.removeWhere((orderId, time) => time.isBefore(oneHourAgo));
   _processedOrderIds.removeWhere((orderId) => !_orderProcessingTime.containsKey(orderId));
@@ -88,7 +85,7 @@ Future<String> getStoreName() async {
 
     if (bearerKey != null && storeID != null) {
       final storeData = await ApiRepo().getStoreData(bearerKey, storeID);
-      if (storeData != null && storeData.name != null) {
+      if (storeData.name != null) {
         String storeName = storeData.name.toString();
         // Cache the store name for future use
         await prefs.setString('cached_store_name', storeName);
@@ -120,8 +117,8 @@ Future<void> getOrdersInForegrund(BuildContext context, int orderID) async {
     _orderProcessingTime[orderID] = DateTime.now();
     _cleanOldProcessedOrders();
 
-    bool _autoOrderAccept = false;
-    bool _autoOrderPrint = false;
+    bool autoOrderAccept = false;
+    bool autoOrderPrint = false;
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? bearerKey = prefs.getString(valueShared_BEARER_KEY);
 
@@ -133,102 +130,95 @@ Future<void> getOrdersInForegrund(BuildContext context, int orderID) async {
 
     final result = await ApiRepo().getNewOrderData(bearerKey, orderID);
 
-    if (result != null) {
-      // ✅ Step 3: Check if this order already exists in controller before adding
-      bool orderExists = app.appController.searchResultOrder.any((order) => order.id == result.id);
+    // ✅ Step 3: Check if this order already exists in controller before adding
+    bool orderExists = app.appController.searchResultOrder.any((order) => order.id == result.id);
 
-      if (orderExists) {
-        print("⚠️ Order ${result.id} already exists in controller, skipping add but processing actions");
-      } else {
-        app.appController.addNewOrder(result);
-        print("📦 New order added to controller: ${result.id}");
-      }
+    if (orderExists) {
+      print("⚠️ Order ${result.id} already exists in controller, skipping add but processing actions");
+    } else {
+      app.appController.addNewOrder(result);
+      print("📦 New order added to controller: ${result.id}");
+    }
 
-      _autoOrderAccept = prefs.getBool('auto_order_accept') ?? false;
-      _autoOrderPrint = prefs.getBool('auto_order_print') ?? false;
+    autoOrderAccept = prefs.getBool('auto_order_accept') ?? false;
+    autoOrderPrint = prefs.getBool('auto_order_print') ?? false;
 
-      print("⚙️ Auto settings - Accept: $_autoOrderAccept");
-      print("📋 Order Status: ${result.orderStatus} (2=Accepted, 1=Pending)");
+    print("⚙️ Auto settings - Accept: $autoOrderAccept");
+    print("📋 Order Status: ${result.orderStatus} (2=Accepted, 1=Pending)");
 
-      // ✅ CHECK ORDER STATUS FIRST
-      if (result.orderStatus == 2) {
-        // Order is already ACCEPTED
-        print("✅ Order already accepted, checking auto print");
+    // ✅ CHECK ORDER STATUS FIRST
+    if (result.orderStatus == 2) {
+      // Order is already ACCEPTED
+      print("✅ Order already accepted, checking auto print");
 
-        if (_autoOrderPrint) {
-          print("🖨️ Auto printing already accepted order");
+      if (autoOrderPrint) {
+        print("🖨️ Auto printing already accepted order");
 
-          // Check if invoice is ready
-          if (result.invoice != null &&
-              (result.invoice?.invoiceNumber ?? '').isNotEmpty) {
+        // Check if invoice is ready
+        if (result.invoice != null &&
+            (result.invoice?.invoiceNumber ?? '').isNotEmpty) {
 
-            // 🔥 GET STORE NAME BEFORE PRINTING
-            String storeName = await getStoreName();
+          // 🔥 GET STORE NAME BEFORE PRINTING
+          String storeName = await getStoreName();
 
-            PrinterHelperEnglish.printTestFromSavedIp(
-                context: context,
-                order: result,
-                store: storeName,
-                auto: true
-            );
-            print("✅ Auto print completed for accepted order with store: $storeName");
+          PrinterHelperEnglish.printTestFromSavedIp(
+              context: context,
+              order: result,
+              store: storeName,
+              auto: true
+          );
+          print("✅ Auto print completed for accepted order with store: $storeName");
 
-          } else {
-            print("❌ Invoice not ready for accepted order. Skipping print.");
-          }
-        }
-
-      } else {
-        // Order is PENDING - check if auto accept is enabled
-        print("⏳ Order is pending, checking auto accept");
-
-        if (_autoOrderAccept) {
-          print("🤖 Auto accepting pending order");
-
-          // Step 1: Accept the order first
-          await getOrders(bearerKey, true, result);
-
-          // Step 2: Wait for backend to process
-          await Future.delayed(Duration(seconds: 2));
-
-          // Step 3: Auto print if enabled
-          if (_autoOrderPrint) {
-            print("🖨️ Auto printing after accept");
-
-            // Get updated order with invoice
-            final updatedOrder = await ApiRepo().getNewOrderData(bearerKey, orderID);
-
-            if (updatedOrder?.invoice != null &&
-                (updatedOrder?.invoice?.invoiceNumber ?? '').isNotEmpty) {
-
-              // 🔥 GET STORE NAME BEFORE PRINTING
-              String storeName = await getStoreName();
-
-              // Print the order
-              PrinterHelperEnglish.printTestFromSavedIp(
-                  context: context,
-                  order: updatedOrder!,
-                  store: storeName,
-                  auto: true
-              );
-              print("✅ Auto print completed after accept with store: $storeName");
-
-            } else {
-              print("❌ Invoice not ready after accept. Skipping print.");
-            }
-          }
         } else {
-          print("🔄 Order pending, auto accept disabled - waiting for manual accept");
+          print("❌ Invoice not ready for accepted order. Skipping print.");
         }
       }
 
     } else {
-      String errorMessage = "Failed to get order data";
-      showSnackbar("Error", errorMessage);
-      print("❌ $errorMessage for order: $orderID");
-      _processedOrderIds.remove(orderID); // Remove from processed if failed
+      // Order is PENDING - check if auto accept is enabled
+      print("⏳ Order is pending, checking auto accept");
+
+      if (autoOrderAccept) {
+        print("🤖 Auto accepting pending order");
+
+        // Step 1: Accept the order first
+        await getOrders(bearerKey, true, result);
+
+        // Step 2: Wait for backend to process
+        await Future.delayed(const Duration(seconds: 2));
+
+        // Step 3: Auto print if enabled
+        if (autoOrderPrint) {
+          print("🖨️ Auto printing after accept");
+
+          // Get updated order with invoice
+          final updatedOrder = await ApiRepo().getNewOrderData(bearerKey, orderID);
+
+          if (updatedOrder.invoice != null &&
+              (updatedOrder.invoice?.invoiceNumber ?? '').isNotEmpty) {
+
+            // 🔥 GET STORE NAME BEFORE PRINTING
+            String storeName = await getStoreName();
+
+            // Print the order
+            PrinterHelperEnglish.printTestFromSavedIp(
+                context: context,
+                order: updatedOrder,
+                store: storeName,
+                auto: true
+            );
+            print("✅ Auto print completed after accept with store: $storeName");
+
+          } else {
+            print("❌ Invoice not ready after accept. Skipping print.");
+          }
+        }
+      } else {
+        print("🔄 Order pending, auto accept disabled - waiting for manual accept");
+      }
     }
-  } catch (e) {
+
+    } catch (e) {
     showSnackbar("Api Error", "An error occurred: $e");
     print("❌ Foreground order processing error: $e");
     _processedOrderIds.remove(orderID); // Remove from processed if failed
@@ -246,21 +236,17 @@ Future<void> getOrders(String bearerKey, bool orderStatus, Order updatedOrder) a
 
     final result = await ApiRepo().orderAcceptDecline(bearerKey, jsonData, updatedOrder.id ?? 0);
 
-    if (result != null) {
-      updatedOrder = result;
+    updatedOrder = result;
 
-      // Safe controller update
-      try {
-        app.appController.updateOrder(result);
-        print("✅ Order ${orderStatus ? 'Accepted' : 'Declined'}: ID ${updatedOrder.id}");
-      } catch (e) {
-        print("⚠️ Controller update failed: $e");
-      }
-
-    } else {
-      print("❌ Failed to update order status for: ${updatedOrder.id}");
+    // Safe controller update
+    try {
+      app.appController.updateOrder(result);
+      print("✅ Order ${orderStatus ? 'Accepted' : 'Declined'}: ID ${updatedOrder.id}");
+    } catch (e) {
+      print("⚠️ Controller update failed: $e");
     }
-  } catch (e) {
+
+    } catch (e) {
     print("❌ Exception in getOrders: $e");
   }
 }
@@ -290,20 +276,16 @@ Future<void> processOrderInBackground(int orderID) async {
 
     // Get order data
     final orderData = await ApiRepo().getNewOrderData(bearerKey, orderID);
-    if (orderData == null) {
-      _processedOrderIds.remove(orderID);
-      return;
-    }
 
     // Auto accept
     if (autoAccept) {
       await getOrders(bearerKey, true, orderData);
-      await Future.delayed(Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 2));
 
       // Auto print after accept
       if (autoPrint) {
         final updatedOrder = await ApiRepo().getNewOrderData(bearerKey, orderID);
-        if (updatedOrder?.invoice != null) {
+        if (updatedOrder.invoice != null) {
           print("🖨️ Background printing order: $orderID");
         }
       }
@@ -357,13 +339,9 @@ Future<void> getReservationInForeground(int reservationID) async {
     if (bearerKey != null) {
       var reservation = await CallService().getNewReservationData(bearerKey, reservationID);
 
-      if (reservation != null) {
-        app.appController.addNewReservation(reservation);
-        print("✅ Reservation $reservationID added to controller");
-      } else {
-        print("❌ Failed to fetch reservation $reservationID");
-      }
-    }
+      app.appController.addNewReservation(reservation);
+      print("✅ Reservation $reservationID added to controller");
+        }
   } catch (e) {
     print("❌ Error in foreground reservation processing: $e");
   }

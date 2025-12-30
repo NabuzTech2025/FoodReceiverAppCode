@@ -1,11 +1,9 @@
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:food_app/api/repository/api_repository.dart';
 import 'package:food_app/constants/constant.dart';
 import 'package:food_app/models/DailySalesReport.dart';
-import 'package:food_app/utils/log_util.dart';
 import 'package:food_app/utils/my_application.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -15,6 +13,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/reservation/get_history_reservation.dart';
 
 class ReportScreenBottom extends StatefulWidget {
+  const ReportScreenBottom({super.key});
+
   @override
   _ReportScreenBottomState createState() => _ReportScreenBottomState();
 }
@@ -141,11 +141,11 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("Reservations", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text("Reservations", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Row(
               children: [
                 IconButton(
-                  icon: Icon(Icons.arrow_left, size: 40,color: Colors.green),
+                  icon: const Icon(Icons.arrow_left, size: 40,color: Colors.green),
                   onPressed: () {
                     setState(() {
                       if (selectedMonth == 1) {
@@ -159,7 +159,7 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
                   },
                 ),
                 IconButton(
-                  icon: Icon(Icons.arrow_right, size: 40,color: Colors.green),
+                  icon: const Icon(Icons.arrow_right, size: 40,color: Colors.green),
                   onPressed: () {
                     setState(() {
                       if (selectedMonth == 12) {
@@ -184,7 +184,7 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
                 text: TextSpan(
                   children: [
                     TextSpan(
-                      text: DateFormat('MMMM').format(DateTime(year, month)) + ', ',
+                      text: '${DateFormat('MMMM').format(DateTime(year, month))}, ',
                       style: const TextStyle(
                         color: Colors.black,
                         fontSize: 15,
@@ -202,7 +202,7 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
                   ],
                 ),
               ),
-              Text('${'total_reserv'.tr} : $totalReservationsForMonth',style: TextStyle(
+              Text('${'total_reserv'.tr} : $totalReservationsForMonth',style: const TextStyle(
                 fontFamily: 'Mulish',fontSize: 15,fontWeight: FontWeight.w600
               ),)
             ],
@@ -299,16 +299,16 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
 
               // Booking count (new)
               if (isCurrentMonth && bookingCount > 0) ...[
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                   decoration: BoxDecoration(
                     color: Colors.blue.withOpacity(0.8),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     '$bookingCount',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 9,
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -411,7 +411,7 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
         Navigator.of(Get.overlayContext!).pop();
       }
 
-      await Future.delayed(Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 300));
 
       if (_selectedDate != null) {
         String displayDate = DateFormat('d MMMM, y').format(_selectedDate!);
@@ -431,7 +431,7 @@ class _ReportScreenBottomState extends State<ReportScreenBottom> {
         SnackBar(
           content: Text('${'gett_history'.tr}: $e'),
           backgroundColor: Colors.red,
-          duration: Duration(seconds: 3),
+          duration: const Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
         ),
       );

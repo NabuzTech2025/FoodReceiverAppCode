@@ -3,12 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../api/repository/api_repository.dart';
 import '../constants/constant.dart';
-import '../controller/AppController.dart';
 import '../models/get_printer_ip_response_model.dart';
-
+import 'package:food_app/customView/CustomDrawer.dart';
+import 'package:food_app/customView/CustomAppBar.dart';
 class PrinterSettingsScreen extends StatefulWidget {
   const PrinterSettingsScreen({super.key});
 
@@ -19,6 +18,7 @@ class PrinterSettingsScreen extends StatefulWidget {
 class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with AutomaticKeepAliveClientMixin, WidgetsBindingObserver{
   @override
   bool get wantKeepAlive => true;
+  late PageController _pageController;
   final TextEditingController _newIpController = TextEditingController();
   final FocusNode _ipFocusNode = FocusNode();
   final TextEditingController _syncTimeController = TextEditingController();
@@ -33,8 +33,17 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(initialPage: 0);
     WidgetsBinding.instance.addObserver(this);
     _initSharedPrefs();
+  }
+
+  void _openTab(int index) {
+    if (_pageController.hasClients &&
+        _pageController.page == index.toDouble()) {
+      print("Already on tab $index. Skipping.");
+      return;
+    }
   }
 
   Future<void> _initSharedPrefs() async {
@@ -51,7 +60,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
       }
     }
   }
-    @override
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed && mounted) {
@@ -60,7 +69,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
     }
   }
 
-  // ✅ Add this method - detect when screen becomes visible
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -209,6 +218,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
     _ipFocusNode.dispose();
     _syncTimeController.dispose();
     _syncTimeFocusNode.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -222,7 +232,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
           SnackBar(
             content: Text('please_enter_sync'.tr),
             backgroundColor: Colors.red,
-            duration: Duration(milliseconds: 1500),
+            duration: const Duration(milliseconds: 1500),
           ),
         );
       }
@@ -235,7 +245,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
       if (mounted) {
         final messenger = ScaffoldMessenger.of(context); // ✅ Cache messenger first
         messenger.showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Sync time must be at least 1 minute'),
             backgroundColor: Colors.red,
             duration: Duration(milliseconds: 1500),
@@ -263,7 +273,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
           SnackBar(
             content: Text('${'sync_time_saved'.tr}: $syncTimeMinutes minutes'),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -275,7 +285,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
           SnackBar(
             content: Text('failed_save_sync'.tr),
             backgroundColor: Colors.red,
-            duration: Duration(milliseconds: 1500),
+            duration: const Duration(milliseconds: 1500),
           ),
         );
       }
@@ -290,6 +300,8 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
       onTap: () => _ipFocusNode.unfocus(),
       child: Scaffold(
         backgroundColor: Colors.white,
+        drawer: CustomDrawer(onSelectTab: _openTab),
+        appBar: const CustomAppBar(),
         body: SafeArea(
           child: Column(
             children: [
@@ -304,10 +316,10 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
                 ),
                 child: Row(
                   children: [
-                     Expanded(
+                    Expanded(
                       child: Text(
                         'auto_order'.tr,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                           color: Colors.black,
@@ -340,13 +352,13 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
                   children: [
                     Text(
                       'sync_time'.tr,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: Colors.black87,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         Expanded(
@@ -368,7 +380,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
                             onFieldSubmitted: (value) => _saveSyncTime(),
                           ),
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         ElevatedButton(
                           onPressed: _saveSyncTime,
                           style: ElevatedButton.styleFrom(
@@ -381,7 +393,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
                           ),
                           child: Text(
                             'saved'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -407,7 +419,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
                       flex: 4,
                       child: Text(
                         'ip'.tr,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                           color: Colors.black87,
@@ -419,7 +431,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
                       child: Text(
                         'status'.tr,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                           color: Colors.black87,
@@ -431,7 +443,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
                       child: Text(
                         'action'.tr,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                           color: Colors.black87,
@@ -557,10 +569,10 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
                                       } else {
                                         if (mounted) {
                                           ScaffoldMessenger.of(context).showSnackBar(
-                                             SnackBar(
+                                            SnackBar(
                                               content: Text('unable_to'.tr),
                                               backgroundColor: Colors.red,
-                                              duration: Duration(seconds: 2),
+                                              duration: const Duration(seconds: 2),
                                             ),
                                           );
                                         }
@@ -601,7 +613,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
                   children: [
                     Text(
                       'enter_new'.tr,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: Colors.black87,
@@ -635,7 +647,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
                               SnackBar(
                                 content: Text('please_enter_ip'.tr),
                                 backgroundColor: Colors.red,
-                                duration: Duration(milliseconds: 100),
+                                duration: const Duration(milliseconds: 100),
                               ),
                             );
                           }
@@ -649,7 +661,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
                               SnackBar(
                                 content: Text(validation),
                                 backgroundColor: Colors.red,
-                                duration: Duration(milliseconds: 100),
+                                duration: const Duration(milliseconds: 100),
                               ),
                             );
                           }
@@ -674,7 +686,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
                       ),
                       child:  Text(
                         'saved'.tr,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
@@ -706,7 +718,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
     try {
       // ✅ 6 second timeout wrapper
       final result = await Future.any([CallService().getIpAddress(),
-        Future.delayed(Duration(seconds: 6)).then((_) => <GetPrinterIpResponseModel>[])
+        Future.delayed(const Duration(seconds: 6)).then((_) => <GetPrinterIpResponseModel>[])
       ]);
 
       // ✅ Always close dialog after 6 seconds max
@@ -750,7 +762,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
 
     if (Get.isDialogOpen == true) {
       Get.back();
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 100));
     }
 
     Get.dialog(
@@ -772,12 +784,12 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
 
       final result = await Future.any([
         CallService().addNewIp(map),
-        Future.delayed(Duration(seconds: 6)).then((_) => null)
+        Future.delayed(const Duration(seconds: 6)).then((_) => null)
       ]);
 
       if (Get.isDialogOpen == true) {
         Get.back();
-        await Future.delayed(Duration(milliseconds: 200)); // ✅ Delay add karo
+        await Future.delayed(const Duration(milliseconds: 200)); // ✅ Delay add karo
       }
 
       if (result != null) {
@@ -787,8 +799,8 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('ip_added'.tr),
-                backgroundColor: Colors.green,
-              duration: Duration(milliseconds: 100),
+              backgroundColor: Colors.green,
+              duration: const Duration(milliseconds: 100),
             ),
           );
         }
@@ -801,14 +813,14 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
       // ✅ Dialog close with delay
       if (Get.isDialogOpen == true) {
         Get.back();
-        await Future.delayed(Duration(milliseconds: 200)); // ✅ Ye bhi add karo
+        await Future.delayed(const Duration(milliseconds: 200)); // ✅ Ye bhi add karo
       }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${'failed_ip'.tr}: $e'.tr),
-              backgroundColor: Colors.red,
-            duration: Duration(milliseconds: 100),
+            backgroundColor: Colors.red,
+            duration: const Duration(milliseconds: 100),
           ),
         );
       }
@@ -833,7 +845,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
       if (showDialog) {
         if (Get.isDialogOpen == true) {
           Get.back();
-          await Future.delayed(Duration(milliseconds: 100));
+          await Future.delayed(const Duration(milliseconds: 100));
         }
 
         Get.dialog(
@@ -848,7 +860,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
       if (bearerToken == null || bearerToken.isEmpty) {
         if (showDialog && Get.isDialogOpen == true) {
           Get.back();
-          await Future.delayed(Duration(milliseconds: 200));
+          await Future.delayed(const Duration(milliseconds: 200));
         }
 
         if (mounted) {
@@ -856,7 +868,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
             SnackBar(
               content: Text('auth'.tr),
               backgroundColor: Colors.red,
-              duration: Duration(milliseconds: 100),
+              duration: const Duration(milliseconds: 100),
             ),
           );
         }
@@ -866,13 +878,13 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
       // ✅ 6 second timeout
       final result = await Future.any([
         ApiRepo().storeSettingPost(bearerToken, jsonData),
-        Future.delayed(Duration(seconds: 6)).then((_) => null)
+        Future.delayed(const Duration(seconds: 6)).then((_) => null)
       ]);
 
       // ✅ Dialog close with delay
       if (showDialog && Get.isDialogOpen == true) {
         Get.back();
-        await Future.delayed(Duration(milliseconds: 200));
+        await Future.delayed(const Duration(milliseconds: 200));
       }
 
       // Inside poststoreSetting, after successful API call:
@@ -885,7 +897,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
             SnackBar(
               content: Text('setting_update'.tr),
               backgroundColor: Colors.green,
-              duration: Duration(milliseconds: 100),
+              duration: const Duration(milliseconds: 100),
             ),
           );
         }
@@ -896,7 +908,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
             SnackBar(
               content: Text('request'.tr),
               backgroundColor: Colors.orange,
-              duration: Duration(milliseconds: 100),
+              duration: const Duration(milliseconds: 100),
             ),
           );
         }
@@ -906,7 +918,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
       // ✅ Dialog close on error
       if (showDialog && Get.isDialogOpen == true) {
         Get.back();
-        await Future.delayed(Duration(milliseconds: 200));
+        await Future.delayed(const Duration(milliseconds: 200));
       }
 
       print("Error: $e");
@@ -914,9 +926,9 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
       if (showDialog && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${'failed_update'.tr}: $e'),
-            backgroundColor: Colors.red,
-              duration: Duration(milliseconds: 100)
+              content: Text('${'failed_update'.tr}: $e'),
+              backgroundColor: Colors.red,
+              duration: const Duration(milliseconds: 100)
           ),
         );
       }
@@ -956,7 +968,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
 
     } catch (e) {
       Get.back();
-        print('${'error_delete'.tr}: $e');
+      print('${'error_delete'.tr}: $e');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1101,7 +1113,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
           SnackBar(
             content: Text('storeId'.tr),
             backgroundColor: Colors.red,
-            duration: Duration(milliseconds: 100),
+            duration: const Duration(milliseconds: 100),
           ),
         );
       }
@@ -1111,7 +1123,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
     // ✅ Dialog open check
     if (Get.isDialogOpen == true) {
       Get.back();
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 100));
     }
 
     Get.dialog(
@@ -1133,13 +1145,13 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
       // ✅ 6 second timeout
       final result = await Future.any([
         CallService().editIpAddress(map, printerId),
-        Future.delayed(Duration(seconds: 6)).then((_) => null)
+        Future.delayed(const Duration(seconds: 6)).then((_) => null)
       ]);
 
       // ✅ Close dialog with delay
       if (Get.isDialogOpen == true) {
         Get.back();
-        await Future.delayed(Duration(milliseconds: 200));
+        await Future.delayed(const Duration(milliseconds: 200));
       }
 
       if (result != null) {
@@ -1151,7 +1163,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
             SnackBar(
               content: Text('update_ip'.tr),
               backgroundColor: Colors.green,
-              duration: Duration(milliseconds: 100),
+              duration: const Duration(milliseconds: 100),
             ),
           );
         }
@@ -1164,7 +1176,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
       // ✅ Close dialog on error
       if (Get.isDialogOpen == true) {
         Get.back();
-        await Future.delayed(Duration(milliseconds: 200));
+        await Future.delayed(const Duration(milliseconds: 200));
       }
 
       if (mounted) {
@@ -1172,7 +1184,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
           SnackBar(
             content: Text('${'failed_update_ip'.tr}: $e'.tr),
             backgroundColor: Colors.red,
-            duration: Duration(milliseconds: 100),
+            duration: const Duration(milliseconds: 100),
           ),
         );
       }
@@ -1194,7 +1206,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen>  with Aut
       // ✅ 6 second timeout
       final result = await Future.any([
         ApiRepo().getStoreSetting(bearerKey, storeID),
-        Future.delayed(Duration(seconds: 6)).then((_) => null)
+        Future.delayed(const Duration(seconds: 6)).then((_) => null)
       ]);
 
       if (result != null && mounted) {

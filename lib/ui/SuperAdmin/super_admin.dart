@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:food_app/ui/Order/OrderDetailEnglish.dart';
 import 'package:food_app/ui/SuperAdmin/superAdmionOrderDetail.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -11,7 +10,6 @@ import '../../api/repository/api_repository.dart';
 import '../../constants/constant.dart';
 import '../../models/all_admin_order_response_model.dart';
 import '../../models/get_admin_report_response_model.dart';
-import '../../models/get_all_store_response_model.dart';
 import '../Login/LoginScreen.dart';
 import '../home_screen.dart';
 
@@ -61,7 +59,7 @@ class _SuperAdminState extends State<SuperAdmin> {
   void _onScroll() {
     final now = DateTime.now();
     if (_lastScrollTime != null &&
-        now.difference(_lastScrollTime!) < Duration(milliseconds: 500)) {
+        now.difference(_lastScrollTime!) < const Duration(milliseconds: 500)) {
       return;
     }
     _lastScrollTime = now;
@@ -113,7 +111,7 @@ class _SuperAdminState extends State<SuperAdmin> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Orders refreshed successfully'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
@@ -124,7 +122,7 @@ class _SuperAdminState extends State<SuperAdmin> {
       print('âŒ Refresh error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Failed to refresh orders'),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 2),
@@ -238,7 +236,7 @@ class _SuperAdminState extends State<SuperAdmin> {
       print('Error loading more orders: $e');
       if (Get.context != null) {
         ScaffoldMessenger.of(Get.context!).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Failed to load more orders. Please try again.'),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 2),
@@ -312,57 +310,57 @@ class _SuperAdminState extends State<SuperAdmin> {
     switch (storeId) {
       case 12:
         return {
-          'border': Color(0xff029543),
-          'background':  Color(0xffEBFAF2),
-          'nameColor':  Color(0xff029543),
+          'border': const Color(0xff029543),
+          'background':  const Color(0xffEBFAF2),
+          'nameColor':  const Color(0xff029543),
         };
       case 13:
         return {
-          'border': Color(0xffE4121E),
-          'background': Color(0xffFCF6F7),
-          'nameColor': Color(0xffE4121E),
+          'border': const Color(0xffE4121E),
+          'background': const Color(0xffFCF6F7),
+          'nameColor': const Color(0xffE4121E),
         };
       case 14:
         return {
-          'border': Color(0xff841D1C),
-          'background': Color(0xffF6EDED),
-          'nameColor': Color(0xff841D1C),
+          'border': const Color(0xff841D1C),
+          'background': const Color(0xffF6EDED),
+          'nameColor': const Color(0xff841D1C),
         };
       case 15:
         return {
-          'border': Color(0xff023047),
-          'background': Color(0xffFAFDFF),
-          'nameColor': Color(0xff023047),
+          'border': const Color(0xff023047),
+          'background': const Color(0xffFAFDFF),
+          'nameColor': const Color(0xff023047),
         };
       case 16:
         return {
-          'border': Color(0xff624BA1),
-          'background': Color(0xfFDFCFF),
-          'nameColor': Color(0xff624BA1),
+          'border': const Color(0xff624BA1),
+          'background': const Color(0x0ffdfcff),
+          'nameColor': const Color(0xff624BA1),
         };
       case 18:
         return {
-          'border': Color(0xffE0D2AA),
-          'background': Color(0xffFAF3E0),
-          'nameColor': Color(0xffE64425),
+          'border': const Color(0xffE0D2AA),
+          'background': const Color(0xffFAF3E0),
+          'nameColor': const Color(0xffE64425),
         };
       case 19:
         return {
-          'border': Color(0xffF9CC46),
-          'background': Color(0xffFDFAF1),
-          'nameColor': Color(0xff029447),
+          'border': const Color(0xffF9CC46),
+          'background': const Color(0xffFDFAF1),
+          'nameColor': const Color(0xff029447),
         };
       case 20:
         return {
-          'border': Color(0xffE31E22),
-          'background': Color(0xffFFDCDD),
-          'nameColor': Color(0xffE31E22),
+          'border': const Color(0xffE31E22),
+          'background': const Color(0xffFFDCDD),
+          'nameColor': const Color(0xffE31E22),
         };
       default:
         return {
-          'border': Color(0xffE0D2AA),
+          'border': const Color(0xffE0D2AA),
           'background': Colors.white,
-          'nameColor': Color(0xffE64425),
+          'nameColor': const Color(0xffE64425),
         };
     }
   }
@@ -378,7 +376,7 @@ class _SuperAdminState extends State<SuperAdmin> {
             color: Colors.white,
             child: Column(
               children: [
-                SizedBox(height: 40),
+                const SizedBox(height: 40),
                 // Search Box and Logout
                 Padding(
                   padding: const EdgeInsets.all(12.0),
@@ -387,8 +385,8 @@ class _SuperAdminState extends State<SuperAdmin> {
                       Container(
                         height: 45,
                         width: 300,
-                        padding: EdgeInsets.all(12),
-                        margin: EdgeInsets.all(5),
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.all(5),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
@@ -406,14 +404,14 @@ class _SuperAdminState extends State<SuperAdmin> {
                             prefixIcon: Image.asset('assets/images/search.png'),
                             suffixIcon: searchController.text.isNotEmpty
                                 ? IconButton(
-                              icon: Icon(Icons.clear, size: 18),
+                              icon: const Icon(Icons.clear, size: 18),
                               onPressed: () {
                                 searchController.clear();
                               },
                             )
                                 : null,
                             border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: 10),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
                           ),
                         ),
                       ),
@@ -421,16 +419,16 @@ class _SuperAdminState extends State<SuperAdmin> {
                           onTap: () {
                             showLogoutConfirmation(context);
                           },
-                          child: Icon(Icons.logout, color: Colors.green))
+                          child: const Icon(Icons.logout, color: Colors.green))
                     ],
                   ),
                 ),
                 Container(
-                  padding: EdgeInsets.only(left: 12,right: 12,bottom: 5),
+                  padding: const EdgeInsets.only(left: 12,right: 12,bottom: 5),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
+                      const Text(
                         'Restaurant',
                         style: TextStyle(
                             fontWeight: FontWeight.w800,
@@ -442,7 +440,7 @@ class _SuperAdminState extends State<SuperAdmin> {
                           GestureDetector(
                             onTap: isRefreshing ? null : refreshAllData,
                             child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
                                 color: isRefreshing ? Colors.grey : Colors.green,
                                 borderRadius: BorderRadius.circular(5),
@@ -451,7 +449,7 @@ class _SuperAdminState extends State<SuperAdmin> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   if (isRefreshing)
-                                    SizedBox(
+                                    const SizedBox(
                                       width: 14,
                                       height: 14,
                                       child: CircularProgressIndicator(
@@ -460,11 +458,11 @@ class _SuperAdminState extends State<SuperAdmin> {
                                       ),
                                     )
                                   else
-                                    Icon(Icons.refresh, color: Colors.white, size: 16),
-                                  SizedBox(width: 4),
+                                    const Icon(Icons.refresh, color: Colors.white, size: 16),
+                                  const SizedBox(width: 4),
                                   Text(
                                     isRefreshing ? 'Refreshing...' : 'Refresh',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
@@ -482,7 +480,7 @@ class _SuperAdminState extends State<SuperAdmin> {
                 ),
                 if (searchController.text.isNotEmpty)
                   Container(
-                    margin: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+                    margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
                     child: Text(
                       'Found ${filteredStoreList.length} store(s)',
                       style: TextStyle(
@@ -494,12 +492,12 @@ class _SuperAdminState extends State<SuperAdmin> {
                   ),
                 filteredStoreList.isEmpty && searchController.text.isNotEmpty
                     ? Container(
-                  margin: EdgeInsets.only(top: 20, bottom: 20),
+                  margin: const EdgeInsets.only(top: 20, bottom: 20),
                   child: Column(
                     children: [
                       Icon(Icons.search_off,
                           size: 48, color: Colors.grey.shade400),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text(
                         'No stores found',
                         style: TextStyle(
@@ -539,8 +537,8 @@ class _SuperAdminState extends State<SuperAdmin> {
                             });
                           },
                           child: Container(
-                            padding: EdgeInsets.all(12),
-                            margin: EdgeInsets.all(5),
+                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.all(5),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
@@ -555,13 +553,13 @@ class _SuperAdminState extends State<SuperAdmin> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text('ID : ${store.storeId}',  // Changed from store.id
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w800,
                                           fontFamily: 'Mulish'
                                       ),
                                     ),
-                                    Container(
+                                    SizedBox(
                                       width: MediaQuery.of(context).size.width*0.26,
                                       child: Text('${store.storeName}',
                                         style: TextStyle(
@@ -577,7 +575,7 @@ class _SuperAdminState extends State<SuperAdmin> {
                                 if (store.report != null)
                                   Text(
                                     'Orders : ${store.report!.totalOrders ?? 0}',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                       fontFamily: 'Mulish',
@@ -585,7 +583,7 @@ class _SuperAdminState extends State<SuperAdmin> {
                                   ),
                                 Text(
                                     'Sale : ${store.report!.totalSales ?? 0}',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                       fontFamily: 'Mulish',
@@ -601,7 +599,7 @@ class _SuperAdminState extends State<SuperAdmin> {
                     ),
                 if (searchController.text.isNotEmpty)
                   Container(
-                    margin: EdgeInsets.symmetric(horizontal: 17, vertical: 10),
+                    margin: const EdgeInsets.symmetric(horizontal: 17, vertical: 10),
                     child: Row(
                       children: [
                         Text(
@@ -629,7 +627,7 @@ class _SuperAdminState extends State<SuperAdmin> {
                   controller: orderScrollController,
                   thumbVisibility: true,
                   thickness: 8,
-                  radius: Radius.circular(10),
+                  radius: const Radius.circular(10),
                   interactive: true,
                   child: ListView.builder(
                 controller: orderScrollController,
@@ -639,7 +637,7 @@ class _SuperAdminState extends State<SuperAdmin> {
                     (isLoadingPrevious ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (index == 0 && isLoadingPrevious) {
-                    return Center(
+                    return const Center(
                       child: Padding(
                         padding: EdgeInsets.all(8.0),
                         child: CircularProgressIndicator(),
@@ -650,7 +648,7 @@ class _SuperAdminState extends State<SuperAdmin> {
 
                   if (adjustedIndex == filteredOrderList.length &&
                       isLoadingMore) {
-                    return Center(
+                    return const Center(
                       child: Padding(
                         padding: EdgeInsets.all(8.0),
                         child: CircularProgressIndicator(),
@@ -660,12 +658,12 @@ class _SuperAdminState extends State<SuperAdmin> {
 
                   if (filteredOrderList.isEmpty) {
                     return Container(
-                      margin: EdgeInsets.only(top: 50),
+                      margin: const EdgeInsets.only(top: 50),
                       child: Column(
                         children: [
                           Icon(Icons.receipt_long_outlined,
                               size: 64, color: Colors.grey.shade400),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           Text(
                             'No orders found',
                             style: TextStyle(
@@ -710,8 +708,8 @@ class _SuperAdminState extends State<SuperAdmin> {
                       Get.to(()=>SuperAdminOrderDetail(order));
                     },
                     child: Container(
-                      margin: EdgeInsets.all(8),
-                      padding: EdgeInsets.all(8),
+                      margin: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: getContainerColor(),
                         borderRadius: BorderRadius.circular(7),
@@ -1031,12 +1029,12 @@ class _SuperAdminState extends State<SuperAdmin> {
       final context = Get.context;
       if (context != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Logged out successfully'),
+          const SnackBar(
+            content: Text('Logged out successfully'),
             backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(10),
+            margin: EdgeInsets.all(10),
           ),
         );
       }
@@ -1052,12 +1050,12 @@ class _SuperAdminState extends State<SuperAdmin> {
       final context = Get.context;
       if (context != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Failed to logout. Please try again.'),
+          const SnackBar(
+            content: Text('Failed to logout. Please try again.'),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(10),
+            margin: EdgeInsets.all(10),
           ),
         );
       }

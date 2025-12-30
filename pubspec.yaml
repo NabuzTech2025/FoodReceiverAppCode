@@ -61,6 +61,11 @@ dependencies:
   cupertino_icons: ^1.0.8
 
 
+  image: any
+  path_provider: any
+  html: any
+  http: any
+  http_parser: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

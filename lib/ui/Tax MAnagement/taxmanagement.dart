@@ -76,7 +76,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
     return Scaffold(
       backgroundColor: Colors.white,
       drawer: CustomDrawer(onSelectTab: _openTab),
-      appBar: CustomAppBar(),
+      appBar: const CustomAppBar(),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -86,7 +86,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('manage'.tr,
-                      style: TextStyle(
+                      style: const TextStyle(
                           fontFamily: 'Mulish',
                           fontSize: 18,
                           fontWeight: FontWeight.bold)),
@@ -102,7 +102,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
                       ),
                       child: Center(
                         child: Text('add'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
                               fontSize: 12,
@@ -121,20 +121,20 @@ class _TaxmanagementState extends State<Taxmanagement> {
                 ),
                 child: Row(
                   children: [
-                    Container(
+                    SizedBox(
                       width: MediaQuery.of(context).size.width * 0.6,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             'tax_name'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 13,
                                 fontFamily: 'Mulish'),
                           ),
                           Text('percent'.tr,
-                              style: TextStyle(
+                              style: const TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 13,
                                   fontFamily: 'Mulish')),
@@ -142,12 +142,12 @@ class _TaxmanagementState extends State<Taxmanagement> {
                       ),
                     ),
                     const SizedBox(width: 15),
-                    Container(
+                    SizedBox(
                       width: MediaQuery.of(context).size.width * 0.2,
                       child: Center(
                         child: Text(
                           'action'.tr,
-                          style: TextStyle(
+                          style: const TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 13,
                               fontFamily: 'Mulish'),
@@ -198,13 +198,13 @@ class _TaxmanagementState extends State<Taxmanagement> {
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: [
-                            Container(
+                            SizedBox(
                               width: MediaQuery.of(context).size.width * 0.6,
                               child: Row(
                                 mainAxisAlignment:
                                 MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Container(
+                                  SizedBox(
                                     width: MediaQuery.of(context).size.width *
                                         0.25,
                                     child: Text(
@@ -216,7 +216,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  Container(
+                                  SizedBox(
                                     width:
                                     MediaQuery.of(context).size.width * 0.2,
                                     child: Center(
@@ -392,7 +392,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       Text(
                         '${'are'.tr} "$taxName"?',
                         style: const TextStyle(
@@ -423,7 +423,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
                                 child: Center(
                                   child: Text(
                                     'cancel'.tr,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
                                       color: Colors.white,
@@ -452,7 +452,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
                                 child: Center(
                                   child: Text(
                                     'delete'.tr,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
                                       color: Colors.white,
@@ -533,7 +533,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
       await getStoreTaxes(showLoader: false);
 
       // Small delay before showing snackbar
-      await Future.delayed(Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 500));
 
       // Show success snackbar
       if (mounted) {
@@ -541,7 +541,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
           SnackBar(
             content: Text('tax_delete'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -554,7 +554,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
 
       print('Error deleting tax: $e');
 
-      await Future.delayed(Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 500));
 
       if (mounted) {
         if (e.toString().contains('Cannot delete tax') ||
@@ -563,7 +563,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
             SnackBar(
               content: Text('this'.tr),
               backgroundColor: Colors.orange,
-              duration: Duration(seconds: 4),
+              duration: const Duration(seconds: 4),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -572,7 +572,7 @@ class _TaxmanagementState extends State<Taxmanagement> {
             SnackBar(
               content: Text('delete_tax'.tr),
               backgroundColor: Colors.red,
-              duration: Duration(seconds: 3),
+              duration: const Duration(seconds: 3),
               behavior: SnackBarBehavior.floating,
             ),
           );

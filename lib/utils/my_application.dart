@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../constants/params_args.dart';
@@ -10,15 +9,15 @@ MyApplication app = MyApplication();
 
 class MyApplication {
   static final MyApplication _myApplication = MyApplication._i();
-  AppController _appController = Get.find(tag: ParamsArgus.APP);
-  MapController _mapController = Get.find(tag: ParamsArgus.APP);
-  WidgetController _widgetController = Get.find(tag: ParamsArgus.WIDGET);
+  final AppController _appController = Get.find(tag: ParamsArgus.APP);
+  final MapController _mapController = Get.find(tag: ParamsArgus.APP);
+  final WidgetController _widgetController = Get.find(tag: ParamsArgus.WIDGET);
 
   factory MyApplication() {
     return _myApplication;
   }
 
-  MyApplication._i() {}
+  MyApplication._i();
 
   AppController get appController {
     return _appController;

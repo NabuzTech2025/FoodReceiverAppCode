@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:food_app/ui/table%20Book/reservation_details.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -71,7 +70,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
 
   void _startInternetMonitoring() {
     _internetCheckTimer?.cancel();
-    _internetCheckTimer = Timer.periodic(Duration(seconds: 30), (timer) async {
+    _internetCheckTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
       final connectivityResult = await Connectivity().checkConnectivity();
       bool hasConnection = connectivityResult != ConnectivityResult.none;
 
@@ -148,7 +147,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       }
 
       // ✅ STEP 6: Navigate to login with complete reset
-      Get.offAll(() => LoginScreen());
+      Get.offAll(() => const LoginScreen());
 
       print("✅ Offline logout completed successfully");
 
@@ -159,7 +158,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
         Get.back();
       }
       // Still navigate to login even if error occurs
-      Get.offAll(() => LoginScreen());
+      Get.offAll(() => const LoginScreen());
     }
   }
 
@@ -274,7 +273,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
 
         for (String key in keysToRemove) {
           await prefs.remove(key);
-          await Future.delayed(Duration(milliseconds: 20));
+          await Future.delayed(const Duration(milliseconds: 20));
           print("🗑️ Removed: $key");
         }
 
@@ -289,9 +288,9 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
 
         // ✅ Force multiple reloads to ensure changes are committed
         await prefs.reload();
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
         await prefs.reload();
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
 
         // ✅ Verify cleanup for this attempt
         String? testToken = prefs.getString(valueShared_BEARER_KEY);
@@ -325,7 +324,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
     try {
       print("🔌 Disconnecting socket (offline)...");
       _socketService.disconnect();
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 100));
       print("✅ Socket disconnected (offline)");
     } catch (e) {
       print("⚠️ Error disconnecting socket (offline): $e");
@@ -346,14 +345,14 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
         return WillPopScope(
           onWillPop: () async => false,
           child: AlertDialog(
-            title: Row(
+            title: const Row(
               children: [
                 Icon(Icons.signal_wifi_off, color: Colors.red),
                 SizedBox(width: 8),
                 Text("Connection Error"),
               ],
             ),
-            content: Text("Cannot connect to server. Please logout and login again to continue."),
+            content: const Text("Cannot connect to server. Please logout and login again to continue."),
             actions: [
               ElevatedButton(
                 onPressed: () {
@@ -363,7 +362,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                   _offlineLogout();
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: Text("Logout", style: TextStyle(color: Colors.white)),
+                child: const Text("Logout", style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
@@ -404,7 +403,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       await _socketService.connect();
 
       // ✅ Wait for connection to establish
-      await Future.delayed(Duration(milliseconds: 2000));
+      await Future.delayed(const Duration(milliseconds: 2000));
 
       // ✅ Start listening to store status
       if (storeId != null && mounted) {
@@ -428,7 +427,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
 
     // ✅ Subscribe to the stream
     _socketService.storeStatusStream.listen((data) {
-      if (data != null && mounted) {
+      if (mounted) {
         setState(() {
           storeStatusData = data;
           isStoreOpen = data['is_open'] ?? false;
@@ -474,7 +473,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
             'time12': time12, // Keep for reference but won't use
           });
 
-          currentSlot = currentSlot.add(Duration(minutes: 20));
+          currentSlot = currentSlot.add(const Duration(minutes: 20));
         }
       }
     }
@@ -531,7 +530,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       backgroundColor: const Color(0xFFF5F5F5),
       body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.all(6),
+          padding: const EdgeInsets.all(6),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -574,13 +573,13 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                                 },
                                 child: Row(
                                   children: [
-                                    Text('history'.tr, style: TextStyle(fontFamily: "Mulish", fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xff1F1E1E))),
-                                    SizedBox(width: 5),
+                                    Text('history'.tr, style: const TextStyle(fontFamily: "Mulish", fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xff1F1E1E))),
+                                    const SizedBox(width: 5),
                                     SvgPicture.asset('assets/images/dropdown.svg', height: 5, width: 11),
                                   ],
                                 ),
                               ),
-                              SizedBox(width: 10,),
+                              const SizedBox(width: 10,),
                               if (dateSeleted.isNotEmpty && dateSeleted != DateFormat('d MMMM, y').format(DateTime.now()))
                               GestureDetector(
                                 onTap: () {
@@ -589,13 +588,13 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                                   });
                                 },
                                 child: Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: Colors.blue.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(color: Colors.blue, width: 1),
                                   ),
-                                  child: Row(
+                                  child: const Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(Icons.today, size: 14, color: Colors.blue),
@@ -623,7 +622,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
 
                             return Text(
                               '${'total_reserv'.tr}: $filteredCount',
-                              style: TextStyle(
+                              style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w800,
                                   fontFamily: "Mulish",
@@ -661,7 +660,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
 
                 return ListView.builder(
                     shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
+                    physics: const NeverScrollableScrollPhysics(),
                     itemCount: filteredReservations.length,
                     itemBuilder: (context, index) {
                       var reserv = filteredReservations[index];
@@ -676,8 +675,8 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                           });
                         },
                         child: Container(
-                          padding: EdgeInsets.all(10),
-                          margin: EdgeInsets.all(5),
+                          padding: const EdgeInsets.all(10),
+                          margin: const EdgeInsets.all(5),
                           decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(7),
@@ -686,7 +685,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                                   color: Colors.black.withOpacity(0.1),
                                   spreadRadius: 0,
                                   blurRadius: 4,
-                                  offset: Offset(0, 2),
+                                  offset: const Offset(0, 2),
                                 ),
                               ]),
                           child: Column(
@@ -701,10 +700,10 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                                         height: 25,
                                         width: 25,
                                       ),
-                                      SizedBox(width: 10),
+                                      const SizedBox(width: 10),
                                       Text(
-                                        '${formatDateTime(reserv.reservedFor.toString())}',
-                                        style: TextStyle(
+                                        formatDateTime(reserv.reservedFor.toString()),
+                                        style: const TextStyle(
                                             fontSize: 13,
                                             fontFamily: 'Mulish',
                                             fontWeight: FontWeight.w700),
@@ -713,8 +712,8 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                                   ),
                                   Row(
                                     children: [
-                                      Icon(Icons.access_time, size: 20),
-                                      SizedBox(width: 5),
+                                      const Icon(Icons.access_time, size: 20),
+                                      const SizedBox(width: 5),
                                       Text(
                                         reserv.createdAt != null
                                             ? DateFormat('HH:mm').format(DateTime.parse(reserv.createdAt!))
@@ -729,15 +728,15 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                                   )
                                 ],
                               ),
-                              SizedBox(height: 10),
+                              const SizedBox(height: 10),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Container(
+                                  SizedBox(
                                     width: MediaQuery.of(context).size.width * 0.5,
                                     child: Text(
                                       '${reserv.customerName.toString()}/${reserv.customerPhone.toString()}',
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 13,
                                           fontFamily: "Mulish"),
@@ -747,15 +746,15 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                                     children: [
                                       Text(
                                         '${'order_id'.tr} :',
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.w700,
                                             fontSize: 13,
                                             fontFamily: "Mulish"),
                                       ),
-                                      SizedBox(width: 5),
+                                      const SizedBox(width: 5),
                                       Text(
                                         reserv.id.toString(),
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.w500,
                                             fontSize: 11,
                                             fontFamily: "Mulish"),
@@ -764,7 +763,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                                   ),
                                 ],
                               ),
-                              SizedBox(height: 10),
+                              const SizedBox(height: 10),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
@@ -775,10 +774,10 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                                         height: 18,
                                         width: 14,
                                       ),
-                                      SizedBox(width: 10),
+                                      const SizedBox(width: 10),
                                       Text(
                                         reserv.guestCount.toString(),
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                             fontFamily: 'Mulish',
                                             fontSize: 16,
                                             fontWeight: FontWeight.w800),
@@ -839,7 +838,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       );
     }
 
-    _reservationTimer = Timer(Duration(seconds: 7), () {
+    _reservationTimer = Timer(const Duration(seconds: 7), () {
       if (Get.isDialogOpen ?? false) {
         Navigator.of(Get.overlayContext!).pop();
         showSnackbar("order Timeout", "get Details request timed out. Please try again.");
@@ -860,7 +859,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
         });
 
         // Show logout dialog
-        Future.delayed(Duration(milliseconds: 500), () {
+        Future.delayed(const Duration(milliseconds: 500), () {
           _showLogoutDialog();
         });
         return;
@@ -897,7 +896,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
         });
 
         // Show logout dialog for network errors
-        Future.delayed(Duration(milliseconds: 500), () {
+        Future.delayed(const Duration(milliseconds: 500), () {
           _showLogoutDialog();
         });
       } else {
@@ -907,7 +906,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
             SnackBar(
               content: Text('${'error'.tr} - ${'load'.tr}'),
               backgroundColor: Colors.red,
-              duration: Duration(seconds: 2),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
@@ -944,7 +943,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-              child: ReportScreenBottom(),
+              child: const ReportScreenBottom(),
             ),
           ],
         );
@@ -983,8 +982,8 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       isScrollControlled: true,
       isDismissible: true,
       enableDrag: true,
-      enterBottomSheetDuration: Duration(milliseconds: 400),
-      exitBottomSheetDuration: Duration(milliseconds: 300),
+      enterBottomSheetDuration: const Duration(milliseconds: 400),
+      exitBottomSheetDuration: const Duration(milliseconds: 300),
     );
   }
 
@@ -1001,7 +1000,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
         children:[
           Container(
             height: Get.height * 0.85,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(35),
@@ -1018,7 +1017,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
             child: Column(
               children: [
                 Container(
-                  margin: EdgeInsets.only(top: 12),
+                  margin: const EdgeInsets.only(top: 12),
                   width: 50,
                   height: 4,
                   decoration: BoxDecoration(
@@ -1028,12 +1027,12 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                 ),
                 Container(
                   width: double.infinity,
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-                  margin: EdgeInsets.all(8),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                  margin: const EdgeInsets.all(8),
                   child: Center(
                     child: Text(
                       'new_reservation'.tr,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.black,
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -1044,8 +1043,8 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                 ),
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: 10),
-                    physics: BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    physics: const BouncingScrollPhysics(),
                     child: Column(
                       children: [
                         _buildAddReservationField('customer_name'.tr, nameController, Icons.person),
@@ -1055,7 +1054,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                         _buildAddReservationField('reservation_date'.tr, reservationController, Icons.calendar_today, isDateField: true),
                         _buildAddReservationField('special_note'.tr, noteController, Icons.note, maxLines: 3),
 
-                        SizedBox(height: 15),
+                        const SizedBox(height: 15),
                         Row(
                           children: [
                             Expanded(
@@ -1064,19 +1063,19 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                                   // Close bottom sheet without triggering Get.back() multiple times
                                   Navigator.of(context).pop();
                                 },
-                                child: Text('cancel'.tr,style: TextStyle(
-                                  fontFamily: 'Mulish',fontWeight: FontWeight.w700,fontSize: 16,),),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.grey[300],
                                   foregroundColor: Colors.black87,
-                                  minimumSize: Size(0, 50),
+                                  minimumSize: const Size(0, 50),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(3),
                                   ),
                                 ),
+                                child: Text('cancel'.tr,style: const TextStyle(
+                                  fontFamily: 'Mulish',fontWeight: FontWeight.w700,fontSize: 16,),),
                               ),
                             ),
-                            SizedBox(width: 15),
+                            const SizedBox(width: 15),
                             Expanded(
                               //flex: 2,
                               child: ElevatedButton(
@@ -1091,14 +1090,14 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                                   );
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Color(0xff0C831F),
+                                  backgroundColor: const Color(0xff0C831F),
                                   foregroundColor: Colors.white,
-                                  minimumSize: Size(0, 50),
+                                  minimumSize: const Size(0, 50),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(3),
                                   ),
                                 ),
-                                child:  Center(child: Text('book'.tr,style: TextStyle(
+                                child:  Center(child: Text('book'.tr,style: const TextStyle(
                                   fontFamily: 'Mulish',fontWeight: FontWeight.w700,fontSize: 16,
                                 ),)),
                               ),
@@ -1106,7 +1105,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                           ],
                         ),
 
-                        SizedBox(height: 20),
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
@@ -1145,16 +1144,16 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
   Widget _buildAddReservationField(String label, TextEditingController controller,
       IconData icon, {int maxLines = 1, bool isDateField = false}) {
     return Container(
-      margin: EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
 
           Padding(
-            padding: EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: 8),
             child: Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
@@ -1175,7 +1174,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
               readOnly: isDateField,
               keyboardType: _getKeyboardType(label),
               onTap: isDateField ? () => _selectNewReservationDateTime(controller) : null,
-              style: TextStyle(
+              style: const TextStyle(
                 fontFamily: 'Mulish',
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
@@ -1190,7 +1189,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                   fontWeight: FontWeight.w500,
                 ),
                 prefixIcon: Container(
-                  padding: EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   child: Icon(
                     icon,
                     color: Colors.grey[600],
@@ -1244,7 +1243,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -1272,12 +1271,12 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       print("⚠️ No time slots from WebSocket. Trying to reconnect...");
 
       await _socketService.ensureConnected();
-      await Future.delayed(Duration(milliseconds: 1500));
+      await Future.delayed(const Duration(milliseconds: 1500));
 
       if (availableTimeSlots.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+            const SnackBar(
               content: Text('⚠️ Store timing data not available. Using default timings.'),
               backgroundColor: Colors.orange,
               duration: Duration(seconds: 2),
@@ -1332,9 +1331,9 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
         bool isAvailable = slotTotalMinutes > currentTotalMinutes;
 
         if (!isAvailable) {
-          print("❌ Slot ${slot['time24']} is in past (${slotTotalMinutes} <= ${currentTotalMinutes})");
+          print("❌ Slot ${slot['time24']} is in past ($slotTotalMinutes <= $currentTotalMinutes)");
         } else {
-          print("✅ Slot ${slot['time24']} is available (${slotTotalMinutes} > ${currentTotalMinutes})");
+          print("✅ Slot ${slot['time24']} is available ($slotTotalMinutes > $currentTotalMinutes)");
         }
 
         return isAvailable;
@@ -1348,7 +1347,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
             SnackBar(
               content: Text('${'closed'.tr} - No available time slots for today'),
               backgroundColor: Colors.red,
-              duration: Duration(seconds: 2),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
@@ -1371,7 +1370,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       builder: (BuildContext bottomSheetContext) {
         return Container(
           height: Get.height * 0.7,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(20),
@@ -1381,14 +1380,14 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
           child: Column(
             children: [
               Container(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [Colors.orange.shade600, Colors.orange.shade800],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.only(
+                  borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(20),
                     topRight: Radius.circular(20),
                   ),
@@ -1397,28 +1396,28 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.access_time, color: Colors.white),
-                        SizedBox(width: 10),
+                        const Icon(Icons.access_time, color: Colors.white),
+                        const SizedBox(width: 10),
                         Text(
                           'time_slot'.tr,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             fontFamily: 'Mulish',
                           ),
                         ),
-                        Spacer(),
+                        const Spacer(),
                         IconButton(
-                          icon: Icon(Icons.close, color: Colors.white),
+                          icon: const Icon(Icons.close, color: Colors.white),
                           onPressed: () => Navigator.pop(bottomSheetContext),
                         ),
                       ],
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
                       dayInfo,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -1429,7 +1428,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
               ),
 
               Container(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 child: Text(
                   '${'date'.tr}: ${DateFormat('dd-MM-yyyy (EEEE)').format(selectedDate)}',
                   style: TextStyle(
@@ -1443,10 +1442,10 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
 
               Expanded(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: GridView.builder(
-                    physics: BouncingScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    physics: const BouncingScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 3,
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,
@@ -1471,14 +1470,14 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
 
                           Navigator.pop(bottomSheetContext);
 
-                          Future.delayed(Duration(milliseconds: 400), () {
+                          Future.delayed(const Duration(milliseconds: 400), () {
                             if (mounted) {
                               try {
                                 ScaffoldMessenger.of(scaffoldContext).showSnackBar(
                                   SnackBar(
                                     content: Text('${'time_selected'.tr}: ${slot['time24']}'),
                                     backgroundColor: Colors.green,
-                                    duration: Duration(seconds: 1),
+                                    duration: const Duration(seconds: 1),
                                   ),
                                 );
                               } catch (e) {
@@ -1500,7 +1499,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                               BoxShadow(
                                 color: Colors.green.withOpacity(0.2),
                                 blurRadius: 4,
-                                offset: Offset(0, 2),
+                                offset: const Offset(0, 2),
                               ),
                             ],
                           ),
@@ -1522,7 +1521,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
                 ),
               ),
 
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
             ],
           ),
         );
@@ -1538,13 +1537,13 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
     // Find last Sunday of March
     DateTime marchEnd = DateTime.utc(year, 3, 31);
     while (marchEnd.weekday != DateTime.sunday) {
-      marchEnd = marchEnd.subtract(Duration(days: 1));
+      marchEnd = marchEnd.subtract(const Duration(days: 1));
     }
 
     // Find last Sunday of October
     DateTime octoberEnd = DateTime.utc(year, 10, 31);
     while (octoberEnd.weekday != DateTime.sunday) {
-      octoberEnd = octoberEnd.subtract(Duration(days: 1));
+      octoberEnd = octoberEnd.subtract(const Duration(days: 1));
     }
 
     // DST starts at 2:00 AM on last Sunday of March
@@ -1576,7 +1575,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
         'time12': time12,
       });
 
-      currentSlot = currentSlot.add(Duration(minutes: 20));
+      currentSlot = currentSlot.add(const Duration(minutes: 20));
     }
 
     print("✅ Generated ${slots.length} default time slots as fallback");
@@ -1653,7 +1652,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       }
 
       // Wait a bit to ensure dialog is closed
-      await Future.delayed(Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 300));
 
       // ✅ Close the add reservation bottom sheet FIRST
       if (mounted && Navigator.canPop(context)) {
@@ -1661,7 +1660,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
       }
 
       // ✅ Wait for bottom sheet to close completely
-      await Future.delayed(Duration(milliseconds: 400));
+      await Future.delayed(const Duration(milliseconds: 400));
 
       // Refresh reservations
       await getReservationDetails();
@@ -1672,7 +1671,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
           SnackBar(
             content: Text('${'success'.tr} - ${'created'.tr}'),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -1695,7 +1694,7 @@ class _ReservationState extends State<Reservation> with WidgetsBindingObserver {
           SnackBar(
             content: Text('${'error'.tr} - ${'create_reserv'.tr}: ${e.toString()}'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }

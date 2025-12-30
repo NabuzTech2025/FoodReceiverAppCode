@@ -1,13 +1,10 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:uuid/uuid.dart';
 import '../models/get_product_category_list_response_model.dart';
 import '../models/get_store_postcode_response_model.dart';
 import '../models/get_store_products_response_model.dart';
 import 'dart:io';
-import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:path/path.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -1059,12 +1056,12 @@ class DatabaseHelper {
 
     DateTime marchEnd = DateTime.utc(year, 3, 31);
     while (marchEnd.weekday != DateTime.sunday) {
-      marchEnd = marchEnd.subtract(Duration(days: 1));
+      marchEnd = marchEnd.subtract(const Duration(days: 1));
     }
 
     DateTime octoberEnd = DateTime.utc(year, 10, 31);
     while (octoberEnd.weekday != DateTime.sunday) {
-      octoberEnd = octoberEnd.subtract(Duration(days: 1));
+      octoberEnd = octoberEnd.subtract(const Duration(days: 1));
     }
 
     DateTime dstStart = DateTime.utc(year, marchEnd.month, marchEnd.day, 2, 0);
@@ -1126,9 +1123,9 @@ class DatabaseHelper {
         };
       }).toList();
       print('📦 DB LOAD - Processed ${processedToppings.length} toppings for item ${item['id']}:');
-      processedToppings.forEach((t) {
+      for (var t in processedToppings) {
         print('   🍕 ${t['topping_name']} | id=${t['topping_id']} | price=${t['topping_price']} | qty=${t['topping_quantity']}');
-      });
+      }
       Map<String, dynamic> itemWithToppings = Map.from(item);
       itemWithToppings['toppings'] = processedToppings;
       int? variantId = item['variant_id'] as int?;

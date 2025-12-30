@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_svg/svg.dart';
 
 class DesktopOrderScreen extends StatefulWidget {
   const DesktopOrderScreen({super.key});

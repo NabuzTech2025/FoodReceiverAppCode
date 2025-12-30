@@ -12,7 +12,6 @@ import '../../../api/repository/api_repository.dart';
 import '../../../constants/constant.dart';
 import '../../../models/reservation/get_history_reservation.dart';
 import '../../Login/LoginScreen.dart';
-import '../../table Book/ReservationBottomDialogSheet.dart';
 
 class SuperAdminReservation extends StatefulWidget {
   const SuperAdminReservation({super.key});
@@ -66,7 +65,7 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
 
   void _startInternetMonitoring() {
     _internetCheckTimer?.cancel();
-    _internetCheckTimer = Timer.periodic(Duration(seconds: 30), (timer) async {
+    _internetCheckTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
       final connectivityResult = await Connectivity().checkConnectivity();
       bool hasConnection = connectivityResult != ConnectivityResult.none;
 
@@ -125,7 +124,7 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
         Get.back();
       }
 
-      Get.offAll(() => LoginScreen());
+      Get.offAll(() => const LoginScreen());
       print("✅ Offline logout completed successfully");
 
     } catch (e) {
@@ -133,7 +132,7 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
       if (Get.isDialogOpen ?? false) {
         Get.back();
       }
-      Get.offAll(() => LoginScreen());
+      Get.offAll(() => const LoginScreen());
     }
   }
 
@@ -198,11 +197,11 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
 
         for (String key in keysToRemove) {
           await prefs.remove(key);
-          await Future.delayed(Duration(milliseconds: 20));
+          await Future.delayed(const Duration(milliseconds: 20));
         }
 
         await prefs.reload();
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
       }
 
       print("✅ Complete offline logout cleanup SUCCESS");
@@ -224,14 +223,14 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
         return WillPopScope(
           onWillPop: () async => false,
           child: AlertDialog(
-            title: Row(
+            title: const Row(
               children: [
                 Icon(Icons.signal_wifi_off, color: Colors.red),
                 SizedBox(width: 8),
                 Text("Connection Error"),
               ],
             ),
-            content: Text("Cannot connect to server. Please logout and login again to continue."),
+            content: const Text("Cannot connect to server. Please logout and login again to continue."),
             actions: [
               ElevatedButton(
                 onPressed: () {
@@ -240,7 +239,7 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
                   _offlineLogout();
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: Text("Logout", style: TextStyle(color: Colors.white)),
+                child: const Text("Logout", style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
@@ -303,7 +302,7 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
       backgroundColor: const Color(0xFFF5F5F5),
       body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.all(6),
+          padding: const EdgeInsets.all(6),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -347,18 +346,18 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
                               child: Row(
                                 children: [
                                   Text('history'.tr,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontFamily: "Mulish",
                                           fontWeight: FontWeight.w800,
                                           fontSize: 16,
                                           color: Color(0xff1F1E1E))),
-                                  SizedBox(width: 5),
+                                  const SizedBox(width: 5),
                                   SvgPicture.asset('assets/images/dropdown.svg',
                                       height: 5, width: 11),
                                 ],
                               ),
                             ),
-                            SizedBox(width: 10),
+                            const SizedBox(width: 10),
                             if (dateSeleted.isNotEmpty &&
                                 dateSeleted !=
                                     DateFormat('d MMMM, y')
@@ -371,7 +370,7 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
                                   loadReservationHistory();
                                 },
                                 child: Container(
-                                  padding: EdgeInsets.symmetric(
+                                  padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: Colors.blue.withOpacity(0.1),
@@ -379,7 +378,7 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
                                     border: Border.all(
                                         color: Colors.blue, width: 1),
                                   ),
-                                  child: Row(
+                                  child: const Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(Icons.today,
@@ -404,7 +403,7 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
                         children: [
                           Text(
                             '${'total_reserv'.tr}: ${historyReservations.length}',
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
                                 fontFamily: "Mulish",
@@ -434,7 +433,7 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
               )
                   : ListView.builder(
                   shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
+                  physics: const NeverScrollableScrollPhysics(),
                   itemCount: historyReservations.length,
                   itemBuilder: (context, index) {
                     var reserv = historyReservations[index];
@@ -449,8 +448,8 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
                         });
                       },
                       child: Container(
-                        padding: EdgeInsets.all(10),
-                        margin: EdgeInsets.all(5),
+                        padding: const EdgeInsets.all(10),
+                        margin: const EdgeInsets.all(5),
                         decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(7),
@@ -459,7 +458,7 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
                                 color: Colors.black.withOpacity(0.1),
                                 spreadRadius: 0,
                                 blurRadius: 4,
-                                offset: Offset(0, 2),
+                                offset: const Offset(0, 2),
                               ),
                             ]),
                         child: Column(
@@ -475,10 +474,10 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
                                       height: 25,
                                       width: 25,
                                     ),
-                                    SizedBox(width: 10),
+                                    const SizedBox(width: 10),
                                     Text(
-                                      '${formatDateTime(reserv.reservedFor.toString())}',
-                                      style: TextStyle(
+                                      formatDateTime(reserv.reservedFor.toString()),
+                                      style: const TextStyle(
                                           fontSize: 13,
                                           fontFamily: 'Mulish',
                                           fontWeight: FontWeight.w700),
@@ -487,8 +486,8 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
                                 ),
                                 Row(
                                   children: [
-                                    Icon(Icons.access_time, size: 20),
-                                    SizedBox(width: 5),
+                                    const Icon(Icons.access_time, size: 20),
+                                    const SizedBox(width: 5),
                                     Text(
                                       reserv.createdAt != null
                                           ? DateFormat('HH:mm').format(
@@ -505,17 +504,17 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
                                 )
                               ],
                             ),
-                            SizedBox(height: 10),
+                            const SizedBox(height: 10),
                             Row(
                               mainAxisAlignment:
                               MainAxisAlignment.spaceBetween,
                               children: [
-                                Container(
+                                SizedBox(
                                   width: MediaQuery.of(context).size.width *
                                       0.5,
                                   child: Text(
                                     '${reserv.customerName.toString()}/${reserv.customerPhone.toString()}',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                         fontWeight: FontWeight.w700,
                                         fontSize: 13,
                                         fontFamily: "Mulish"),
@@ -525,15 +524,15 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
                                   children: [
                                     Text(
                                       '${'order_id'.tr} :',
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 13,
                                           fontFamily: "Mulish"),
                                     ),
-                                    SizedBox(width: 5),
+                                    const SizedBox(width: 5),
                                     Text(
                                       reserv.id.toString(),
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontWeight: FontWeight.w500,
                                           fontSize: 11,
                                           fontFamily: "Mulish"),
@@ -542,7 +541,7 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
                                 ),
                               ],
                             ),
-                            SizedBox(height: 10),
+                            const SizedBox(height: 10),
                             Row(
                               mainAxisAlignment:
                               MainAxisAlignment.spaceBetween,
@@ -554,10 +553,10 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
                                       height: 18,
                                       width: 14,
                                     ),
-                                    SizedBox(width: 10),
+                                    const SizedBox(width: 10),
                                     Text(
                                       reserv.guestCount.toString(),
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontFamily: 'Mulish',
                                           fontSize: 16,
                                           fontWeight: FontWeight.w800),
@@ -617,7 +616,7 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
       );
     }
 
-    _reservationTimer = Timer(Duration(seconds: 7), () {
+    _reservationTimer = Timer(const Duration(seconds: 7), () {
       if (Get.isDialogOpen ?? false) {
         Navigator.of(Get.overlayContext!).pop();
         showSnackbar("Timeout", "Request timed out. Please try again.");
@@ -636,7 +635,7 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
           hasInternet = false;
         });
 
-        Future.delayed(Duration(milliseconds: 500), () {
+        Future.delayed(const Duration(milliseconds: 500), () {
           _showLogoutDialog();
         });
         return;
@@ -702,7 +701,7 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
           hasInternet = false;
         });
 
-        Future.delayed(Duration(milliseconds: 500), () {
+        Future.delayed(const Duration(milliseconds: 500), () {
           _showLogoutDialog();
         });
       } else {
@@ -712,7 +711,7 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
             SnackBar(
               content: Text('${'error'.tr} - ${'load'.tr}'),
               backgroundColor: Colors.red,
-              duration: Duration(seconds: 2),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
@@ -746,7 +745,7 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-              child: SuperAdminCalendarDialog(),
+              child: const SuperAdminCalendarDialog(),
             ),
           ],
         );
@@ -766,7 +765,7 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
         SnackBar(
           content: Text('$title: $message'),
           backgroundColor: Colors.orange,
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
         ),
       );
     }
@@ -774,6 +773,8 @@ class _SuperAdminReservationState extends State<SuperAdminReservation> with Widg
 }
 
 class SuperAdminCalendarDialog extends StatefulWidget {
+  const SuperAdminCalendarDialog({super.key});
+
   @override
   _SuperAdminCalendarDialogState createState() => _SuperAdminCalendarDialogState();
 }
@@ -857,7 +858,7 @@ class _SuperAdminCalendarDialogState extends State<SuperAdminCalendarDialog> {
         }
 
         // Small delay to avoid overwhelming the server
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
       }
 
       if (mounted) {
@@ -895,7 +896,7 @@ class _SuperAdminCalendarDialogState extends State<SuperAdminCalendarDialog> {
     if (storeId == null) {
       print('❌ Cannot get reservation history: Store ID is null');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Store ID not found. Please login again.'),
           backgroundColor: Colors.red,
         ),
@@ -948,7 +949,7 @@ class _SuperAdminCalendarDialogState extends State<SuperAdminCalendarDialog> {
         Navigator.of(Get.overlayContext!).pop();
       }
 
-      await Future.delayed(Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 300));
 
       if (_selectedDate != null && mounted) {
         String displayDate = DateFormat('d MMMM, y').format(_selectedDate!);
@@ -971,7 +972,7 @@ class _SuperAdminCalendarDialogState extends State<SuperAdminCalendarDialog> {
           SnackBar(
             content: Text('${'gett_history'.tr}: $e'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -1001,8 +1002,8 @@ class _SuperAdminCalendarDialogState extends State<SuperAdminCalendarDialog> {
                 height: 100,
                 repeat: true,
               ),
-              SizedBox(height: 10),
-              Text('Loading reservations...\nPlease Wait It Will Take SomeTime',
+              const SizedBox(height: 10),
+              const Text('Loading reservations...\nPlease Wait It Will Take SomeTime',
                   style: TextStyle(fontFamily: 'Mulish')),
             ],
           ),
@@ -1012,7 +1013,7 @@ class _SuperAdminCalendarDialogState extends State<SuperAdminCalendarDialog> {
             if (isLoading) // ✅ Show small indicator during month change
               LinearProgressIndicator(
                 backgroundColor: Colors.grey[200],
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
               ),
             _buildCalendar(),
           ],
@@ -1050,7 +1051,7 @@ class _SuperAdminCalendarDialogState extends State<SuperAdminCalendarDialog> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
+            const Text(
               "Reservations",
               style: TextStyle(
                 fontSize: 18,
@@ -1061,7 +1062,7 @@ class _SuperAdminCalendarDialogState extends State<SuperAdminCalendarDialog> {
             Row(
               children: [
                 IconButton(
-                  icon: Icon(Icons.arrow_left, color: Colors.green),
+                  icon: const Icon(Icons.arrow_left, color: Colors.green),
                   onPressed: isLoading ? null : () async { // ✅ Disable during loading
                     setState(() {
                       if (selectedMonth == 1) {
@@ -1075,7 +1076,7 @@ class _SuperAdminCalendarDialogState extends State<SuperAdminCalendarDialog> {
                   },
                 ),
                 IconButton(
-                  icon: Icon(Icons.arrow_right, color: Colors.green),
+                  icon: const Icon(Icons.arrow_right, color: Colors.green),
                   onPressed: isLoading ? null : () async { // ✅ Disable during loading
                     setState(() {
                       if (selectedMonth == 12) {
@@ -1101,7 +1102,7 @@ class _SuperAdminCalendarDialogState extends State<SuperAdminCalendarDialog> {
                 text: TextSpan(
                   children: [
                     TextSpan(
-                      text: DateFormat('MMMM').format(DateTime(year, month)) + ', ',
+                      text: '${DateFormat('MMMM').format(DateTime(year, month))}, ',
                       style: const TextStyle(
                         color: Colors.black,
                         fontSize: 15,
@@ -1123,7 +1124,7 @@ class _SuperAdminCalendarDialogState extends State<SuperAdminCalendarDialog> {
               ),
               Text(
                 '${'total_reserv'.tr}: $totalReservationsForMonth',
-                style: TextStyle(
+                style: const TextStyle(
                   fontFamily: 'Mulish',
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -1200,16 +1201,16 @@ class _SuperAdminCalendarDialogState extends State<SuperAdminCalendarDialog> {
 
               // Show reservation count if available
               if (isCurrentMonth && bookingCount > 0) ...[
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                   decoration: BoxDecoration(
                     color: Colors.blue.withOpacity(0.8),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     '$bookingCount',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 9,
                       color: Colors.white,
                       fontWeight: FontWeight.bold,

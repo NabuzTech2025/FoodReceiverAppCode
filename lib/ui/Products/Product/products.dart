@@ -251,7 +251,7 @@ class _ProductsState extends State<Products> {
                       print('Error picking image from gallery: $e');
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
+                          const SnackBar(
                             content: Text('Failed to pick image'),
                             backgroundColor: Colors.red,
                           ),
@@ -1550,50 +1550,50 @@ class _ProductsState extends State<Products> {
                                     // Validation
                                     if (nameController.text.isEmpty) {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
+                                        const SnackBar(
                                           content: Text('Please enter product name'),
                                           backgroundColor: Colors.red,
-                                          duration: const Duration(seconds: 2),
+                                          duration: Duration(seconds: 2),
                                         ),
                                       );
                                       return;
                                     }
                                     if (codeController.text.isEmpty) {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
+                                        const SnackBar(
                                           content: Text('Please enter product code'),
                                           backgroundColor: Colors.red,
-                                          duration: const Duration(seconds: 2),
+                                          duration: Duration(seconds: 2),
                                         ),
                                       );
                                       return;
                                     }
                                     if (selectedTaxId == null) {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
+                                        const SnackBar(
                                           content: Text('Please select tax'),
                                           backgroundColor: Colors.red,
-                                          duration: const Duration(seconds: 2),
+                                          duration: Duration(seconds: 2),
                                         ),
                                       );
                                       return;
                                     }
                                     if (selectedCategoryId == null) {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
+                                        const SnackBar(
                                           content: Text('Please select category'),
                                           backgroundColor: Colors.red,
-                                          duration: const Duration(seconds: 2),
+                                          duration: Duration(seconds: 2),
                                         ),
                                       );
                                       return;
                                     }
                                     if (descriptionController.text.isEmpty) {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
+                                        const SnackBar(
                                           content: Text('Please enter description'),
                                           backgroundColor: Colors.red,
-                                          duration: const Duration(seconds: 2),
+                                          duration: Duration(seconds: 2),
                                         ),
                                       );
                                       return;
@@ -1602,10 +1602,10 @@ class _ProductsState extends State<Products> {
                                     if (selectedProductType == 'simple'.tr) {
                                       if (priceController.text.isEmpty) {
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
+                                          const SnackBar(
                                             content: Text('Please enter price'),
                                             backgroundColor: Colors.red,
-                                            duration: const Duration(seconds: 2),
+                                            duration: Duration(seconds: 2),
                                           ),
                                         );
                                         return;
@@ -1613,10 +1613,10 @@ class _ProductsState extends State<Products> {
                                     } else if (selectedProductType == 'variable'.tr) {
                                       if (variants.isEmpty) {
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
+                                          const SnackBar(
                                             content: Text('Please add at least one variant'),
                                             backgroundColor: Colors.red,
-                                            duration: const Duration(seconds: 2),
+                                            duration: Duration(seconds: 2),
                                           ),
                                         );
                                         return;
@@ -1625,10 +1625,10 @@ class _ProductsState extends State<Products> {
                                         if (variant['name'].text.isEmpty ||
                                             variant['price'].text.isEmpty) {
                                           ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
+                                            const SnackBar(
                                               content: Text('Please fill all variant fields'),
                                               backgroundColor: Colors.red,
-                                              duration: const Duration(seconds: 2),
+                                              duration: Duration(seconds: 2),
                                             ),
                                           );
                                           return;
@@ -2415,50 +2415,50 @@ class _ProductsState extends State<Products> {
                                   onPressed: () async {
                                     if (nameController.text.isEmpty) {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
+                                        const SnackBar(
                                           content: Text('Please enter product name'),
                                           backgroundColor: Colors.red,
-                                          duration: const Duration(seconds: 2),
+                                          duration: Duration(seconds: 2),
                                         ),
                                       );
                                       return;
                                     }
                                     if (codeController.text.isEmpty) {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
+                                        const SnackBar(
                                           content: Text('Please enter product code'),
                                           backgroundColor: Colors.red,
-                                          duration: const Duration(seconds: 2),
+                                          duration: Duration(seconds: 2),
                                         ),
                                       );
                                       return;
                                     }
                                     if (selectedTaxId == null) {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
+                                        const SnackBar(
                                           content: Text('Please select tax'),
                                           backgroundColor: Colors.red,
-                                          duration: const Duration(seconds: 2),
+                                          duration: Duration(seconds: 2),
                                         ),
                                       );
                                       return;
                                     }
                                     if (selectedCategoryId == null) {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
+                                        const SnackBar(
                                           content: Text('Please select category'),
                                           backgroundColor: Colors.red,
-                                          duration: const Duration(seconds: 2),
+                                          duration: Duration(seconds: 2),
                                         ),
                                       );
                                       return;
                                     }
                                     if (descriptionController.text.isEmpty) {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
+                                        const SnackBar(
                                           content: Text('Please enter description'),
                                           backgroundColor: Colors.red,
-                                          duration: const Duration(seconds: 2),
+                                          duration: Duration(seconds: 2),
                                         ),
                                       );
                                       return;
@@ -2467,10 +2467,10 @@ class _ProductsState extends State<Products> {
                                     if (selectedProductType == 'simple'.tr) {
                                       if (priceController.text.isEmpty) {
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
+                                          const SnackBar(
                                             content: Text('Please enter price'),
                                             backgroundColor: Colors.red,
-                                            duration: const Duration(seconds: 2),
+                                            duration: Duration(seconds: 2),
                                           ),
                                         );
                                         return;
@@ -2478,10 +2478,10 @@ class _ProductsState extends State<Products> {
                                     } else if (selectedProductType == 'variable'.tr) {
                                       if (variants.isEmpty) {
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
+                                          const SnackBar(
                                             content: Text('Please add at least one variant'),
                                             backgroundColor: Colors.red,
-                                            duration: const Duration(seconds: 2),
+                                            duration: Duration(seconds: 2),
                                           ),
                                         );
                                         return;
@@ -2489,10 +2489,10 @@ class _ProductsState extends State<Products> {
                                       for (var variant in variants) {
                                         if (variant['name'].text.isEmpty || variant['price'].text.isEmpty) {
                                           ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
+                                            const SnackBar(
                                               content: Text('Please fill all variant fields'),
                                               backgroundColor: Colors.red,
-                                              duration: const Duration(seconds: 2),
+                                              duration: Duration(seconds: 2),
                                             ),
                                           );
                                           return;
@@ -2665,10 +2665,10 @@ class _ProductsState extends State<Products> {
     if (sharedPreferences == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('SharedPreferences not initialized'),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 2),
           ),
         );
       }
@@ -2679,10 +2679,10 @@ class _ProductsState extends State<Products> {
     if (storeId == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Store ID not found'),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 2),
           ),
         );
       }
@@ -3167,10 +3167,10 @@ class _ProductsState extends State<Products> {
     if (sharedPreferences == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('SharedPreferences not initialized'),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 2),
           ),
         );
       }
@@ -3180,10 +3180,10 @@ class _ProductsState extends State<Products> {
     storeId = sharedPreferences!.getString(valueShared_STORE_KEY);
     if (storeId == null) {if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Store ID not found'),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 2),
+          duration: Duration(seconds: 2),
         ),
       );
     } Get.snackbar('Error', 'Store ID not found');
@@ -3199,10 +3199,10 @@ class _ProductsState extends State<Products> {
     if (product.id == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Product not found'),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 2),
           ),
         );
       }
